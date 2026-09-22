@@ -92,6 +92,39 @@ holds the version ranges.
 - Both catalogues must keep the same key set and the same `{placeholders}`;
   a mismatch raises at runtime inside `.format()`.
 
+## Live-loop geometry cost — 22 September 2026
+
+- Problem addressed: `resolve_layout` calls `detect_layout` on every iteration of
+  the 0.33 s loop, measured at 58.5 ms, and `read_incremental` then re-fitted the
+  same alignment. The whole geometry path cost 62.9 ms per frame, 19 % of the
+  budget, to re-derive a layout that only changes when the tab changes.
+- Profiling, not guessing, found the cost was mostly waste:
+  `aligned_slots` rebuilt identical edge maps once per layout (18.4 ms of the
+  32.3 ms it spent), and `detect_layout` built its own maps over the full
+  1920x1080 frame (11.3 ms) although every cell fits in 700x800.
+- `layouts.edge_maps(frame)` now builds those maps once over `REGION = (800, 700)`;
+  `aligned_slots(frame, layout_id, edges=None)` accepts them. `Scanner.aligned()`
+  memoises the fit per frame and per layout, so detection and reading share it.
+- The cache is keyed on the **frame object**, compared with `is`. Keeping the
+  object (never its `id()`, which can be reused after collection) makes identity a
+  sound test. A copy of the same pixels is a different frame and is re-fitted.
+- Result: 62.9 ms -> 30 ms per frame, 19.1 % -> 9.1 % of the loop budget.
+- **Behaviour is unchanged and that was verified, not assumed**: the margin
+  harness reports the same values to four decimals, and a test compares readings
+  with a warm and a cold cache.
+- What was deliberately *not* done: a cross-frame cache that keeps the previous
+  verdict. Confirming only the current layout would be roughly seven times cheaper
+  again, but Runes and Kalguuran overlap enough that the current layout could keep
+  scoring above the floor after the page changed, and the rule is explicit that an
+  uncertain detection must never reuse the last type. Validating that shortcut
+  needs a real capture of a second rune page, which does not exist yet. Do not add
+  it on synthetic grids.
+- `tests/test_geometry_cache.py` pins both halves: the saving (one fit per layout
+  per frame, reading reuses detection's) and the invalidation (a new frame, or an
+  equal-but-distinct one, is always re-fitted). It also asserts that every layout
+  fits inside the window with room for the alignment search.
+- Last validation: **105 tests passed**, as well as `python -m tests.smoke_ui`.
+
 ## Confirmed-empty cells — 22 September 2026
 
 - Problem addressed: `Store.sync` deleted a cell confirmed empty, which made it

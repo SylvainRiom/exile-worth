@@ -103,6 +103,13 @@ icon is identified again. Three fresh matching readings confirm each change; an
 unstable cell does not reset the others. An unknown reading keeps the old stock and
 flags it as uncertain.
 
+Geometry work is shared within a frame: the gradient maps are built once for all
+layouts instead of once per layout, over the 700x800 window that contains every
+stash grid rather than the whole screen, and the alignment fitted during detection
+is reused when reading. That halves the per-frame geometry cost, from about 63 ms
+to about 30 ms, roughly 9 % of the 330 ms loop. The cache is keyed on the frame
+object itself, so a new frame is always re-fitted.
+
 A full check runs again after 30 seconds. Changing tab or structure, coming back
 after a focus loss, or refreshing the references invalidates the cache and requires
 new confirmations. The pixel-by-pixel comparison is conservative: an animation can

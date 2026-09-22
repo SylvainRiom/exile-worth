@@ -16,7 +16,8 @@ from .diagnostics import ChangeGate, format_scores, log
 from .model import DATA, Reading, Reason
 from .i18n import t
 from .icons import IconMatcher, SAGA_FAMILY
-from .layouts import ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, layout_for_tab, aligned_slots, LEGACY_EXPEDITION_SLOTS, layout_family
+from .layouts import (ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, layout_for_tab, aligned_slots,
+                      edge_maps, LEGACY_EXPEDITION_SLOTS, layout_family)
 
 # Inner rectangles, measured on the user's 1920x1080 currency tab.
 SLOTS = CURRENCY_SLOTS  # Compatibility for existing profiles and callers.
@@ -405,7 +406,20 @@ class Scanner:
         self.last_layout_scores = []
         self.last_layout_verdict = ''
         self.gate = ChangeGate()
+        # Alignment is fitted per frame and per layout; detection and reading ask
+        # for the same one on the same frame. Keeping the frame object (never its
+        # id()) makes `is` a sound identity test.
+        self._aligned_frame = None
+        self._aligned = {}
         self.reset_incremental()
+
+    def aligned(self, frame, layout_id, edges=None):
+        """`aligned_slots` for this frame, computed once per layout."""
+        if self._aligned_frame is not frame:
+            self._aligned_frame, self._aligned = frame, {}
+        if layout_id not in self._aligned:
+            self._aligned[layout_id] = aligned_slots(frame, layout_id, edges)
+        return self._aligned[layout_id]
 
     def reset_incremental(self):
         self.live_cache = {}
@@ -424,7 +438,7 @@ class Scanner:
         if key != self.live_key or config != self.live_config:
             self.reset_incremental()
             self.live_key, self.live_config = key, config
-        slots = aligned_slots(frame, layout_id)
+        slots = self.aligned(frame, layout_id)
         pending, reusable, matches = [], {}, {}
         patches = {slot: crop(frame, rect) for slot, rect in slots.items()}
         for slot, patch in patches.items():
@@ -462,13 +476,13 @@ class Scanner:
 
     def detect_layout(self, frame, borders_only=False):
         # Borders identify the structure even with an empty/missing icon catalogue.
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(np.float32)
-        horizontal = np.abs(np.diff(gray, axis=0))
-        vertical = np.abs(np.diff(gray, axis=1))
+        # One set of edge maps serves every layout and their alignment searches.
+        edges = edge_maps(frame)
+        vertical, horizontal = edges
         structures = []
         for layout in LAYOUTS.values():
             found = 0
-            for x,y,w,h in aligned_slots(frame, layout.id).values():
+            for x,y,w,h in self.aligned(frame, layout.id, edges).values():
                 sides = []
                 for edge in (y, y+h):
                     strip = horizontal[max(0,edge-6):edge+7, x+8:x+w-8]
@@ -519,7 +533,7 @@ class Scanner:
 
     def read(self, frame, layout_id='currency', slot_ids=None, cached_matches=None):
         self.last_layout_id = layout_id
-        slots = aligned_slots(frame, layout_id)
+        slots = self.aligned(frame, layout_id)
         if slot_ids is not None:
             slots = {slot: rect for slot, rect in slots.items() if slot in slot_ids}
         results = []

@@ -107,18 +107,39 @@ def layout_family(layout_id):
     return 'runes' if layout_id in RUNE_PAGES else layout_id
 
 
-def aligned_slots(frame, layout_id):
-    """Fit a common translation to the case borders, never to item identity.
+# Every layout's cells fit inside this window, with room for the +/-20 px
+# alignment search and the +7 px scoring strips (measured: 658 x 766).
+REGION = (800, 700)
 
-    An unconvincing fit leaves the reference geometry unchanged. Each layout
-    keeps its own rectangles; this cannot turn an unknown structure into another.
+
+def edge_maps(frame):
+    """Gradient magnitudes over the stash region: (vertical, horizontal).
+
+    Detection scores four sides of every cell of every layout, so these maps are
+    read many times per frame but depend only on the frame. Building them once
+    and passing them down is worth about 27 ms per live-loop iteration.
     """
     import cv2
     import numpy as np
 
+    height, width = REGION
+    gray = cv2.cvtColor(frame[:height, :width], cv2.COLOR_BGR2GRAY).astype(np.float32)
+    return np.abs(np.diff(gray, axis=1)), np.abs(np.diff(gray, axis=0))
+
+
+def aligned_slots(frame, layout_id, edges=None):
+    """Fit a common translation to the case borders, never to item identity.
+
+    An unconvincing fit leaves the reference geometry unchanged. Each layout
+    keeps its own rectangles; this cannot turn an unknown structure into another.
+
+    `edges` accepts the maps from `edge_maps(frame)` when a caller already built
+    them for this frame; the result is identical either way.
+    """
+    import numpy as np
+
     slots = LAYOUTS[layout_id].slots
-    gray = cv2.cvtColor(frame[:800, :700], cv2.COLOR_BGR2GRAY).astype(np.float32)
-    edges = (np.abs(np.diff(gray, axis=1)), np.abs(np.diff(gray, axis=0)))
+    edges = edge_maps(frame) if edges is None else edges
     offsets = [0, 0]
     for axis in (0, 1):
         scores = np.zeros(41)
