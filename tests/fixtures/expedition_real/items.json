@@ -1,0 +1,712 @@
+{
+  "adaptive-alloy": {
+    "id": "adaptive-alloy",
+    "name": "Adaptive Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQ2hpcHBlZFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/5795b74448/ChippedVerisium.png"
+  },
+  "aldurs-saga": {
+    "id": "aldurs-saga",
+    "name": "Aldur's Saga",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlNSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e4e66b1f57/SpecialExpeditionPage5.png"
+  },
+  "blazing-flux": {
+    "id": "blazing-flux",
+    "name": "Blazing Flux",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eEZpcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/5894d96668/ArcaneFluxFire.png",
+    "detailsId": "blazing-flux"
+  },
+  "celestial-alloy": {
+    "id": "celestial-alloy",
+    "name": "Celestial Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3k0Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/df21374115/Alloy4.png"
+  },
+  "chilling-flux": {
+    "id": "chilling-flux",
+    "name": "Chilling Flux",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eENvbGQiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/8be4ea67ff/ArcaneFluxCold.png",
+    "detailsId": "chilling-flux"
+  },
+  "crackling-flux": {
+    "id": "crackling-flux",
+    "name": "Crackling Flux",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eExpZ2h0bmluZyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6f9758e0a3/ArcaneFluxLightning.png",
+    "detailsId": "crackling-flux"
+  },
+  "cyclonic-alloy": {
+    "id": "cyclonic-alloy",
+    "name": "Cyclonic Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvSW1idWVkVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/083dc3c30d/ImbuedVerisium.png"
+  },
+  "exceptional-verisium": {
+    "id": "exceptional-verisium",
+    "name": "Exceptional Verisium",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUGVyZmVjdFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/fce9475fdb/PerfectVerisium.png"
+  },
+  "expansive-alloy": {
+    "id": "expansive-alloy",
+    "name": "Expansive Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3RhbmRhcmRWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/4ee9afb77c/StandardVerisium.png"
+  },
+  "expedition-logbook": {
+    "id": "expedition-logbook",
+    "name": "Expedition Logbook",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkxvZ2Jvb2s1Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/841a5e9622/ExpeditionLogbook5.png",
+    "detailsId": "expedition-logbook"
+  },
+  "liquid-verisium": {
+    "id": "liquid-verisium",
+    "name": "Liquid Verisium",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvTGlxdWlkTWV0YWxWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/af9a074e38/LiquidMetalVerisium.png"
+  },
+  "medveds-crest-of-the-circle": {
+    "id": "medveds-crest-of-the-circle",
+    "name": "Medved's Crest of the Circle",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvVWh0cmVkQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/273a9b8731/UhtredCrest.png"
+  },
+  "medveds-saga": {
+    "id": "medveds-saga",
+    "name": "Medved's Saga",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/9eb5b576fc/SpecialExpeditionPage3.png",
+    "detailsId": "medveds-saga"
+  },
+  "mystic-alloy": {
+    "id": "mystic-alloy",
+    "name": "Mystic Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQ2VsZXN0aWFsVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/1478b03254/CelestialVerisium.png"
+  },
+  "olroths-crest-of-the-sun": {
+    "id": "olroths-crest-of-the-sun",
+    "name": "Olroth's Crest of the Sun",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvT2xyb3RoQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/7af5ff0fcb/OlrothCrest.png"
+  },
+  "olroths-saga": {
+    "id": "olroths-saga",
+    "name": "Olroth's Saga",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e4b423d772/SpecialExpeditionPage1.png",
+    "detailsId": "olroths-saga"
+  },
+  "perfect-flux": {
+    "id": "perfect-flux",
+    "name": "Perfect Flux",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5UG93ZXJmdWwiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/43be23e971/ExpeditionGemCurrencyPowerful.png",
+    "detailsId": "perfect-flux"
+  },
+  "prismatic-alloy": {
+    "id": "prismatic-alloy",
+    "name": "Prismatic Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU292ZXJlaWduVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/3565edc5d4/SovereignVerisium.png"
+  },
+  "protective-alloy": {
+    "id": "protective-alloy",
+    "name": "Protective Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvSW1wdXJlVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/240b446d85/ImpureVerisium.png"
+  },
+  "revered-starlit-ore": {
+    "id": "revered-starlit-ore",
+    "name": "Revered Starlit Ore",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDRfQXJtb3VyIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/6b74e4cff7/VerisiumOre_Starlit_2x4_Armour.png"
+  },
+  "runic-alloy": {
+    "id": "runic-alloy",
+    "name": "Runic Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU2NyYXBWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/a16ffa5970/ScrapVerisium.png"
+  },
+  "sovereign-alloy": {
+    "id": "sovereign-alloy",
+    "name": "Sovereign Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kxIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/34231c4ea8/Alloy1.png"
+  },
+  "swift-alloy": {
+    "id": "swift-alloy",
+    "name": "Swift Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUHVyZVZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8418cd5cc3/PureVerisium.png"
+  },
+  "thaumaturgic-flux-10": {
+    "id": "thaumaturgic-flux-10",
+    "name": "Thaumaturgic Flux (Level 10)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+  },
+  "thaumaturgic-flux-11": {
+    "id": "thaumaturgic-flux-11",
+    "name": "Thaumaturgic Flux (Level 11)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+  },
+  "thaumaturgic-flux-13": {
+    "id": "thaumaturgic-flux-13",
+    "name": "Thaumaturgic Flux (Level 13)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-13"
+  },
+  "thaumaturgic-flux-14": {
+    "id": "thaumaturgic-flux-14",
+    "name": "Thaumaturgic Flux (Level 14)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-14"
+  },
+  "thaumaturgic-flux-15": {
+    "id": "thaumaturgic-flux-15",
+    "name": "Thaumaturgic Flux (Level 15)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-15"
+  },
+  "thaumaturgic-flux-16": {
+    "id": "thaumaturgic-flux-16",
+    "name": "Thaumaturgic Flux (Level 16)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-16"
+  },
+  "thaumaturgic-flux-18": {
+    "id": "thaumaturgic-flux-18",
+    "name": "Thaumaturgic Flux (Level 18)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-18"
+  },
+  "thaumaturgic-flux-19": {
+    "id": "thaumaturgic-flux-19",
+    "name": "Thaumaturgic Flux (Level 19)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-19"
+  },
+  "thaumaturgic-flux-20": {
+    "id": "thaumaturgic-flux-20",
+    "name": "Thaumaturgic Flux (Level 20)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "detailsId": "thaumaturgic-flux-level-20"
+  },
+  "thaumaturgic-flux-9": {
+    "id": "thaumaturgic-flux-9",
+    "name": "Thaumaturgic Flux (Level 9)",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+  },
+  "the-runebinders-alloy": {
+    "id": "the-runebinders-alloy",
+    "name": "The Runebinder's Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kyIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/e0ba7ace00/Alloy2.png"
+  },
+  "the-runefathers-alloy": {
+    "id": "the-runefathers-alloy",
+    "name": "The Runefather's Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kzIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/226e099997/Alloy3.png"
+  },
+  "transcendent-alloy": {
+    "id": "transcendent-alloy",
+    "name": "Transcendent Alloy",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3k1Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/4ffca7b84e/Alloy5.png"
+  },
+  "uhtreds-crest-of-the-chalice": {
+    "id": "uhtreds-crest-of-the-chalice",
+    "name": "Uhtred's Crest of the Chalice",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvTWVkdmVkQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/75a8fb110a/MedvedCrest.png"
+  },
+  "uhtreds-saga": {
+    "id": "uhtreds-saga",
+    "name": "Uhtred's Saga",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlNCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/0470c24911/SpecialExpeditionPage4.png",
+    "detailsId": "uhtreds-saga"
+  },
+  "venerable-starlit-ore": {
+    "id": "venerable-starlit-ore",
+    "name": "Venerable Starlit Ore",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ef8350565a/VerisiumOre_Starlit_2x3.png"
+  },
+  "veridical-starlit-ore": {
+    "id": "veridical-starlit-ore",
+    "name": "Veridical Starlit Ore",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8xeDEiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/8811af0254/VerisiumOre_Starlit_1x1.png"
+  },
+  "verisium": {
+    "id": "verisium",
+    "name": "Verisium",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUmVmaW5lZFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/35616acb9f/RefinedVerisium.png"
+  },
+  "void-flux": {
+    "id": "void-flux",
+    "name": "Void Flux",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/05c5ace7f7/ArcaneFlux.png",
+    "detailsId": "void-flux"
+  },
+  "voranas-crest-of-the-scythe": {
+    "id": "voranas-crest-of-the-scythe",
+    "name": "Vorana's Crest of the Scythe",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvVm9yYW5hQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/af46d3f422/VoranaCrest.png"
+  },
+  "voranas-saga": {
+    "id": "voranas-saga",
+    "name": "Vorana's Saga",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/057899d625/SpecialExpeditionPage2.png",
+    "detailsId": "voranas-saga"
+  },
+  "warding-starlit-ore": {
+    "id": "warding-starlit-ore",
+    "name": "Warding Starlit Ore",
+    "category": "Expedition",
+    "source": "https://poe2db.tw/us/Economy_Expedition",
+    "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDRfV2VhcG9uIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/0bb113db28/VerisiumOre_Starlit_2x4_Weapon.png"
+  },
+  "divine": {
+    "id": "divine",
+    "name": "Divine Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/2986e220b3/CurrencyModValues.png",
+    "category": "Currency",
+    "detailsId": "divine-orb"
+  },
+  "exalted": {
+    "id": "exalted",
+    "name": "Exalted Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ad7c366789/CurrencyAddModToRare.png",
+    "category": "Currency",
+    "detailsId": "exalted-orb"
+  },
+  "chaos": {
+    "id": "chaos",
+    "name": "Chaos Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c0ca392a78/CurrencyRerollRare.png",
+    "category": "Currency",
+    "detailsId": "chaos-orb"
+  },
+  "alch": {
+    "id": "alch",
+    "name": "Orb of Alchemy",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9SYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/9b80b44821/CurrencyUpgradeToRare.png",
+    "category": "Currency",
+    "detailsId": "orb-of-alchemy"
+  },
+  "ancient-infuser": {
+    "id": "ancient-infuser",
+    "name": "Ancient Infuser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkFuY2llbnRJbmZ1c2lvbiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/7d23730590/IncursionAncientInfusion.png",
+    "category": "Vaal",
+    "detailsId": "ancient-infuser"
+  },
+  "annul": {
+    "id": "annul",
+    "name": "Orb of Annulment",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQW5udWxsT3JiIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/2daba8ccca/AnnullOrb.png",
+    "category": "Currency",
+    "detailsId": "orb-of-annulment"
+  },
+  "architects-orb": {
+    "id": "architects-orb",
+    "name": "Architect's Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkdyZWF0ZXJWYWFsT3JiIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/7ba6f79f63/IncursionGreaterVaalOrb.png",
+    "category": "Vaal",
+    "detailsId": "architects-orb"
+  },
+  "artificers": {
+    "id": "artificers",
+    "name": "Artificer's Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRFcXVpcG1lbnRTb2NrZXQiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/5131fd4774/CurrencyAddEquipmentSocket.png",
+    "category": "Currency",
+    "detailsId": "artificers-orb"
+  },
+  "aug": {
+    "id": "aug",
+    "name": "Orb of Augmentation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb01hZ2ljIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c8ad0ddc84/CurrencyAddModToMagic.png",
+    "category": "Currency",
+    "detailsId": "orb-of-augmentation"
+  },
+  "bauble": {
+    "id": "bauble",
+    "name": "Glassblower's Bauble",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lGbGFza1F1YWxpdHkiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/1cec279e01/CurrencyFlaskQuality.png",
+    "category": "Currency",
+    "detailsId": "glassblowers-bauble"
+  },
+  "chance": {
+    "id": "chance",
+    "name": "Orb of Chance",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9VbmlxdWUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/93c6cc8d5b/CurrencyUpgradeToUnique.png",
+    "category": "Currency",
+    "detailsId": "orb-of-chance"
+  },
+  "chance-shard": {
+    "id": "chance-shard",
+    "name": "Chance Shard",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9VbmlxdWVTaGFyZCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/9828a70270/CurrencyUpgradeToUniqueShard.png",
+    "category": "Currency",
+    "detailsId": "chance-shard"
+  },
+  "core-destabiliser": {
+    "id": "core-destabiliser",
+    "name": "Core Destabiliser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNvcmVEZXN0YWJsaXNlciIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e613c14ed7/IncursionCoreDestabliser.png",
+    "category": "Vaal",
+    "detailsId": "core-destabiliser"
+  },
+  "crystallised-corruption": {
+    "id": "crystallised-corruption",
+    "name": "Crystallised Corruption",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNyeXN0YWxsaXNlZENvcnJ1cHRpb24iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/7bb759396f/IncursionCrystallisedCorruption.png",
+    "category": "Vaal",
+    "detailsId": "crystallised-corruption"
+  },
+  "etcher": {
+    "id": "etcher",
+    "name": "Arcanist's Etcher",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lXZWFwb25NYWdpY1F1YWxpdHkiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/516e8f1131/CurrencyWeaponMagicQuality.png",
+    "category": "Currency",
+    "detailsId": "arcanists-etcher"
+  },
+  "fracturing-orb": {
+    "id": "fracturing-orb",
+    "name": "Fracturing Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRnJhY3R1cmluZ09yYiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/8b85ed1dc2/FracturingOrb.png",
+    "category": "Currency",
+    "detailsId": "fracturing-orb"
+  },
+  "greater-regal-orb": {
+    "id": "greater-regal-orb",
+    "name": "Greater Regal Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlTWFnaWNUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/e8fb148e80/CurrencyUpgradeMagicToRare.png",
+    "category": "Currency",
+    "detailsId": "greater-regal-orb"
+  },
+  "kopecs-orb-of-sacrifice": {
+    "id": "kopecs-orb-of-sacrifice",
+    "name": "Kopec's Orb of Sacrifice",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNvcnJ1cHRpb25PcmIyIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/911b28ea18/IncursionCorruptionOrb2.png",
+    "category": "Vaal",
+    "detailsId": "kopecs-orb-of-sacrifice"
+  },
+  "lesser-jewellers-orb": {
+    "id": "lesser-jewellers-orb",
+    "name": "Lesser Jeweller's Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxTb2NrZXROdW1iZXJzMDEiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/b0b9a43ed8/CurrencyRerollSocketNumbers01.png",
+    "category": "Currency",
+    "detailsId": "lesser-jewellers-orb"
+  },
+  "mirror": {
+    "id": "mirror",
+    "name": "Mirror of Kalandra",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lEdXBsaWNhdGUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/26bc31680e/CurrencyDuplicate.png",
+    "category": "Currency",
+    "detailsId": "mirror-of-kalandra"
+  },
+  "perfect-chaos-orb": {
+    "id": "perfect-chaos-orb",
+    "name": "Perfect Chaos Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c0ca392a78/CurrencyRerollRare.png",
+    "category": "Currency",
+    "detailsId": "perfect-chaos-orb"
+  },
+  "perfect-exalted-orb": {
+    "id": "perfect-exalted-orb",
+    "name": "Perfect Exalted Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ad7c366789/CurrencyAddModToRare.png",
+    "category": "Currency",
+    "detailsId": "perfect-exalted-orb"
+  },
+  "perfect-jewellers-orb": {
+    "id": "perfect-jewellers-orb",
+    "name": "Perfect Jeweller's Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxTb2NrZXROdW1iZXJzMDMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ac6398e6a0/CurrencyRerollSocketNumbers03.png",
+    "category": "Currency",
+    "detailsId": "perfect-jewellers-orb"
+  },
+  "perfect-regal-orb": {
+    "id": "perfect-regal-orb",
+    "name": "Perfect Regal Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlTWFnaWNUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/e8fb148e80/CurrencyUpgradeMagicToRare.png",
+    "category": "Currency",
+    "detailsId": "perfect-regal-orb"
+  },
+  "regal": {
+    "id": "regal",
+    "name": "Regal Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlTWFnaWNUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/e8fb148e80/CurrencyUpgradeMagicToRare.png",
+    "category": "Currency",
+    "detailsId": "regal-orb"
+  },
+  "scrap": {
+    "id": "scrap",
+    "name": "Armourer's Scrap",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBcm1vdXJRdWFsaXR5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/d5868f596d/CurrencyArmourQuality.png",
+    "category": "Currency",
+    "detailsId": "armourers-scrap"
+  },
+  "vaal-arcanists-infuser": {
+    "id": "vaal-arcanists-infuser",
+    "name": "Vaal Arcanist's Infuser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL1ZhYWxBcmNhbmlzdHNFdGNoZXIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/3eb344ecc5/VaalArcanistsEtcher.png",
+    "category": "Vaal",
+    "detailsId": "vaal-arcanists-infuser"
+  },
+  "vaal-armourers-infuser": {
+    "id": "vaal-armourers-infuser",
+    "name": "Vaal Armourer's Infuser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL1ZhYWtBcm1vdXJlcnNTY3JhcCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/f9e1c7e389/VaakArmourersScrap.png",
+    "category": "Vaal",
+    "detailsId": "vaal-armourers-infuser"
+  },
+  "vaal-blacksmiths-infuser": {
+    "id": "vaal-blacksmiths-infuser",
+    "name": "Vaal Blacksmith's Infuser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL1ZhYWxCbGFja3NtaXRoc1doZXRzdG9uZSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/193a2f8085/VaalBlacksmithsWhetstone.png",
+    "category": "Vaal",
+    "detailsId": "vaal-blacksmiths-infuser"
+  },
+  "vaal-cultivation-orb": {
+    "id": "vaal-cultivation-orb",
+    "name": "Vaal Cultivation Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkhpc3RvcmljVmFhbE9yYiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/07d4d75931/IncursionHistoricVaalOrb.png",
+    "category": "Vaal",
+    "detailsId": "vaal-cultivation-orb"
+  },
+  "vaal-siphoner": {
+    "id": "vaal-siphoner",
+    "name": "Vaal Siphoner",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvblZhYWxTaXBob25lciIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/070fd020d7/IncursionVaalSiphoner.png",
+    "category": "Vaal",
+    "detailsId": "vaal-siphoner"
+  },
+  "cryptic-key": {
+    "id": "cryptic-key",
+    "name": "Cryptic Key",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvU3Ryb25nYm94U2tlbGV0b25LZXkiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ae08d02326/StrongboxSkeletonKey.png",
+    "category": "Currency",
+    "detailsId": "cryptic-key"
+  },
+  "artificers-shard": {
+    "id": "artificers-shard",
+    "name": "Artificer's Shard",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRFcXVpcG1lbnRTb2NrZXRTaGFyZCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/cdcdd8bf3f/CurrencyAddEquipmentSocketShard.png",
+    "category": "Currency",
+    "detailsId": "artificers-shard"
+  },
+  "hinekoras-lock": {
+    "id": "hinekoras-lock",
+    "name": "Hinekora's Lock",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSGluZWtvcmFzTG9jayIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/ab2163ae06/HinekorasLock.png",
+    "category": "Currency",
+    "detailsId": "hinekoras-lock"
+  },
+  "gcp": {
+    "id": "gcp",
+    "name": "Gemcutter's Prism",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lHZW1RdWFsaXR5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/f4bace18d7/CurrencyGemQuality.png",
+    "category": "Currency",
+    "detailsId": "gemcutters-prism"
+  },
+  "greater-chaos-orb": {
+    "id": "greater-chaos-orb",
+    "name": "Greater Chaos Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c0ca392a78/CurrencyRerollRare.png",
+    "category": "Currency",
+    "detailsId": "greater-chaos-orb"
+  },
+  "greater-exalted-orb": {
+    "id": "greater-exalted-orb",
+    "name": "Greater Exalted Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ad7c366789/CurrencyAddModToRare.png",
+    "category": "Currency",
+    "detailsId": "greater-exalted-orb"
+  },
+  "greater-jewellers-orb": {
+    "id": "greater-jewellers-orb",
+    "name": "Greater Jeweller's Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxTb2NrZXROdW1iZXJzMDIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/7dd6ee75be/CurrencyRerollSocketNumbers02.png",
+    "category": "Currency",
+    "detailsId": "greater-jewellers-orb"
+  },
+  "greater-orb-of-augmentation": {
+    "id": "greater-orb-of-augmentation",
+    "name": "Greater Orb of Augmentation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb01hZ2ljIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c8ad0ddc84/CurrencyAddModToMagic.png",
+    "category": "Currency",
+    "detailsId": "greater-orb-of-augmentation"
+  },
+  "greater-orb-of-transmutation": {
+    "id": "greater-orb-of-transmutation",
+    "name": "Greater Orb of Transmutation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9NYWdpYyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/2f8e1ff9f8/CurrencyUpgradeToMagic.png",
+    "category": "Currency",
+    "detailsId": "greater-orb-of-transmutation"
+  },
+  "kamasas-orb-of-sacrifice": {
+    "id": "kamasas-orb-of-sacrifice",
+    "name": "Kamasa's Orb of Sacrifice",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNvcnJ1cHRpb25PcmIzIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/00e0cd1060/IncursionCorruptionOrb3.png",
+    "category": "Vaal",
+    "detailsId": "kamasas-orb-of-sacrifice"
+  },
+  "orb-of-extraction": {
+    "id": "orb-of-extraction",
+    "name": "Orb of Extraction",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvblNvY2tldGFibGVFeHRyYWN0b3JDdXJyZW5jeSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/dae9dfbb5e/IncursionSocketableExtractorCurrency.png",
+    "category": "Vaal",
+    "detailsId": "orb-of-extraction"
+  },
+  "perfect-orb-of-augmentation": {
+    "id": "perfect-orb-of-augmentation",
+    "name": "Perfect Orb of Augmentation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb01hZ2ljIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c8ad0ddc84/CurrencyAddModToMagic.png",
+    "category": "Currency",
+    "detailsId": "perfect-orb-of-augmentation"
+  },
+  "perfect-orb-of-transmutation": {
+    "id": "perfect-orb-of-transmutation",
+    "name": "Perfect Orb of Transmutation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9NYWdpYyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/2f8e1ff9f8/CurrencyUpgradeToMagic.png",
+    "category": "Currency",
+    "detailsId": "perfect-orb-of-transmutation"
+  },
+  "transmutation-shard": {
+    "id": "transmutation-shard",
+    "name": "Transmutation Shard",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9NYWdpY1NoYXJkIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/e67bca229b/CurrencyUpgradeToMagicShard.png",
+    "category": "Currency",
+    "detailsId": "transmutation-shard"
+  },
+  "transmute": {
+    "id": "transmute",
+    "name": "Orb of Transmutation",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9NYWdpYyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/2f8e1ff9f8/CurrencyUpgradeToMagic.png",
+    "category": "Currency",
+    "detailsId": "orb-of-transmutation"
+  },
+  "vaal-catalysing-infuser": {
+    "id": "vaal-catalysing-infuser",
+    "name": "Vaal Catalysing Infuser",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL1ZhYWxDYXRhbHlzdCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/1c9f7be28c/VaalCatalyst.png",
+    "category": "Vaal",
+    "detailsId": "vaal-catalysing-infuser"
+  },
+  "vaal": {
+    "id": "vaal",
+    "name": "Vaal Orb",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lWYWFsIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72bc84396c/CurrencyVaal.png",
+    "category": "Currency",
+    "detailsId": "vaal-orb"
+  },
+  "whetstone": {
+    "id": "whetstone",
+    "name": "Blacksmith's Whetstone",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lXZWFwb25RdWFsaXR5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/18715ea7be/CurrencyWeaponQuality.png",
+    "category": "Currency",
+    "detailsId": "blacksmiths-whetstone"
+  },
+  "wisdom": {
+    "id": "wisdom",
+    "name": "Scroll of Wisdom",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lJZGVudGlmaWNhdGlvbiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/884f7bc58b/CurrencyIdentification.png",
+    "category": "Currency",
+    "detailsId": "scroll-of-wisdom"
+  },
+  "yaomacs-orb-of-sacrifice": {
+    "id": "yaomacs-orb-of-sacrifice",
+    "name": "Yaomac's Orb of Sacrifice",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNvcnJ1cHRpb25PcmIxIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/d8bf3af5d5/IncursionCorruptionOrb1.png",
+    "category": "Vaal",
+    "detailsId": "yaomacs-orb-of-sacrifice"
+  },
+  "yuguls-orb-of-sacrifice": {
+    "id": "yuguls-orb-of-sacrifice",
+    "name": "Yugul's Orb of Sacrifice",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSW5jdXJzaW9uQ3JhZnRpbmdPcmJzL0luY3Vyc2lvbkNvcnJ1cHRpb25PcmI0Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/5102a7c2f5/IncursionCorruptionOrb4.png",
+    "category": "Vaal",
+    "detailsId": "yuguls-orb-of-sacrifice"
+  },
+  "regal-shard": {
+    "id": "regal-shard",
+    "name": "Regal Shard",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlTWFnaWNUb1JhcmVTaGFyZCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e4128abe92/CurrencyUpgradeMagicToRareShard.png",
+    "category": "Currency",
+    "detailsId": "regal-shard"
+  },
+  "thaumaturgic-flux-17": {
+    "id": "thaumaturgic-flux-17",
+    "name": "Thaumaturgic Flux (Level 17)",
+    "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png",
+    "category": "Expedition",
+    "detailsId": "thaumaturgic-flux-level-17"
+  }
+}

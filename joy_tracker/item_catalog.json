@@ -1,0 +1,321 @@
+{
+  "checked": "2026-09-20",
+  "source": "https://poe2db.tw/us/Economy_Expedition",
+  "items": [
+    {
+      "id": "adaptive-alloy",
+      "name": "Adaptive Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQ2hpcHBlZFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/5795b74448/ChippedVerisium.png"
+    },
+    {
+      "id": "aldurs-saga",
+      "name": "Aldur's Saga",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlNSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e4e66b1f57/SpecialExpeditionPage5.png"
+    },
+    {
+      "id": "blazing-flux",
+      "name": "Blazing Flux",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eEZpcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/5894d96668/ArcaneFluxFire.png"
+    },
+    {
+      "id": "celestial-alloy",
+      "name": "Celestial Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3k0Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/df21374115/Alloy4.png"
+    },
+    {
+      "id": "chilling-flux",
+      "name": "Chilling Flux",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eENvbGQiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/8be4ea67ff/ArcaneFluxCold.png"
+    },
+    {
+      "id": "crackling-flux",
+      "name": "Crackling Flux",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eExpZ2h0bmluZyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6f9758e0a3/ArcaneFluxLightning.png"
+    },
+    {
+      "id": "cyclonic-alloy",
+      "name": "Cyclonic Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvSW1idWVkVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/083dc3c30d/ImbuedVerisium.png"
+    },
+    {
+      "id": "exceptional-verisium",
+      "name": "Exceptional Verisium",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUGVyZmVjdFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/fce9475fdb/PerfectVerisium.png"
+    },
+    {
+      "id": "expansive-alloy",
+      "name": "Expansive Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3RhbmRhcmRWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/4ee9afb77c/StandardVerisium.png"
+    },
+    {
+      "id": "expedition-logbook",
+      "name": "Expedition Logbook",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkxvZ2Jvb2s1Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/841a5e9622/ExpeditionLogbook5.png"
+    },
+    {
+      "id": "liquid-verisium",
+      "name": "Liquid Verisium",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvTGlxdWlkTWV0YWxWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/af9a074e38/LiquidMetalVerisium.png"
+    },
+    {
+      "id": "medveds-crest-of-the-circle",
+      "name": "Medved's Crest of the Circle",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvVWh0cmVkQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/273a9b8731/UhtredCrest.png"
+    },
+    {
+      "id": "medveds-saga",
+      "name": "Medved's Saga",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMyIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/9eb5b576fc/SpecialExpeditionPage3.png"
+    },
+    {
+      "id": "mystic-alloy",
+      "name": "Mystic Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQ2VsZXN0aWFsVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/1478b03254/CelestialVerisium.png"
+    },
+    {
+      "id": "olroths-crest-of-the-sun",
+      "name": "Olroth's Crest of the Sun",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvT2xyb3RoQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/7af5ff0fcb/OlrothCrest.png"
+    },
+    {
+      "id": "olroths-saga",
+      "name": "Olroth's Saga",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/e4b423d772/SpecialExpeditionPage1.png"
+    },
+    {
+      "id": "perfect-flux",
+      "name": "Perfect Flux",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5UG93ZXJmdWwiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/43be23e971/ExpeditionGemCurrencyPowerful.png"
+    },
+    {
+      "id": "prismatic-alloy",
+      "name": "Prismatic Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU292ZXJlaWduVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/3565edc5d4/SovereignVerisium.png"
+    },
+    {
+      "id": "protective-alloy",
+      "name": "Protective Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvSW1wdXJlVmVyaXNpdW0iLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/240b446d85/ImpureVerisium.png"
+    },
+    {
+      "id": "revered-starlit-ore",
+      "name": "Revered Starlit Ore",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDRfQXJtb3VyIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/6b74e4cff7/VerisiumOre_Starlit_2x4_Armour.png"
+    },
+    {
+      "id": "runic-alloy",
+      "name": "Runic Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU2NyYXBWZXJpc2l1bSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/a16ffa5970/ScrapVerisium.png"
+    },
+    {
+      "id": "sovereign-alloy",
+      "name": "Sovereign Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kxIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/34231c4ea8/Alloy1.png"
+    },
+    {
+      "id": "swift-alloy",
+      "name": "Swift Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUHVyZVZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8418cd5cc3/PureVerisium.png"
+    },
+    {
+      "id": "thaumaturgic-flux-10",
+      "name": "Thaumaturgic Flux (Level 10)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-11",
+      "name": "Thaumaturgic Flux (Level 11)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-13",
+      "name": "Thaumaturgic Flux (Level 13)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-14",
+      "name": "Thaumaturgic Flux (Level 14)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-15",
+      "name": "Thaumaturgic Flux (Level 15)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-16",
+      "name": "Thaumaturgic Flux (Level 16)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-18",
+      "name": "Thaumaturgic Flux (Level 18)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-19",
+      "name": "Thaumaturgic Flux (Level 19)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-20",
+      "name": "Thaumaturgic Flux (Level 20)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "thaumaturgic-flux-9",
+      "name": "Thaumaturgic Flux (Level 9)",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvRXhwZWRpdGlvbkdlbUN1cnJlbmN5Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/51fec6d0d5/ExpeditionGemCurrency.png"
+    },
+    {
+      "id": "the-runebinders-alloy",
+      "name": "The Runebinder's Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kyIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/e0ba7ace00/Alloy2.png"
+    },
+    {
+      "id": "the-runefathers-alloy",
+      "name": "The Runefather's Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3kzIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/226e099997/Alloy3.png"
+    },
+    {
+      "id": "transcendent-alloy",
+      "name": "Transcendent Alloy",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQWxsb3k1Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/4ffca7b84e/Alloy5.png"
+    },
+    {
+      "id": "uhtreds-crest-of-the-chalice",
+      "name": "Uhtred's Crest of the Chalice",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvTWVkdmVkQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/75a8fb110a/MedvedCrest.png"
+    },
+    {
+      "id": "uhtreds-saga",
+      "name": "Uhtred's Saga",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlNCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/0470c24911/SpecialExpeditionPage4.png"
+    },
+    {
+      "id": "venerable-starlit-ore",
+      "name": "Venerable Starlit Ore",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ef8350565a/VerisiumOre_Starlit_2x3.png"
+    },
+    {
+      "id": "veridical-starlit-ore",
+      "name": "Veridical Starlit Ore",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8xeDEiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/8811af0254/VerisiumOre_Starlit_1x1.png"
+    },
+    {
+      "id": "verisium",
+      "name": "Verisium",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUmVmaW5lZFZlcmlzaXVtIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/35616acb9f/RefinedVerisium.png"
+    },
+    {
+      "id": "void-flux",
+      "name": "Void Flux",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvQXJjYW5lRmx1eCIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/05c5ace7f7/ArcaneFlux.png"
+    },
+    {
+      "id": "voranas-crest-of-the-scythe",
+      "name": "Vorana's Crest of the Scythe",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvVm9yYW5hQ3Jlc3QiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/af46d3f422/VoranaCrest.png"
+    },
+    {
+      "id": "voranas-saga",
+      "name": "Vorana's Saga",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvU3BlY2lhbEV4cGVkaXRpb25QYWdlMiIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/057899d625/SpecialExpeditionPage2.png"
+    },
+    {
+      "id": "warding-starlit-ore",
+      "name": "Warding Starlit Ore",
+      "category": "Expedition",
+      "source": "https://poe2db.tw/us/Economy_Expedition",
+      "image": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3JhZnRpbmcvVmVyaXNpdW0vVmVyaXNpdW1PcmVfU3RhcmxpdF8yeDRfV2VhcG9uIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/0bb113db28/VerisiumOre_Starlit_2x4_Weapon.png"
+    }
+  ]
+}

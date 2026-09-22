@@ -1,0 +1,559 @@
+from __future__ import annotations
+
+import json
+import re
+import sqlite3
+import time
+import unicodedata
+from dataclasses import asdict
+from functools import lru_cache
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+from .model import DATA, Reading, Reason
+from .i18n import t
+from .icons import IconMatcher, SAGA_FAMILY
+from .layouts import ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, layout_for_tab, aligned_slots, LEGACY_EXPEDITION_SLOTS, layout_family
+
+# Inner rectangles, measured on the user's 1920x1080 currency tab.
+SLOTS = CURRENCY_SLOTS  # Compatibility for existing profiles and callers.
+
+# Fixed three-column tiers in the standard currency tab. Position resolves only
+# a family already confirmed from its artwork; it cannot invent an identity.
+TIER_ITEMS = {}
+POSITION_FAMILIES = {}
+for row, family in enumerate([
+    ('transmute','greater-orb-of-transmutation','perfect-orb-of-transmutation'),
+    ('aug','greater-orb-of-augmentation','perfect-orb-of-augmentation'),
+    ('regal','greater-regal-orb','perfect-regal-orb'),
+    ('exalted','greater-exalted-orb','perfect-exalted-orb'),
+    ('chaos','greater-chaos-orb','perfect-chaos-orb'),
+], 1):
+    for column, item in enumerate(family, 1):
+        TIER_ITEMS[f'L{row}{column}'] = item
+        POSITION_FAMILIES[f'L{row}{column}'] = set(family)
+
+# Confirmed against the full Expedition screenshot, not the editable tab name.
+# Resolve only a confidently recognised saga family; silhouettes remain unknown.
+SAGA_ITEMS = ('medveds-saga', 'voranas-saga', 'uhtreds-saga', 'olroths-saga')
+for slot, item in zip(('E03', 'E04', 'E05', 'E06'), SAGA_ITEMS):
+    TIER_ITEMS[slot] = item
+    POSITION_FAMILIES[slot] = SAGA_FAMILY
+
+
+def layout_anchors(frame, layout_id='currency'):
+    return {slot: crop(frame, (x-3,y-3,w+6,3)).tolist()
+            for slot,(x,y,w,h) in LAYOUTS[layout_id].slots.items()}
+
+
+def normalize(frame):
+    height, width = frame.shape[:2]
+    if abs(width / height - 16 / 9) > .025:
+        raise ValueError(t('error.aspect_ratio'))
+    return cv2.resize(frame, (1920, 1080), interpolation=cv2.INTER_AREA)
+
+
+def crop(frame, rect):
+    x, y, w, h = map(int, rect)
+    return frame[y:y+h, x:x+w].copy()
+
+
+def similarity(a, b):
+    if a.shape != b.shape or a.size == 0:
+        return 0.0
+    # Absolute pixel agreement also rejects flat or black occlusions.
+    return max(0.0, 1 - float(np.abs(a.astype(float) - b.astype(float)).mean()) / 100)
+
+
+def icon_patch(frame, rect):
+    image = crop(frame, rect)
+    # Remove stack digits but retain lower-right variant markers.
+    return image[19:, :]
+
+
+def tab_key(name):
+    return ' '.join(unicodedata.normalize('NFKC', name).casefold().split())
+
+
+def read_tab_text(image, ocr):
+    if image.size == 0:
+        return None
+    enlarged = cv2.resize(image, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+    result, _ = ocr(enlarged)
+    if not result:
+        return None
+    parts = sorted((row[0][0][0], row[1].strip(), float(row[2])) for row in result
+                   if len(row) >= 3 and row[1].strip())
+    words = [word for _,word,confidence in parts if confidence >= .85 and
+             (re.search(r'[\w]', word, re.UNICODE) or re.fullmatch(r'[$€£¥]+', word))]
+    return ' '.join(words).strip() or None
+
+
+@lru_cache(maxsize=2)
+def symbol_reference(place):
+    path = Path(__file__).with_name('reference_tabs') / f'dollar_{place}.png'
+    return cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+
+
+def known_symbol(image, place):
+    """The game's $$ glyph is too small for OCR but has a stable shape."""
+    template = symbol_reference(place)
+    if template is None or image.shape[0] < template.shape[0] or image.shape[1] < template.shape[1]:
+        return None
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    score = float(cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED).max())
+    return '$$' if score >= .80 else None
+
+
+def selected_tab_rect(frame):
+    """Locate the bright lower edge of the selected tab without running OCR."""
+    if frame.shape[0] < 765 or frame.shape[1] < 855:
+        return None
+    # At y=121 the selected tab continues into the bright lower border. Other
+    # tabs end above it. The first small pinned tab can also remain highlighted.
+    strip = frame[121, 40:594].astype(np.int16)
+    high, low = strip.max(axis=1), strip.min(axis=1)
+    active = (high > 48) & ((high-low > 10) | (high > 65))
+    runs, start = [], None
+    for index, value in enumerate([*active, False]):
+        if value and start is None:
+            start = index
+        elif not value and start is not None:
+            if index-start >= 32:
+                runs.append((40+start, 40+index))
+            start = None
+    if not runs:
+        return None
+    # A pinned folder at the far left may be lit at the same time.
+    x1,x2 = max(runs, key=lambda run: run[0])
+    return (max(40,x1-3), 97, min(594,x2+3)-max(40,x1-3), 27)
+
+
+def active_tab(frame, ocr):
+    """Use the selected tab's highlight; confirm with the sidebar arrow when open."""
+    rect = selected_tab_rect(frame)
+    if rect is None:
+        return None
+    top_image = crop(frame,rect)
+    name = read_tab_text(top_image, ocr) or known_symbol(top_image, 'top')
+
+    # The expanded tab menu has a small warm arrow beside the active row.
+    arrow = frame[90:755,666:686].astype(np.int16)
+    warm = (arrow[:,:,2] > 100) & (arrow[:,:,2] > arrow[:,:,1]+30) & \
+           (arrow[:,:,2] > arrow[:,:,0]+20)
+    rows = warm.sum(axis=1)
+    if rows.max() >= 2 and rows.sum() >= 8:
+        peak = int(rows.argmax())+90
+        menu_image = frame[max(90,peak-13):min(755,peak+13),685:854]
+        selected = read_tab_text(menu_image,ocr) or known_symbol(menu_image, 'menu')
+        if not selected or (name and tab_key(selected) != tab_key(name)):
+            return None
+        name = selected
+    return name, rect
+
+
+class Profiles:
+    def __init__(self, directory=DATA):
+        self.directory = directory
+        directory.mkdir(parents=True, exist_ok=True)
+        self.file = directory / 'profiles.json'
+        self.data = json.loads(self.file.read_text('utf-8')) if self.file.exists() else {'tabs': [], 'slots': {}}
+
+    def save(self):
+        temporary = self.file.with_suffix('.tmp')
+        temporary.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), 'utf-8')
+        temporary.replace(self.file)
+
+    def register(self, name, league, rect, frame, layout_id='currency'):
+        import uuid
+        if not name.strip() or rect[2] < 12 or rect[3] < 8:
+            raise ValueError(t('profile.need_name'))
+        if any(t['name'] == name and t['league'] == league for t in self.data['tabs']):
+            raise ValueError(t('profile.duplicate_name'))
+        tab = dict(id=uuid.uuid4().hex, name=name, league=league, rect=rect,
+                   label=crop(frame, rect).tolist(), layout_id=layout_id,
+                   anchor_rects=LAYOUTS[layout_id].slots,
+                   layout=layout_anchors(frame, layout_id))
+        self.data['tabs'].append(tab)
+        self.save()
+        return tab
+
+    def observe(self, frame, league, layout_id, ocr):
+        """Register a confidently selected tab once, preserving its UUID later."""
+        selected = active_tab(frame, ocr)
+        if not selected:
+            return None, t('profile.unreadable_tab')
+        name, rect = selected
+        if not name:
+            return None, t('profile.unreadable_title')
+        key = tab_key(name)
+        matches = [tab for tab in self.data['tabs'] if tab['league'] == league and
+                   layout_family(layout_for_tab(tab).id) == layout_family(layout_id) and
+                   tab_key(tab.get('visible_name', tab['name'])) == key]
+        if len(matches) > 1:
+            return None, t('profile.ambiguous_label')
+        if matches:
+            tab = matches[0]
+            previous = tab['rect']
+            if abs(previous[0]-rect[0]) > 6 or abs(previous[2]-rect[2]) > 12:
+                # Horizontal tab scrolling/reordering changes the label position.
+                # A unique active name plus the same detected structure is enough
+                # to retain its UUID; duplicate names remain rejected above.
+                tab['rect'] = rect
+                tab['label'] = crop(frame, rect).tolist()
+                tab['anchor_rects'] = LAYOUTS[layout_id].slots
+                tab['layout'] = layout_anchors(frame, layout_id)
+                self.save()
+                return tab, t('profile.moved', name=tab['name'])
+            return tab, ''
+        # Correct an auto-created profile that had the wrong structure before
+        # this page was supported. Reuse its UUID only if no stock or history
+        # has ever been stored for it.
+        mistaken = [tab for tab in self.data['tabs'] if tab['league'] == league and
+                    tab.get('auto_registered') and tab_key(tab.get('visible_name', tab['name'])) == key and
+                    layout_family(layout_for_tab(tab).id) != layout_family(layout_id) and
+                    abs(tab['rect'][0]-rect[0]) <= 6 and abs(tab['rect'][2]-rect[2]) <= 12]
+        if len(mistaken) == 1 and self._no_stored_inventory(mistaken[0]['id']):
+            tab = mistaken[0]
+            tab['layout_id'] = layout_family(layout_id)
+            tab['anchor_rects'] = LAYOUTS[layout_id].slots
+            tab['layout'] = layout_anchors(frame, layout_id)
+            self.save()
+            return tab, t('profile.type_corrected', name=tab['name'])
+        # A different stash structure may legitimately reuse the visible name.
+        display = name
+        if any(tab['league'] == league and tab['name'] == display for tab in self.data['tabs']):
+            display = f'{name} ({LAYOUTS[layout_id].name})'
+        tab = self.register(display, league, rect, frame, layout_family(layout_id))
+        tab['visible_name'] = name
+        tab['auto_registered'] = True
+        self.save()
+        return tab, t('profile.auto_added', name=display)
+
+    def _no_stored_inventory(self, tab_id):
+        database = self.directory / 'inventory.sqlite3'
+        if not database.exists():
+            return True
+        try:
+            with sqlite3.connect(database) as connection:
+                return not any(connection.execute(f'SELECT 1 FROM {table} WHERE tab=? LIMIT 1',
+                                                  (tab_id,)).fetchone()
+                               for table in ('slots', 'history'))
+        except sqlite3.Error:
+            return False
+
+    def calibrate(self, slot, item, frame, empty=False):
+        if self.data['slots'].get(slot, {}).get('item', item) != item:
+            self.data['slots'][slot] = {}
+        entry = self.data['slots'].setdefault(slot, {})
+        entry['item'] = item
+        entry['override'] = True
+        layout_id = next((key for key, layout in LAYOUTS.items() if slot in layout.slots), 'currency')
+        rect = aligned_slots(frame, layout_id)[slot]
+        entry['empty' if empty else 'icon'] = icon_patch(frame, rect).tolist()
+        # Thin case-border strips serve as layout anchors independent of quantities.
+        x,y,w,h = ALL_SLOTS[slot]
+        entry['border'] = crop(frame, (x-3,y-3,w+6,3)).tolist()
+        self.save()
+
+    def identify(self, frame, league):
+        candidates = []
+        for tab in self.data['tabs']:
+            if tab['league'] == league:
+                if tab.get('auto_registered'):
+                    selected = selected_tab_rect(frame)
+                    if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
+                        continue
+                # Rune pages have different grids. Their stable outer tab label
+                # identifies the parent; the current page is detected separately.
+                if layout_family(layout_for_tab(tab).id) == 'runes':
+                    selected = selected_tab_rect(frame)
+                    if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
+                        continue
+                    score = similarity(crop(frame, tab['rect']), np.array(tab['label'], np.uint8))
+                    candidates.append((score, tab))
+                    continue
+                layout = tab.get('layout') or {slot: ref['border'] for slot,ref in self.data['slots'].items()}
+                anchors = []
+                for slot, border in layout.items():
+                    if slot not in layout_for_tab(tab).slots:
+                        continue
+                    anchors_rects = tab.get('anchor_rects') or (
+                        LEGACY_EXPEDITION_SLOTS if tab.get('layout_id') == 'expedition' else ALL_SLOTS)
+                    x,y,w,h = anchors_rects[slot]
+                    anchors.append(similarity(crop(frame, (x-3,y-3,w+6,3)), np.array(border, np.uint8)))
+                if len(anchors) < 5 or sum(s > .80 for s in anchors) / len(anchors) < .8:
+                    continue
+                score = similarity(crop(frame, tab['rect']), np.array(tab['label'], np.uint8))
+                candidates.append((score, tab))
+        candidates.sort(key=lambda pair: pair[0], reverse=True)
+        if not candidates or candidates[0][0] < .96:
+            return None, t('profile.unknown_tab')
+        if len(candidates) > 1 and candidates[0][0] - candidates[1][0] < .04:
+            return None, t('profile.ambiguous_identity')
+        return candidates[0][1], ''
+
+
+class DigitReader:
+    def __init__(self):
+        from rapidocr_onnxruntime import RapidOCR
+        self.ocr = RapidOCR(intra_op_num_threads=2, inter_op_num_threads=2)
+        self.last_approximate = False
+
+    def read(self, image):
+        self.last_approximate = False
+        raw_image = image
+        # Counts are white, whereas much of the underlying icon is coloured.
+        bright = image.max(axis=2).astype(np.int16)
+        dark = image.min(axis=2).astype(np.int16)
+        white = ((bright > 160) & (bright-dark < 60)).astype(np.uint8) * 255
+        bounds = self.counter_bounds(white)
+        # A decimal point and a K suffix are not digit-shaped components. Check
+        # the full counter first so that 24.7K cannot silently become 24 or 247.
+        full_quantity, full_confidence, full_approximate = self.recognize_info(raw_image)
+        if full_approximate and full_quantity is not None:
+            self.last_approximate = True
+            return full_quantity, full_confidence
+        if bounds is not None:
+            x,y,w,h = bounds
+            image, white = image[y:y+h,x:x+w], white[y:y+h,x:x+w]
+        raw_quantity, raw_confidence = self.recognize(image)
+        filtered = cv2.cvtColor(white, cv2.COLOR_GRAY2BGR)
+        clean_quantity, clean_confidence = self.recognize(filtered)
+        if raw_quantity is not None and clean_quantity is not None and raw_quantity != clean_quantity:
+            return None, min(raw_confidence, clean_confidence)
+        if raw_quantity is not None:
+            return raw_quantity, raw_confidence
+        if clean_quantity is None and bounds is not None and full_quantity is not None:
+            # A tight crop can remove the context OCR needs (real Expedition 6).
+            # Reuse the already validated full read only when neither crop
+            # produced a conflicting number, never when no glyph was found.
+            return full_quantity, full_confidence
+        return clean_quantity, clean_confidence
+
+    @staticmethod
+    def counter_bounds(white):
+        """Follow aligned white glyphs from the top-left; ignore distant highlights."""
+        _, _, stats, _ = cv2.connectedComponentsWithStats(white)
+        letters = sorted((tuple(map(int,s[:4])) for s in stats[1:]
+                          if 2 <= s[2] <= 15 and 6 <= s[3] <= 18 and s[1] <= 8), key=lambda s:s[0])
+        if not letters or letters[0][0] > 10:
+            return None
+        run = [letters[0]]
+        for box in letters[1:]:
+            prior = run[-1]
+            if box[0] - (prior[0]+prior[2]) > 8:
+                break
+            if abs(box[1]-run[0][1]) <= 3 and abs(box[1]+box[3]-run[0][1]-run[0][3]) <= 3:
+                run.append(box)
+        x1,y1 = min(b[0] for b in run),min(b[1] for b in run)
+        x2,y2 = max(b[0]+b[2] for b in run),max(b[1]+b[3] for b in run)
+        return max(0,x1-1),max(0,y1-1),min(white.shape[1],x2+1)-max(0,x1-1),min(white.shape[0],y2+1)-max(0,y1-1)
+
+    def recognize(self, image):
+        quantity, confidence, _ = self.recognize_info(image)
+        return quantity, confidence
+
+    def recognize_info(self, image):
+        enlarged = cv2.resize(image, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+        enlarged = cv2.copyMakeBorder(enlarged, 12,12,12,12, cv2.BORDER_CONSTANT)
+        result, _ = self.ocr(enlarged, use_det=False, use_cls=False, use_rec=True)
+        if not result:
+            return None, 0.0, False
+        text, confidence = result[0]
+        text = text.strip()
+        quantity, approximate = parse_quantity(text)
+        if quantity is not None and confidence >= .90:
+            return quantity, float(confidence), approximate
+        return None, float(confidence), False
+
+
+def parse_quantity(text):
+    text = text.strip().replace(',', '.')
+    if re.fullmatch(r'[0-9]{1,6}', text):
+        return int(text), False
+    if re.fullmatch(r'[0-9]{1,3}(?:\.[0-9]{1,2})?[KkMm]', text):
+        multiplier = 1000 if text[-1].lower() == 'k' else 1_000_000
+        return round(float(text[:-1])*multiplier), True
+    return None, False
+
+
+class Scanner:
+    def __init__(self, profiles, digits=None, matcher=None):
+        self.profiles = profiles
+        self.digits = digits or DigitReader()
+        self.matcher = matcher or IconMatcher({})
+        self.last_layout_id = 'currency'
+        self.reset_incremental()
+
+    def reset_incremental(self):
+        self.live_cache = {}
+        self.live_key = None
+        self.live_config = None
+        self.live_consensus = Consensus()
+        self.last_metrics = {}
+        self.preview_readings = []
+
+    def read_incremental(self, frame, layout_id, identity, clock=None):
+        """Confirm on fresh images; reuse only fully confirmed, unchanged cells."""
+        started = time.perf_counter()
+        clock = time.monotonic() if clock is None else clock
+        key = (identity, layout_id)
+        config = (id(self.matcher), json.dumps(self.profiles.data['slots'], sort_keys=True))
+        if key != self.live_key or config != self.live_config:
+            self.reset_incremental()
+            self.live_key, self.live_config = key, config
+        slots = aligned_slots(frame, layout_id)
+        pending, reusable, matches = [], {}, {}
+        patches = {slot: crop(frame, rect) for slot, rect in slots.items()}
+        for slot, patch in patches.items():
+            old = self.live_cache.get(slot)
+            if old is None:
+                pending.append(slot)
+                continue
+            previous, reading, match, checked = old
+            same = np.array_equal(previous, patch)
+            expired = clock - checked >= 30
+            if same and reading.item and reading.quantity is not None and not expired:
+                reusable[slot] = reading
+                continue
+            if expired:
+                self.live_consensus.votes.pop(slot, None)
+            # Counter changes do not require another icon search.
+            if not expired and np.array_equal(previous[19:], patch[19:]):
+                matches[slot] = match
+            pending.append(slot)
+        raw = self.read(frame, layout_id, pending, matches) if pending else []
+        self.preview_readings = [*raw, *reusable.values()]
+        confirmed = self.live_consensus.push(key, raw)
+        for reading in confirmed:
+            self.live_cache[reading.slot] = (patches[reading.slot], reading,
+                                             self.last_matches[reading.slot], clock)
+        result = {r.slot: r for r in confirmed}
+        result.update(reusable)
+        self.last_metrics = dict(cells=len(slots), ocr=len(pending),
+                                 icons=len(pending)-len(matches),
+                                 milliseconds=(time.perf_counter()-started)*1000)
+        return [result[slot] for slot in slots]
+
+    def detect_layout(self, frame, borders_only=False):
+        # Borders identify the structure even with an empty/missing icon catalogue.
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        horizontal = np.abs(np.diff(gray, axis=0))
+        vertical = np.abs(np.diff(gray, axis=1))
+        structures = []
+        for layout in LAYOUTS.values():
+            found = 0
+            for x,y,w,h in aligned_slots(frame, layout.id).values():
+                sides = []
+                for edge in (y, y+h):
+                    strip = horizontal[max(0,edge-6):edge+7, x+8:x+w-8]
+                    sides.append(float(np.max(np.mean(strip > 12, axis=1))))
+                for edge in (x, x+w):
+                    strip = vertical[y+8:y+h-8, max(0,edge-6):edge+7]
+                    sides.append(float(np.max(np.mean(strip > 12, axis=0))))
+                found += sum(score >= .65 for score in sides) >= 3
+            structures.append((found / len(layout.slots), layout.id))
+        structures.sort(reverse=True)
+        if structures[0][0] >= .55 and structures[0][0]-structures[1][0] >= .12:
+            return structures[0][1]
+        if borders_only:
+            return None
+        scores = []
+        for layout in LAYOUTS.values():
+            matches = self.matcher.match_many([crop(frame, rect) for rect in layout.slots.values()])
+            score = sum(bool(match.alternatives) for match in matches)
+            scores.append((score,layout.id))
+        scores.sort(reverse=True)
+        if scores[0][0] < 2 or scores[0][0] - scores[1][0] < 2:
+            return None
+        return scores[0][1]
+
+    def read(self, frame, layout_id='currency', slot_ids=None, cached_matches=None):
+        self.last_layout_id = layout_id
+        slots = aligned_slots(frame, layout_id)
+        if slot_ids is not None:
+            slots = {slot: rect for slot, rect in slots.items() if slot in slot_ids}
+        results = []
+        matches = dict(cached_matches or {})
+        missing = [slot for slot in slots if slot not in matches]
+        if missing:
+            matches.update(zip(missing, self.matcher.match_many([crop(frame, slots[slot]) for slot in missing])))
+        self.last_matches = matches
+        for slot, rect in slots.items():
+            match = matches[slot]
+            x,y,w,h = rect
+            # Read the white stack count independently of icon recognition.
+            quantity, confidence = self.digits.read(crop(frame, (x,y,w,18)))
+            approximate = getattr(self.digits, 'last_approximate', False)
+            ref = self.profiles.data['slots'].get(slot)
+            if quantity is None and not match.alternatives and not ref and visually_empty(crop(frame, rect)):
+                results.append(Reading(slot, None, None, 0, Reason.EMPTY))
+                continue
+            item = match.item
+            if len(match.alternatives) > 1:
+                expected = TIER_ITEMS.get(slot)
+                if expected in match.alternatives and set(match.alternatives) <= POSITION_FAMILIES.get(slot, set()):
+                    item = expected
+            local_override = bool(ref and ref.get('override') and 'icon' in ref and
+                                  similarity(icon_patch(frame,rect),np.array(ref['icon'],np.uint8)) >= .9)
+            if local_override:
+                item = ref['item']
+            if item:
+                results.append(Reading(slot, item, quantity, min(match.confidence, confidence),
+                                       (Reason.LOCAL_REF if local_override else Reason.AUTO) if quantity is not None else Reason.UNREADABLE_COUNT, approximate))
+                continue
+            if not ref:
+                reason = Reason.VARIANT if match.alternatives else Reason.UNKNOWN_ICON
+                results.append(Reading(slot, None, quantity, confidence, reason, approximate, tuple(match.alternatives)))
+                continue
+            icon = icon_patch(frame, rect)
+            present = similarity(icon, np.array(ref['icon'], np.uint8)) if 'icon' in ref else 0
+            empty = similarity(icon, np.array(ref['empty'], np.uint8)) if 'empty' in ref else 0
+            if empty >= .94 and empty - present > .06:
+                results.append(Reading(slot, ref['item'], 0, empty, Reason.EMPTY_CONFIRMED))
+            elif present >= .86 and present - empty > .06:
+                results.append(Reading(slot, ref['item'], quantity, min(present, confidence),
+                                       Reason.LOCAL_REF if quantity is not None else Reason.UNREADABLE_COUNT, approximate))
+            else:
+                results.append(Reading(slot, None, quantity, confidence, Reason.HIDDEN_ICON, approximate))
+        return results
+
+
+def visually_empty(cell):
+    """Conservative visual filter; an empty cell is never a stored zero."""
+    if cell.shape[0] < 30 or cell.shape[1] < 30:
+        return False
+    brightness = cell[18:].max(axis=2)
+    return np.percentile(brightness, 95) < 65 and np.mean(brightness > 85) < .02
+
+
+class Consensus:
+    """Require matching observations; never carry a vote across another tab."""
+    def __init__(self, required=3):
+        self.required = required
+        self.reset()
+
+    def reset(self):
+        self.tab = None
+        self.votes = {}
+
+    def push(self, tab, readings):
+        if tab != self.tab:
+            self.reset()
+            self.tab = tab
+        accepted = []
+        for r in readings:
+            previous, count = self.votes.get(r.slot, (None, 0))
+            empty = r.reason == Reason.EMPTY
+            key = (r.item, r.quantity, r.approximate, empty)
+            count = count + 1 if key == previous and (r.quantity is not None or empty) else 1
+            self.votes[r.slot] = (key, count)
+            if (r.quantity is None and not empty) or count < self.required:
+                accepted.append(Reading(r.slot, r.item, None, r.confidence,
+                                        r.reason if r.quantity is None and not empty else Reason.PENDING, r.approximate, r.alternatives))
+            else:
+                accepted.append(Reading(**asdict(r)))
+        return accepted

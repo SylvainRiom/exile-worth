@@ -1,0 +1,49 @@
+# --- Environnements virtuels ---
+.venv/
+.venv311/
+venv/
+env/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# --- Caches d'outillage ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# --- Donnees utilisateur et caches reseau ---
+# Inventaires, profils d'onglets, captures de diagnostic, icones CDN, prix.
+# Contient des donnees personnelles : ne jamais versionner.
+data/
+*.tmp
+
+# --- Exports et journaux generes par l'application ---
+exile-worth-*.csv
+*.log
+
+# --- Editeurs ---
+# tasks.json est partage (lancement de l'app) ; le reste est personnel.
+.vscode/*
+!.vscode/tasks.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+
+# --- Systemes de fichiers ---
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store

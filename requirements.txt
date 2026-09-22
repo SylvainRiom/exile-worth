@@ -1,0 +1,5 @@
+numpy>=2.2,<3
+opencv-python>=4.11,<5
+Pillow>=11,<13
+mss>=10,<11
+rapidocr-onnxruntime>=1.4,<2
