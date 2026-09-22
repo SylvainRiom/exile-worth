@@ -12,8 +12,8 @@ silently.
 """
 import unittest
 
-from joy_tracker.app import ScanResult
-from joy_tracker.layouts import LAYOUTS, RUNE_PAGES, expected_slot_count
+from exile_worth.app import ScanResult
+from exile_worth.layouts import LAYOUTS, RUNE_PAGES, expected_slot_count
 
 
 class ExpectedSlotCountTests(unittest.TestCase):

@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 def main():
     import numpy as np
-    from joy_tracker.app import App
-    from joy_tracker.model import Reason, Store
-    from joy_tracker.vision import Profiles, Scanner
+    from exile_worth.app import App
+    from exile_worth.model import Reason, Store
+    from exile_worth.vision import Profiles, Scanner
 
     class Digits:
         def read(self, image):
@@ -20,8 +20,8 @@ def main():
     print('UI smoke: building widgets', flush=True)
     with tempfile.TemporaryDirectory() as temporary:
         path = Path(temporary)
-        with (patch('joy_tracker.app.Store', lambda: Store(path/'inventory.sqlite')),
-              patch('joy_tracker.app.Profiles', lambda: Profiles(path))):
+        with (patch('exile_worth.app.Store', lambda: Store(path/'inventory.sqlite')),
+              patch('exile_worth.app.Profiles', lambda: Profiles(path))):
             app = App(auto_load=False)
             # Install the fake OCR before any frame can schedule an analysis.
             app.scanner = Scanner(app.profiles, Digits(), app.matcher)
@@ -49,8 +49,8 @@ def main():
                 app.league.set('Forbidden Rites')
                 # Import triggers the reader automatically, with no calibrated slot.
                 from tests.test_icons import artwork, render
-                from joy_tracker.icons import IconMatcher
-                from joy_tracker.vision import Scanner, SLOTS
+                from exile_worth.icons import IconMatcher
+                from exile_worth.vision import Scanner, SLOTS
                 print('UI smoke: automatic reading', flush=True)
                 app.profiles.data['slots'] = {}
                 app.matcher = IconMatcher({'divine':artwork(17)})
@@ -80,7 +80,7 @@ def main():
                 assert 'displayed tab' in app.total_title.get()
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
                 assert app.read_tree.item('C03')['values'][3] == '254.000'
-                from joy_tracker.model import Reading
+                from exile_worth.model import Reading
                 # A single live observation appears in the table, but cannot
                 # become a saved quantity or a valued line before consensus.
                 pending = Reading('C03','divine',None,.99,Reason.PENDING)
@@ -117,7 +117,7 @@ def main():
                 assert 'tab2' in app.valuation_view.details.get()
                 # Selecting an old card must not redirect incoming live observations.
                 app.open_stash('tab1')
-                from joy_tracker.app import ScanResult
+                from exile_worth.app import ScanResult
                 app.messages.put(('live', ScanResult(frame, {'id':'tab2','name':'Second','layout_id':'currency'},
                                                      [Reading('C03','divine',2)], '', 'Forbidden Rites', 'currency')))
                 app.drain()
@@ -132,7 +132,7 @@ def main():
                 assert app.capture_state.get() == '● Paused'
                 print('UI smoke: tracking start and stop', flush=True)
                 assert not app.profiles.data['tabs'], 'Starting must also work before registering a tab'
-                with patch('joy_tracker.app.threading.Thread'):
+                with patch('exile_worth.app.threading.Thread'):
                     app.capture_button.invoke()
                 assert app.running and app.capture_state.get() == '● Tracking'
                 assert app.capture_action.get() == 'Pause'

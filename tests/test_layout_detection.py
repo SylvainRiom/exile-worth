@@ -6,9 +6,9 @@ from types import SimpleNamespace
 import cv2
 import numpy as np
 
-from joy_tracker.app import App
-from joy_tracker.layouts import LAYOUTS, aligned_slots
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth.app import App
+from exile_worth.layouts import LAYOUTS, aligned_slots
+from exile_worth.vision import Profiles, Scanner
 
 
 class LayoutDetectionTests(unittest.TestCase):

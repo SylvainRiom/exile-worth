@@ -19,10 +19,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from joy_tracker.icons import IconMatcher
-from joy_tracker.layouts import LAYOUTS, aligned_slots
-from joy_tracker.model import Reason
-from joy_tracker.vision import Profiles, Scanner, similarity, crop
+from exile_worth.icons import IconMatcher
+from exile_worth.layouts import LAYOUTS, aligned_slots
+from exile_worth.model import Reason
+from exile_worth.vision import Profiles, Scanner, similarity, crop
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 BASELINE = Path(__file__).parent / 'margin_baseline.json'

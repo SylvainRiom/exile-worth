@@ -2,10 +2,13 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Exile Worth : lancer l’application",
+            "label": "Exile Worth: run the application",
             "type": "process",
             "command": "${workspaceFolder}/.venv311/Scripts/python.exe",
-            "args": ["-m", "joy_tracker"],
+            "args": [
+                "-m",
+                "exile_worth"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },

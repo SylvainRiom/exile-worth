@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 from unittest.mock import patch
 
-from joy_tracker.model import Reason
-from joy_tracker.icons import IconMatcher
-from joy_tracker.layouts import LEGACY_EXPEDITION_SLOTS
-from joy_tracker.vision import Profiles, Scanner, active_tab
+from exile_worth.model import Reason
+from exile_worth.icons import IconMatcher
+from exile_worth.layouts import LEGACY_EXPEDITION_SLOTS
+from exile_worth.vision import Profiles, Scanner, active_tab
 
 
 class RealExpeditionTests(unittest.TestCase):
@@ -72,9 +72,9 @@ class RealExpeditionTests(unittest.TestCase):
         frame[new_rect[1]:new_rect[1]+new_rect[3],new_rect[0]:new_rect[0]+new_rect[2]] = 120
         with tempfile.TemporaryDirectory() as temporary:
             profiles = Profiles(Path(temporary))
-            with patch('joy_tracker.vision.active_tab', return_value=('$$', old_rect)):
+            with patch('exile_worth.vision.active_tab', return_value=('$$', old_rect)):
                 first, _ = profiles.observe(frame,'A','currency',object())
-            with patch('joy_tracker.vision.active_tab', return_value=('$$', new_rect)):
+            with patch('exile_worth.vision.active_tab', return_value=('$$', new_rect)):
                 moved, reason = profiles.observe(frame,'A','currency',object())
             self.assertEqual(moved['id'],first['id'])
             self.assertEqual(moved['rect'],new_rect)

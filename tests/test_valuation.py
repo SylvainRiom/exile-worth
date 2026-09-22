@@ -1,9 +1,9 @@
 import unittest
 from types import SimpleNamespace
 
-from joy_tracker.app import App
+from exile_worth.app import App
 
-from joy_tracker.model import Reading, estimate_readings, line_value
+from exile_worth.model import Reading, estimate_readings, line_value
 
 
 class ValuationTests(unittest.TestCase):

@@ -7,10 +7,10 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from joy_tracker.layouts import LAYOUTS, RUNE_PAGES, aligned_slots, layout_family
-from joy_tracker.app import App
-from joy_tracker.model import Reading, Reason, Store
-from joy_tracker.vision import Consensus, Profiles, Scanner
+from exile_worth.layouts import LAYOUTS, RUNE_PAGES, aligned_slots, layout_family
+from exile_worth.app import App
+from exile_worth.model import Reading, Reason, Store
+from exile_worth.vision import Consensus, Profiles, Scanner
 
 
 def bordered_page(page):
@@ -46,7 +46,7 @@ class RunePageTests(unittest.TestCase):
     def test_subpage_reuses_parent_profile_and_preserves_other_stock(self):
         with tempfile.TemporaryDirectory() as directory:
             profiles = Profiles(Path(directory))
-            with patch('joy_tracker.vision.active_tab', return_value=('Runes', (490, 96, 90, 29))):
+            with patch('exile_worth.vision.active_tab', return_value=('Runes', (490, 96, 90, 29))):
                 first, _ = profiles.observe(bordered_page('runes'), 'A', 'runes', object())
                 second, _ = profiles.observe(bordered_page('kalguuran'), 'A', 'kalguuran', object())
             self.assertEqual(first['id'], second['id'])
@@ -92,7 +92,7 @@ class RunePageTests(unittest.TestCase):
             profiles.save()
             app = SimpleNamespace(layout_override=None, scanner=Scanner(profiles))
             self.assertEqual(App.resolve_layout(app, frame, old), 'runes')
-            with patch('joy_tracker.vision.active_tab', return_value=('Runes', rect)):
+            with patch('exile_worth.vision.active_tab', return_value=('Runes', rect)):
                 fixed, _ = profiles.observe(frame, 'A', 'runes', object())
             self.assertEqual(fixed['id'], old['id'])
             self.assertEqual(fixed['layout_id'], 'runes')
@@ -110,7 +110,7 @@ class RunePageTests(unittest.TestCase):
             store = Store(Path(directory) / 'inventory.sqlite3')
             store.sync('A', old['id'], [Reading('C01', 'divine', 2)])
             store.close()
-            with patch('joy_tracker.vision.active_tab', return_value=('Runes', rect)):
+            with patch('exile_worth.vision.active_tab', return_value=('Runes', rect)):
                 new, _ = profiles.observe(frame, 'A', 'runes', object())
             self.assertNotEqual(new['id'], old['id'])
             self.assertEqual(old['layout_id'], 'currency')

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import numpy as np
 
-from joy_tracker.model import Reading, Store, estimate_readings
-from joy_tracker.pricing import Ninja, parse_overview
-from joy_tracker.vision import Consensus, Profiles, Scanner, SLOTS, normalize
+from exile_worth.model import Reading, Store, estimate_readings
+from exile_worth.pricing import Ninja, parse_overview
+from exile_worth.vision import Consensus, Profiles, Scanner, SLOTS, normalize
 
 
 class InventoryTests(unittest.TestCase):
@@ -125,7 +125,7 @@ class PricingTests(unittest.TestCase):
             route = '/test?league=A'
             key = hashlib.sha256((client.base+route).encode()).hexdigest()+'.json'
             (Path(directory)/key).write_text(json.dumps(dict(data={'ok':1},checked=time.time(),fetched=time.time(),stale=False)))
-            with patch('joy_tracker.pricing.urlopen',side_effect=OSError('offline')) as request:
+            with patch('exile_worth.pricing.urlopen',side_effect=OSError('offline')) as request:
                 self.assertEqual(client.get(route)['data'],{'ok':1})
                 request.assert_not_called()
                 with self.assertRaises(OSError):

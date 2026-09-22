@@ -15,9 +15,9 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from joy_tracker.icons import IconMatcher
-from joy_tracker.layouts import LAYOUTS, aligned_slots, edge_maps
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth.icons import IconMatcher
+from exile_worth.layouts import LAYOUTS, aligned_slots, edge_maps
+from exile_worth.vision import Profiles, Scanner
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 
@@ -75,7 +75,7 @@ class AlignmentCacheTests(unittest.TestCase):
 
     def test_same_frame_fits_each_layout_once(self):
         frame = expedition_frame()
-        with patch('joy_tracker.vision.aligned_slots', wraps=aligned_slots) as fit:
+        with patch('exile_worth.vision.aligned_slots', wraps=aligned_slots) as fit:
             self.scanner.detect_layout(frame, borders_only=True)
             after_detection = fit.call_count
             self.scanner.read(frame, 'expedition')
@@ -100,7 +100,7 @@ class AlignmentCacheTests(unittest.TestCase):
         frame = expedition_frame()
         self.scanner.detect_layout(frame, borders_only=True)
         copy = frame.copy()
-        with patch('joy_tracker.vision.aligned_slots', wraps=aligned_slots) as fit:
+        with patch('exile_worth.vision.aligned_slots', wraps=aligned_slots) as fit:
             self.scanner.read(copy, 'expedition')
             self.assertEqual(fit.call_count, 1)
 

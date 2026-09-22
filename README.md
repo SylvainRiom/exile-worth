@@ -19,7 +19,7 @@ available through `py -3.11`.
 Once installed, start without reinstalling the dependencies:
 
 ```powershell
-.\.venv311\Scripts\python.exe -m joy_tracker
+.\.venv311\Scripts\python.exe -m exile_worth
 ```
 
 ## First use
@@ -33,7 +33,7 @@ Once installed, start without reinstalling the dependencies:
    from the catalogue icons and reads the white numbers in the top-left corner.
    No manual cell mapping is required. Check that the rectangles follow the cells.
    This profile was measured on one specific screenshot; another interface scale
-   requires adapting the coordinates in `joy_tracker/layouts.py`.
+   requires adapting the coordinates in `exile_worth/layouts.py`.
 4. If a detection is uncertain, select the cell and its exact currency, then
    **Correct the icon**. This local reference is optional and takes priority when
    it matches the image. The quantity is read even when the icon is unknown; an
@@ -217,8 +217,8 @@ staleness note. A currency without a rate is excluded, with the number of unpric
 cells shown. The divine/exalted/chaos conversions use the same rates.
 
 For local use, the prototype calls poe.ninja directly. **Before distributing to
-other users**, point `JOY_PRICE_BASE` at a caching backend, as poe.ninja requests,
-and set `JOY_CONTACT` to a real contact. The backend must expose the same paths.
+other users**, point `EXILE_PRICE_BASE` at a caching backend, as poe.ninja requests,
+and set `EXILE_CONTACT` to a real contact. The backend must expose the same paths.
 Do not multiply direct clients against the site.
 
 ## Margin harness
@@ -278,7 +278,7 @@ entry", which was previously guesswork.
 - `INFO` (default) logs lifecycle events and every **decision change**. The live
   loop runs three times a second, so repeated identical verdicts are suppressed;
   a line means something actually changed.
-- `JOY_LOG_LEVEL=DEBUG` adds per-frame metrics (cells, re-reads, icon searches,
+- `EXILE_LOG_LEVEL=DEBUG` adds per-frame metrics (cells, re-reads, icon searches,
   milliseconds) and per-cell detail.
 - Exceptions are recorded with their full traceback. The interface keeps showing
   its own short message.
@@ -290,7 +290,7 @@ After a failure report, read this file together with the PNG saved by
 
 The interface language is chosen in the toolbar and stored in `data/settings.json`.
 Adding a language means adding one entry to `LANGUAGES` and one catalogue to
-`CATALOG` in `joy_tracker/i18n.py`; both catalogues must share the same keys and the
+`CATALOG` in `exile_worth/i18n.py`; both catalogues must share the same keys and the
 same `{placeholders}`.
 
 Translation keys are stable ASCII identifiers. Some of them are also stored values:

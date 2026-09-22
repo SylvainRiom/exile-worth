@@ -3,7 +3,7 @@ import unittest
 import cv2
 import numpy as np
 
-from joy_tracker.vision import DigitReader
+from exile_worth.vision import DigitReader
 
 
 class OCRIntegrationTests(unittest.TestCase):

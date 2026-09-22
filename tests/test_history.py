@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from joy_tracker.history_ui import fixed_value
-from joy_tracker.model import Event, Reading, Store
+from exile_worth.history_ui import fixed_value
+from exile_worth.model import Event, Reading, Store
 
 
 class HistoryTests(unittest.TestCase):

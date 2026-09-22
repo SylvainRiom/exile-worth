@@ -13,9 +13,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from joy_tracker import icons as icons_module, model
-from joy_tracker.icons import ICON_HOSTS, IconMatcher, fetch_icons
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth import icons as icons_module, model
+from exile_worth.icons import ICON_HOSTS, IconMatcher, fetch_icons
+from exile_worth.vision import Profiles, Scanner
 
 
 class IconSourceTests(unittest.TestCase):
@@ -105,7 +105,7 @@ class ConnectionLifetimeTests(unittest.TestCase):
                 opened.append(connection)
                 return connection
 
-            with patch('joy_tracker.vision.sqlite3.connect', tracking_connect):
+            with patch('exile_worth.vision.sqlite3.connect', tracking_connect):
                 profiles._no_stored_inventory('some-tab')
             self.assertEqual(len(opened), 1)
             with self.assertRaises(sqlite3.ProgrammingError):

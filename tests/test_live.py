@@ -8,9 +8,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from joy_tracker.app import App
-from joy_tracker.model import Reason, Reading
-from joy_tracker.vision import Scanner, Profiles
+from exile_worth.app import App
+from exile_worth.model import Reason, Reading
+from exile_worth.vision import Scanner, Profiles
 from tests.test_incremental import Digits, Matcher
 
 
@@ -46,7 +46,7 @@ class LiveLoopTests(unittest.TestCase):
             app = SimpleNamespace(stop_event=LimitedLoop(5), messages=queue.Queue(), scanner=scanner,
                                   profiles=profiles, layout_override=None)
             app.resolve_layout = lambda image,tab: App.resolve_layout(app,image,tab)
-            with patch('joy_tracker.app.capture_game',return_value=frame):
+            with patch('exile_worth.app.capture_game',return_value=frame):
                 App.live_loop(app,'A')
             messages = list(app.messages.queue)
             self.assertFalse(any(kind=='error' for kind,_ in messages),messages)
@@ -60,7 +60,7 @@ class LiveLoopTests(unittest.TestCase):
     def test_symbol_currency_tab_auto_registers_in_live_loop(self):
         import cv2
         from rapidocr_onnxruntime import RapidOCR
-        from joy_tracker.layouts import LAYOUTS
+        from exile_worth.layouts import LAYOUTS
 
         class OCRDigits:
             def __init__(self):
@@ -82,7 +82,7 @@ class LiveLoopTests(unittest.TestCase):
             app = SimpleNamespace(stop_event=LimitedLoop(5),messages=queue.Queue(),scanner=scanner,
                                   profiles=profiles,layout_override=None)
             app.resolve_layout = lambda image,tab: App.resolve_layout(app,image,tab)
-            with patch('joy_tracker.app.capture_game',return_value=frame):
+            with patch('exile_worth.app.capture_game',return_value=frame):
                 App.live_loop(app,'A')
             messages = list(app.messages.queue)
             self.assertFalse(any(kind=='error' for kind,_ in messages),messages)
@@ -104,8 +104,8 @@ class LiveLoopTests(unittest.TestCase):
             app.resolve_layout = lambda frame,tab: App.resolve_layout(app,frame,tab)
             ticks = itertools.count()
             frames = [currency]*5+[expedition]*7
-            with (patch('joy_tracker.app.capture_game',side_effect=frames),
-                  patch('joy_tracker.app.time.monotonic',side_effect=lambda:next(ticks))):
+            with (patch('exile_worth.app.capture_game',side_effect=frames),
+                  patch('exile_worth.app.time.monotonic',side_effect=lambda:next(ticks))):
                 App.live_loop(app,'A')
             messages = list(app.messages.queue)
             self.assertFalse(any(kind=='error' for kind,_ in messages), messages)
@@ -124,8 +124,8 @@ class LiveLoopTests(unittest.TestCase):
             resolve_layout=lambda frame,tab:'currency',
             profiles=SimpleNamespace(identify=lambda frame, league:(tab,'Onglet inconnu')))
         ticks = itertools.count()
-        with (patch('joy_tracker.app.capture_game', return_value=image),
-              patch('joy_tracker.app.time.monotonic', side_effect=lambda:next(ticks))):
+        with (patch('exile_worth.app.capture_game', return_value=image),
+              patch('exile_worth.app.time.monotonic', side_effect=lambda:next(ticks))):
             App.live_loop(app, 'Standard')
         messages = []
         while not app.messages.empty():

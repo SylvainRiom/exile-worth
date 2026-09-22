@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from joy_tracker.model import Reading, Reason, Store, estimate_readings
+from exile_worth.model import Reading, Reason, Store, estimate_readings
 
 
 class EmptyCellTests(unittest.TestCase):

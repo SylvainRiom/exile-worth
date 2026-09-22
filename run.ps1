@@ -6,4 +6,4 @@ if (-not (Test-Path -LiteralPath '.venv311\Scripts\python.exe')) {
 }
 & .\.venv311\Scripts\python.exe -m pip install -r requirements-lock.txt
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& .\.venv311\Scripts\python.exe -m joy_tracker
+& .\.venv311\Scripts\python.exe -m exile_worth

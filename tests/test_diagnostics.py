@@ -12,10 +12,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from joy_tracker import diagnostics
-from joy_tracker.diagnostics import ChangeGate, format_scores
-from joy_tracker.icons import IconMatcher
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth import diagnostics
+from exile_worth.diagnostics import ChangeGate, format_scores
+from exile_worth.icons import IconMatcher
+from exile_worth.vision import Profiles, Scanner
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 

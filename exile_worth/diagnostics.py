@@ -7,7 +7,7 @@ to read. Everything here is local: the log never leaves the machine.
 
 Levels
     INFO   lifecycle and every *decision change* (layout, tab identity, coverage)
-    DEBUG  per-cell detail and per-frame metrics, enabled with JOY_LOG_LEVEL=DEBUG
+    DEBUG  per-cell detail and per-frame metrics, enabled with EXILE_LOG_LEVEL=DEBUG
 
 INFO is deliberately change-triggered: the live loop runs three times a second
 and an unconditional line per frame would bury the moment things went wrong.
@@ -22,7 +22,7 @@ from pathlib import Path
 
 from .model import DATA
 
-log = logging.getLogger('joy_tracker')
+log = logging.getLogger('exile_worth')
 
 _configured = False
 
@@ -32,7 +32,7 @@ def setup(directory=None, level=None):
     global _configured
     if _configured:
         return log
-    level = level or os.getenv('JOY_LOG_LEVEL', 'INFO').upper()
+    level = level or os.getenv('EXILE_LOG_LEVEL', 'INFO').upper()
     log.setLevel(getattr(logging, level, logging.INFO))
     log.propagate = False
     try:

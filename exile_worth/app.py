@@ -58,8 +58,8 @@ class App(tk.Tk):
         self.configure(bg='#10151e')
         self.store = Store()
         self.profiles = Profiles()
-        self.ninja = Ninja(os.getenv('JOY_PRICE_BASE', 'https://poe.ninja'),
-                           os.getenv('JOY_CONTACT', 'local-prototype'))
+        self.ninja = Ninja(os.getenv('EXILE_PRICE_BASE', 'https://poe.ninja'),
+                           os.getenv('EXILE_CONTACT', 'local-prototype'))
         self.frame = None
         self.scanner = None
         self.matcher = IconMatcher({})

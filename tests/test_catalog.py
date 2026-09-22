@@ -6,12 +6,12 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from joy_tracker.catalog import reference_items, with_reference_items
-from joy_tracker.icons import IconMatcher, fetch_icons
-from joy_tracker.layouts import EXPEDITION_SLOTS
-from joy_tracker.model import estimate_readings
-from joy_tracker.pricing import Ninja
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth.catalog import reference_items, with_reference_items
+from exile_worth.icons import IconMatcher, fetch_icons
+from exile_worth.layouts import EXPEDITION_SLOTS
+from exile_worth.model import estimate_readings
+from exile_worth.pricing import Ninja
+from exile_worth.vision import Profiles, Scanner
 from tests.test_icons import render
 from tools.update_item_catalog import CatalogueParser
 
@@ -85,11 +85,11 @@ class CatalogueTests(unittest.TestCase):
         fixture = Path(__file__).parent / 'fixtures/expedition/verisium.png'
         items = {key: {'image': 'https://web.poecdn.com/test.png'} for key in ('a', 'b')}
         with tempfile.TemporaryDirectory() as directory:
-            with patch('joy_tracker.icons.urlopen') as request:
+            with patch('exile_worth.icons.urlopen') as request:
                 request.return_value.__enter__.return_value.read.return_value = fixture.read_bytes()
                 images, errors = fetch_icons(items, directory)
                 self.assertEqual(request.call_count, 1)
-            with patch('joy_tracker.icons.urlopen', side_effect=AssertionError('Network on cache hit')):
+            with patch('exile_worth.icons.urlopen', side_effect=AssertionError('Network on cache hit')):
                 cached, errors = fetch_icons(items, directory)
         self.assertEqual(list(images), ['a', 'b'])
         self.assertEqual(list(cached), ['a', 'b'])

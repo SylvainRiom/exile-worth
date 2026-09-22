@@ -39,7 +39,7 @@ use `.venv311`.
 
 ```powershell
 # Normal start, dependencies already installed
-.\.venv311\Scripts\python.exe -m joy_tracker
+.\.venv311\Scripts\python.exe -m exile_worth
 
 # Install the pinned versions, then start
 .\run.ps1
@@ -61,15 +61,15 @@ holds the version ranges.
 
 | File | Responsibility |
 | --- | --- |
-| `joy_tracker/app.py` | Interface, dashboard, cards, preview/detail, workers and capture loop |
-| `joy_tracker/capture.py` | Capture of the foreground game client area, DPI handling |
-| `joy_tracker/layouts.py` | Stash geometry, edge maps, alignment, expected cell counts |
-| `joy_tracker/vision.py` | Saved profiles, tab identification, structure choice, OCR, consensus |
-| `joy_tracker/icons.py` | CDN image cache, icon comparison across sizes/offsets |
-| `joy_tracker/pricing.py` | Leagues, Currency/Expedition catalogues, price merge and cache |
-| `joy_tracker/model.py` | Readings, SQLite, history, valuation computations, stable keys |
-| `joy_tracker/i18n.py` | Language selection and the English/French catalogues |
-| `joy_tracker/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
+| `exile_worth/app.py` | Interface, dashboard, cards, preview/detail, workers and capture loop |
+| `exile_worth/capture.py` | Capture of the foreground game client area, DPI handling |
+| `exile_worth/layouts.py` | Stash geometry, edge maps, alignment, expected cell counts |
+| `exile_worth/vision.py` | Saved profiles, tab identification, structure choice, OCR, consensus |
+| `exile_worth/icons.py` | CDN image cache, icon comparison across sizes/offsets |
+| `exile_worth/pricing.py` | Leagues, Currency/Expedition catalogues, price merge and cache |
+| `exile_worth/model.py` | Readings, SQLite, history, valuation computations, stable keys |
+| `exile_worth/i18n.py` | Language selection and the English/French catalogues |
+| `exile_worth/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
 | `tests/margins.py` | Headroom of every recognition decision, against a baseline |
 | `tests/` | Storage, OCR, recognition, valuation, simulated capture and interface |
 
@@ -218,11 +218,11 @@ Reference documentation: https://poe.ninja/docs/api
   rates, and converts when the primary currencies differ.
 - A known item can be unpriced or ambiguous. Several Thaumaturgic Flux tiers share
   one image: do not invent their tier or price.
-- `joy_tracker/item_catalog.json` keeps 45 Expedition visual references verified on
+- `exile_worth/item_catalog.json` keeps 45 Expedition visual references verified on
   PoE2DB — names, IDs, image URLs, source, **no price**. It stays usable when the
   price endpoints fail. `tools/update_item_catalog.py` regenerates it.
 - For distribution to several users, plan for the caching backend recommended by
-  poe.ninja; `JOY_PRICE_BASE` and `JOY_CONTACT` exist for that.
+  poe.ninja; `EXILE_PRICE_BASE` and `EXILE_CONTACT` exist for that.
 
 The `data/` directory is ignored by Git and holds user data: `profiles.json`
 (tabs, label and structure signatures, local corrections), `inventory.sqlite3`
@@ -237,7 +237,7 @@ Two tools exist because a screenshot alone never explained a refusal.
 every *decision change* — the live loop runs three times a second, so an
 unchanged verdict is suppressed and a line means something really changed. It
 carries the numbers behind each verdict, the near-miss on every refused cell
-(`best=… score=… margin=…`), and full tracebacks. `JOY_LOG_LEVEL=DEBUG` adds
+(`best=… score=… margin=…`), and full tracebacks. `EXILE_LOG_LEVEL=DEBUG` adds
 per-frame metrics and per-cell detail. After a failure report, read it together
 with the PNG from **Save the image**: the PNG shows what was seen, the log says
 why it was refused.

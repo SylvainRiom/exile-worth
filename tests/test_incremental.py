@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from joy_tracker.layouts import LAYOUTS
-from joy_tracker.vision import Profiles, Scanner
+from exile_worth.layouts import LAYOUTS
+from exile_worth.vision import Profiles, Scanner
 
 
 class Digits:

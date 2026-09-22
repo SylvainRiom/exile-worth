@@ -66,7 +66,7 @@ def main():
     catalogue.feed(html)
     if len(catalogue.items) < 30 or 'verisium' not in catalogue.items:
         raise ValueError('Incomplete or changed source page; existing catalogue left intact')
-    target = Path(__file__).resolve().parents[1] / 'joy_tracker' / 'item_catalog.json'
+    target = Path(__file__).resolve().parents[1] / 'exile_worth' / 'item_catalog.json'
     data = {'checked': date.today().isoformat(), 'source': source,
             'items': sorted(catalogue.items.values(), key=lambda item: item['id'])}
     target.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')

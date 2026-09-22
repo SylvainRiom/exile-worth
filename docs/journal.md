@@ -13,7 +13,7 @@ not rewrite an entry to match later behaviour, add a new one.
 - Observed cause: the poe.ninja Expedition cache held only 18 items, missing
   Verisium, the alloys and the crests in particular. The PoE2DB page consulted shows
   roughly 45–46 items.
-- `joy_tracker/item_catalog.json` keeps 45 Expedition visual references verified on
+- `exile_worth/item_catalog.json` keeps 45 Expedition visual references verified on
   https://poe2db.tw/us/Economy_Expedition; names, IDs, image URLs and source,
   **no price**. `catalog.py` merges them with the current metadata without changing
   UUIDs, inventories or prices. Shared IDs are preserved.
@@ -206,7 +206,7 @@ not rewrite an entry to match later behaviour, add a new one.
 - The user asked for the project to be English-speaking, while keeping French
   selectable in the application settings. See "Language and stable keys" above for
   the architecture and the invariants.
-- 139 French interface strings were moved to `joy_tracker/i18n.py` (188 keys per
+- 139 French interface strings were moved to `exile_worth/i18n.py` (188 keys per
   language). Code comments and docstrings were already in English.
 - Three display strings that doubled as control values were made into stable keys:
   `Reading.reason`, `valuations.reason`, the layout selector and the history mode.
@@ -222,7 +222,7 @@ not rewrite an entry to match later behaviour, add a new one.
 
 - The user asked for an English-first project, keeping French selectable in the
   application settings. English is the default and the source language.
-- `joy_tracker/i18n.py` holds `LANGUAGES`, the `CATALOG` for `en` and `fr`, and
+- `exile_worth/i18n.py` holds `LANGUAGES`, the `CATALOG` for `en` and `fr`, and
   `t(key, **fields)`. A missing key falls back to English, then to the key itself.
   The choice is persisted in `data/settings.json` and read at startup.
 - **Translation keys are stable ASCII identifiers and some of them are stored
@@ -254,12 +254,12 @@ not rewrite an entry to match later behaviour, add a new one.
   computed on every frame and then discarded, and the five `except Exception`
   handlers kept only `str(exc)`. A failure report left nothing to read, which is
   why the diagnosis cycles recorded below were so long.
-- `joy_tracker/diagnostics.py` configures a rotating `data/session.log`
+- `exile_worth/diagnostics.py` configures a rotating `data/session.log`
   (2 MB × 4) and exposes `log`, `failure(context, exc)` and `ChangeGate`.
   A read-only data directory falls back to a `NullHandler`: logging must never
   prevent the application from starting.
 - `INFO` records lifecycle events and every **decision change**; `DEBUG`
-  (`JOY_LOG_LEVEL=DEBUG`) adds per-frame metrics and per-cell detail. The live
+  (`EXILE_LOG_LEVEL=DEBUG`) adds per-frame metrics and per-cell detail. The live
   loop runs three times a second, so `ChangeGate` suppresses an unchanged
   verdict. Keep it that way: an unconditional line per frame would bury the
   transition that matters.
