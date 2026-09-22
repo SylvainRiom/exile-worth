@@ -229,6 +229,26 @@ The `data/` directory is ignored by Git and holds user data: `profiles.json`
 (quantities, history, valuations), `settings.json` (language), `session.log`,
 and the `prices/` and `icons/` network caches.
 
+## Expected state
+
+Run these first; anything that does not match means something changed before you
+arrived, not that the numbers below are stale.
+
+```
+python -m unittest discover -s tests   ->  140 tests, OK
+python -m tests.smoke_ui               ->  OK, under a second
+python -m tests.margins                ->  15 decisions, none FAILS, 3 TIGHT
+```
+
+The three TIGHT decisions are expected and listed under "Known fragilities".
+`tests/test_margins.py` already fails if any of them erodes, so a green suite
+means the headroom is intact — you do not need to read the table to know that.
+
+The TIGHT flag is calibrated for 0–1 scores (`headroom < .05`), so it does not
+carry on counts. `dollar_tab.arrow_rows` is narrow — 4 against a required 2 —
+without being flagged. Read the fragilities list, not just the flags; the
+baseline test is the real guard either way.
+
 ## Diagnosing a failure
 
 Two tools exist because a screenshot alone never explained a refusal.

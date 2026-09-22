@@ -410,3 +410,72 @@ not rewrite an entry to match later behaviour, add a new one.
   rather than an absent tuple element.
 - Behaviour unchanged: the margin harness is identical and `smoke_ui` passes.
 - Last validation: **115 tests passed**, as well as `python -m tests.smoke_ui`.
+
+
+## Four quiet defects — 22 September 2026
+
+- None of these showed as a crash, which is why they survived a full review.
+- `icons.py` pinned the artwork host in a comment but checked only the scheme.
+  `urljoin()` returns an absolute URL untouched, so a catalogue entry could point
+  the downloader at any https host. The host is now checked against `ICON_HOSTS`
+  with `urlparse().hostname`, which also rejects
+  `https://web.poecdn.com@elsewhere/`, a form a `netloc` comparison would have
+  let through. A refusal is logged and counted as a missing icon, as before.
+- `vision.py` keyed the incremental cache on `id(self.matcher)`. `id()` is reused
+  after collection, so a rebuilt catalogue could land on the same value and keep
+  serving identifications made with the old one. `IconMatcher` now carries a
+  monotonic `revision`. A matcher object holds ~80 MB of template arrays, so a
+  counter was chosen over keeping the object alive.
+- `Profiles._no_stored_inventory` used `with sqlite3.connect(...)`, which commits
+  but never closes. It now uses `closing()`.
+- `model.value_inventory` was superseded by `estimate_readings` and kept alive
+  only by its own two tests. Those covered league isolation and the reporting of
+  unpriced items, so they were **ported** to `estimate_readings`, not deleted.
+- The fake `Matcher` in the tests had no `revision`, which broke six tests: it
+  did not model the real interface. Fixed rather than worked around.
+- Last validation: **124 tests passed**, as well as `python -m tests.smoke_ui`.
+
+## Package renamed to exile_worth — 22 September 2026
+
+- The application has been called Exile Worth from the start; the package still
+  carried the working name `joy_tracker`. Every import, the module entry point,
+  `run.ps1`, the VS Code task and the docs now use `exile_worth`. Git recorded 17
+  renames, so per-file history survives.
+- The environment variables followed: `JOY_PRICE_BASE`, `JOY_CONTACT` and
+  `JOY_LOG_LEVEL` became `EXILE_*`. No fallback to the old names: this prototype
+  has never been distributed, and reading both would have outlived its usefulness.
+  Anyone who had set one must rename it, or the price base silently reverts to
+  calling poe.ninja directly.
+- `data/` is unaffected: it resolves from the project root, not from the package.
+  Verified after the move — 57 stock rows and `profiles.json` still in place.
+- Three files still written in French were translated while being touched: the
+  `reference_tabs` and fixture READMEs, and the VS Code task label, which also
+  still named the old module. The i18n pass had missed them because they are
+  neither `.py` nor a root README.
+- The project **directory** is still named `joy_tracker`. Nothing in the code
+  depends on it; renaming it is the user's call, outside a session.
+- Last validation: **124 tests passed**, smoke_ui and the margin harness unchanged.
+
+## Guarding the $$ tab and the catalogues — 22 September 2026
+
+- The margin harness covered two captures. Tab selection and the `$$` label,
+  which OCR cannot read at all, were unguarded.
+- `tests/margins.py` now measures the lit run marking the selected tab (44
+  against a required 32), the sidebar arrow that confirms the active title (4
+  rows against 2, 26 warm pixels against 8), and the two `$$` template scores.
+- **`dollar_tab.arrow_rows` clears its floor by 2** — the narrowest absolute
+  margin in the project outside the Runes separation, and it decides whether the
+  side menu can confirm the active tab. Recorded as a known fragility.
+- The two `symbol_*` scores are near-tautological and documented as such in the
+  code: the templates were cut from that very capture, so ~1.0 means the matcher
+  still recognises its own source, not that `$$` is robust. Stating that matters
+  more than the number, which would otherwise read as 0.20 of comfort.
+- `tests/test_i18n.py` replaces the scratch script that checked the catalogues.
+  A key present in one language and missing in another falls back silently, so it
+  reads as an untranslated string; a `{placeholder}` that differs raises inside
+  `.format()` only for the language with the wrong name, which an
+  English-speaking author never sees.
+- Verified by injection rather than assumed: a key removed from the French
+  catalogue, a renamed placeholder, a blank entry and a stray brace each fail the
+  suite; the healthy state passes.
+- Last validation: **140 tests passed**, as well as `python -m tests.smoke_ui`.
