@@ -92,6 +92,38 @@ holds the version ranges.
 - Both catalogues must keep the same key set and the same `{placeholders}`;
   a mismatch raises at runtime inside `.format()`.
 
+## Confirmed-empty cells — 22 September 2026
+
+- Problem addressed: `Store.sync` deleted a cell confirmed empty, which made it
+  indistinguishable from a cell that had never been read. The dashboard computed
+  `unread = expected - len(rows)`, so a fully scanned tab claimed to be partial
+  forever. On the real Expedition capture, 25 occupied cells out of 32 meant the
+  card reported "Partial - 7 to check" permanently, even though those 7 were
+  confirmed empty three times each. That destroyed the meaning of the partial
+  signal the rest of the interface relies on.
+- A non-destructive `empty` column was added to `slots`. A confirmed-empty cell is
+  now stored with `item=NULL, quantity=NULL, empty=1` and a confirmation stamp:
+  knowledge that the cell holds nothing, still never a stored zero.
+- **`Store.rows()` keeps its six fields and its meaning**: cells holding stock.
+  Empty rows are excluded there and exposed by `empty_slots()`, the same shape as
+  `approximate_slots()`. Including them in `rows()` would have turned every
+  consumer — valuation, CSV, inventory tree, history snapshots — into treating
+  them as unread, which is the bug in reverse.
+- The three `unread` computations in `app.py` (cards, grand total, valuation
+  points) now subtract the confirmed-empty cells, and the live status line
+  excludes them from its denominator.
+- Rows deleted by the old behaviour cannot be recovered; they are re-learned on
+  the next scan. The user's database therefore still shows 57 stock rows and 0
+  empty until each tab is scanned once more.
+- Verified on the real Expedition capture with the real OCR: 25 stock + 7 empty =
+  32 expected, 0 unread, no partial marker, 0 stored zeros, 0 empty rows carrying
+  an item.
+- `tests/test_empty_cells.py` pins the invariants: empty is never a zero, stock
+  reappearing clears the mark, an unreadable reading keeps a recorded emptiness,
+  a repeated empty reading is not a change (otherwise every scan would append a
+  history snapshot), league/tab isolation, and the legacy-database migration.
+- Last validation: **98 tests passed**, as well as `python -m tests.smoke_ui`.
+
 ## Margin harness — 22 September 2026
 
 - Problem addressed: the suite was binary. When `test_rune_pages` passed, nothing

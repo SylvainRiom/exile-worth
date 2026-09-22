@@ -588,6 +588,7 @@ class App(tk.Tk):
              t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced))
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==self.league.get().strip()]
         approximate = self.store.approximate_slots(self.league.get().strip())
+        empty = self.store.empty_slots(self.league.get().strip())
         for index,tab in enumerate(tabs,1):
             entries = [r for r in rows if r[0]==tab['id']]
             estimate = estimate_readings([Reading(r[1],r[2],r[3]) for r in entries],prices,unit)
@@ -595,7 +596,10 @@ class App(tk.Tk):
             expected_slots = (sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
                               if layout_family(layout_for_tab(tab).id) == 'runes'
                               else len(layout_for_tab(tab).slots))
-            unread = max(0, expected_slots-len(entries))
+            # Read and known to be empty is not unread: without this the card of a
+            # fully scanned tab would claim to be partial forever.
+            confirmed_empty = sum(1 for tab_id,_slot in empty if tab_id == tab['id'])
+            unread = max(0, expected_slots-len(entries)-confirmed_empty)
             uncertain = sum(bool(r[5]) for r in entries)
             detail = (t('dash.never_synced') if not entries else
                       t('dash.last_read', stamp=max(r[4] for r in entries).replace('T',' ')))
@@ -759,7 +763,8 @@ class App(tk.Tk):
         amount = stored.amount if rows else preview.amount
         estimate = stored if rows else preview
         missing = estimate.unpriced
-        unread = max(0, expected-len(rows)) if rows else estimate.unread
+        empty_slots = self.store.empty_slots(league)
+        unread = max(0, expected-len(rows)-len(empty_slots)) if rows else estimate.unread
         partial = bool(missing or unread or uncertain)
         self.total.set((f'≈ {amount:,.2f} {symbol}' + (' · partiel' if partial else '')) if amount is not None else '—')
         if rows:
@@ -906,15 +911,17 @@ class App(tk.Tk):
                     if kind == 'live' and tab:
                         self.store.sync(league, tab['id'], readings)
                         self.refresh_inventory()
-                        known = sum(r.item is not None and r.quantity is not None for r in readings)
-                        detail = (t('status.synced_partial', name=tab['name'], known=known, total=len(readings))
-                                  if known < len(readings) else t('status.synced', name=tab['name']))
+                        occupied = [r for r in readings if r.reason != Reason.EMPTY]
+                        known = sum(r.item is not None and r.quantity is not None for r in occupied)
+                        detail = (t('status.synced_partial', name=tab['name'], known=known, total=len(occupied))
+                                  if known < len(occupied) else t('status.synced', name=tab['name']))
                         self.status.set(f'{reason} {detail}' if reason else detail)
                     else:
                         self.refresh_inventory()
-                        known = sum(r.item is not None and r.quantity is not None for r in readings)
+                        occupied = [r for r in readings if r.reason != Reason.EMPTY]
+                        known = sum(r.item is not None and r.quantity is not None for r in occupied)
                         suffix = (reason or t('status.tab_to_recognise')) if not tab else (reason or t('status.ready_for_tracking'))
-                        self.status.set(t('status.identified', known=known, total=len(readings), suffix=suffix)
+                        self.status.set(t('status.identified', known=known, total=len(occupied), suffix=suffix)
                                         if layout_id else t('status.unknown_layout_short'))
                 elif kind in ('error', 'price_error'):
                     self.status.set(str(payload))

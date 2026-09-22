@@ -87,6 +87,12 @@ class Store:
         if 'approximate' not in columns:
             self.db.execute('ALTER TABLE slots ADD COLUMN approximate INTEGER NOT NULL DEFAULT 0')
             self.db.commit()
+        if 'empty' not in columns:
+            # Before this column a confirmed-empty cell was deleted, which made it
+            # indistinguishable from a cell that was never read. Rows deleted then
+            # cannot be recovered; they are re-learned on the next scan.
+            self.db.execute('ALTER TABLE slots ADD COLUMN empty INTEGER NOT NULL DEFAULT 0')
+            self.db.commit()
         self.migrate_event_keys()
 
     def migrate_event_keys(self):
@@ -106,13 +112,17 @@ class Store:
         with self.db:
             for r in readings:
                 old = self.db.execute(
-                    'SELECT item, quantity, approximate FROM slots WHERE league=? AND tab=? AND slot=?',
+                    'SELECT item, quantity, approximate, empty FROM slots WHERE league=? AND tab=? AND slot=?',
                     (league, tab, r.slot)).fetchone()
                 if r.reason == Reason.EMPTY:
-                    if old is not None:
-                        self.db.execute('DELETE FROM slots WHERE league=? AND tab=? AND slot=?',
-                                        (league, tab, r.slot))
+                    # Confirmed empty is knowledge, not absence of knowledge: keep
+                    # the row so the cell stops counting as never read. It holds no
+                    # item and no quantity, so it is still never a stored zero.
+                    if old is None or not old[3]:
                         changed = True
+                    self.db.execute(
+                        'INSERT OR REPLACE INTO slots(league,tab,slot,item,quantity,confirmed,uncertain,approximate,empty)'
+                        ' VALUES(?,?,?,NULL,NULL,?,0,0,1)', (league, tab, r.slot, stamp))
                     continue
                 if r.quantity is None or r.item is None:
                     self.db.execute('UPDATE slots SET uncertain=1 WHERE league=? AND tab=? AND slot=?',
@@ -120,19 +130,32 @@ class Store:
                     continue
                 if r.quantity < 0:
                     raise ValueError('Negative quantity')
-                changed |= old != (r.item, r.quantity, int(r.approximate))
-                self.db.execute('INSERT OR REPLACE INTO slots(league,tab,slot,item,quantity,confirmed,uncertain,approximate) VALUES(?,?,?,?,?,?,0,?)',
+                changed |= old != (r.item, r.quantity, int(r.approximate), 0)
+                self.db.execute('INSERT OR REPLACE INTO slots(league,tab,slot,item,quantity,confirmed,uncertain,approximate,empty)'
+                                ' VALUES(?,?,?,?,?,?,0,?,0)',
                                 (league, tab, r.slot, r.item, r.quantity, stamp, int(r.approximate)))
             if changed:
-                snapshot = self.db.execute('SELECT tab,slot,item,quantity,confirmed,uncertain,approximate FROM slots WHERE league=?', (league,)).fetchall()
+                snapshot = self.db.execute('SELECT tab,slot,item,quantity,confirmed,uncertain,approximate'
+                                           ' FROM slots WHERE league=? AND empty=0', (league,)).fetchall()
                 self.db.execute('INSERT INTO history(time,league,tab,snapshot) VALUES(?,?,?,?)',
                                 (stamp, league, tab, json.dumps(snapshot)))
         return changed
 
     def rows(self, league):
+        """Cells holding stock. Six fields, as every caller and snapshot expects.
+
+        Confirmed-empty cells are deliberately excluded: they carry no item and
+        no quantity, so including them would turn every consumer into an unread
+        cell. `empty_slots()` exposes them, the way `approximate_slots()` does.
+        """
         return self.db.execute(
-            'SELECT tab,slot,item,quantity,confirmed,uncertain FROM slots WHERE league=? ORDER BY tab,slot',
-            (league,)).fetchall()
+            'SELECT tab,slot,item,quantity,confirmed,uncertain FROM slots'
+            ' WHERE league=? AND empty=0 ORDER BY tab,slot', (league,)).fetchall()
+
+    def empty_slots(self, league):
+        """Cells confirmed empty: read, and known to hold nothing."""
+        return {(tab,slot) for tab,slot in self.db.execute(
+            'SELECT tab,slot FROM slots WHERE league=? AND empty=1', (league,))}
 
     def history(self, league):
         return self.db.execute('SELECT time,tab,snapshot FROM history WHERE league=? ORDER BY id DESC LIMIT 100',
@@ -140,7 +163,7 @@ class Store:
 
     def approximate_slots(self, league):
         return {(tab,slot) for tab,slot in self.db.execute(
-            'SELECT tab,slot FROM slots WHERE league=? AND approximate=1', (league,))}
+            'SELECT tab,slot FROM slots WHERE league=? AND approximate=1 AND empty=0', (league,))}
 
     def save_prices(self, league, market):
         with self.db:
@@ -156,6 +179,7 @@ class Store:
         if not rows:
             return None
         approximate = self.approximate_slots(league)
+        empty = self.empty_slots(league)
         snapshot = [list(row) + [int((row[0], row[1]) in approximate)] for row in rows]
         prices = dict(market.get('prices', {}))
         tabs = {}
@@ -164,7 +188,8 @@ class Store:
             entries = [row for row in snapshot if row[0] == tab]
             estimate = estimate_readings([Reading(r[1], r[2], r[3]) for r in entries], prices)
             tabs[tab] = dict(amount=estimate.amount, unpriced=estimate.unpriced,
-                             unread=max(0, expected.get(tab, len(entries))-len(entries)),
+                             unread=max(0, expected.get(tab, len(entries))-len(entries)
+                                        -sum(1 for t,_s in empty if t == tab)),
                              uncertain=sum(bool(r[5]) for r in entries),
                              approximate=sum(bool(r[6]) for r in entries),
                              observed=max((r[4] for r in entries), default=None))

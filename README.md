@@ -150,6 +150,12 @@ identical readings; it does not protect against a systematic visual error.
   It enters the total and the inventory only after three matching readings while the
   game stays in the foreground. Visually empty cells are omitted from the list; no
   zero quantity is assumed.
+- A cell confirmed empty is **recorded as read and holding nothing**, not forgotten.
+  It carries no item and no quantity, so it is still never a stored zero, but it no
+  longer counts as unread. Without that distinction a fully scanned tab claimed to
+  be partial forever: the Expedition tab has 25 occupied cells out of 32, and its
+  card used to report "Partial - 7 to check" even though those 7 had been confirmed
+  empty three times each.
 - Tabs that are not revisited keep their last state. A move between tabs can be
   counted twice for a while until both have been seen again.
 - The value is not farming profit: purchases, sales, transfers and rate changes all
