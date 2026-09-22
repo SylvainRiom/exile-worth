@@ -53,7 +53,7 @@ class LiveLoopTests(unittest.TestCase):
             self.assertEqual(len(profiles.data['tabs']),1)
             tab = profiles.data['tabs'][0]
             self.assertEqual((tab['name'],tab['layout_id']),('SAGA','expedition'))
-            self.assertTrue(all(payload[1]['id']==tab['id'] for kind,payload in messages if kind=='live'))
+            self.assertTrue(all(payload.tab['id']==tab['id'] for kind,payload in messages if kind=='live'))
             reloaded = Profiles(Path(directory))
             self.assertEqual(reloaded.identify(frame,'A')[0]['id'],tab['id'])
 
@@ -89,7 +89,7 @@ class LiveLoopTests(unittest.TestCase):
             self.assertEqual(len(profiles.data['tabs']),1)
             tab = profiles.data['tabs'][0]
             self.assertEqual((tab['name'],tab['layout_id']),('$$','currency'))
-            self.assertTrue(all(payload[1]['id']==tab['id'] for kind,payload in messages if kind=='live'))
+            self.assertTrue(all(payload.tab['id']==tab['id'] for kind,payload in messages if kind=='live'))
 
     def test_real_resolver_and_incremental_scanner_switch_structures(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -111,7 +111,7 @@ class LiveLoopTests(unittest.TestCase):
             self.assertFalse(any(kind=='error' for kind,_ in messages), messages)
             live = [payload for kind,payload in messages if kind=='live']
             for tab,quantity in [(a,12),(b,80)]:
-                values = [payload[2] for payload in live if payload[1]['id']==tab['id']]
+                values = [payload.readings for payload in live if payload.tab['id']==tab['id']]
                 self.assertTrue(values)
                 self.assertIsNone(values[0][0].quantity)
                 self.assertEqual(values[-1][0].quantity,quantity)
@@ -138,8 +138,8 @@ class LiveLoopTests(unittest.TestCase):
         messages = self.run_loop(np.zeros((1080,1920,3),np.uint8))
         previews = [payload for kind,payload in messages if kind=='live']
         self.assertTrue(previews)
-        self.assertTrue(all(payload[1] is None for payload in previews))
-        self.assertEqual(previews[-1][2][0].quantity,12)
+        self.assertTrue(all(payload.tab is None for payload in previews))
+        self.assertEqual(previews[-1].readings[0].quantity,12)
         self.assertIn('preview',[payload[0] for kind,payload in messages if kind=='activity'])
 
     def test_missing_foreground_game_reports_waiting_without_reading(self):
@@ -151,5 +151,5 @@ class LiveLoopTests(unittest.TestCase):
         tab = {'id':'tab-1','name':'Currencies'}
         messages = self.run_loop(np.zeros((1080,1920,3),np.uint8),tab)
         readings = [payload for kind,payload in messages if kind=='live']
-        self.assertEqual(readings[-1][1]['id'],'tab-1')
-        self.assertEqual(readings[-1][2][0].quantity,12)
+        self.assertEqual(readings[-1].tab['id'],'tab-1')
+        self.assertEqual(readings[-1].readings[0].quantity,12)

@@ -117,8 +117,9 @@ def main():
                 assert 'tab2' in app.valuation_view.details.get()
                 # Selecting an old card must not redirect incoming live observations.
                 app.open_stash('tab1')
-                app.messages.put(('live',(frame,{'id':'tab2','name':'Second','layout_id':'currency'},
-                                         [Reading('C03','divine',2)],'','Forbidden Rites')))
+                from joy_tracker.app import ScanResult
+                app.messages.put(('live', ScanResult(frame, {'id':'tab2','name':'Second','layout_id':'currency'},
+                                                     [Reading('C03','divine',2)], '', 'Forbidden Rites', 'currency')))
                 app.drain()
                 assert app.selected_tab_id == 'tab1'
                 assert app.display_readings()[0].quantity == 10

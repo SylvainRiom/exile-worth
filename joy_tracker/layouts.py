@@ -167,3 +167,16 @@ def aligned_slots(frame, layout_id, edges=None):
 def layout_for_tab(tab):
     # Existing profiles remain valid and keep their inventory IDs.
     return LAYOUTS.get(tab.get('layout_id','currency'),LAYOUTS['currency'])
+
+
+def expected_slot_count(tab):
+    """How many cells a registered tab is expected to cover.
+
+    A Runes tab is a single profile spanning five view geometries, so it expects
+    the sum of all five, not just the visible one. This lived in three identical
+    copies in `app.py`; the next multi-view stash would have made them diverge.
+    """
+    layout = layout_for_tab(tab)
+    if layout_family(layout.id) == 'runes':
+        return sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
+    return len(layout.slots)

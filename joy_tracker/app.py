@@ -7,6 +7,7 @@ import queue
 import threading
 import time
 import tkinter as tk
+from dataclasses import dataclass
 from datetime import datetime
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
@@ -22,10 +23,27 @@ from .model import DATA, Reading, Reason, Event, Store, estimate_readings, line_
 from .pricing import Ninja
 from .icons import IconMatcher, fetch_icons
 from .vision import Profiles, Scanner, normalize
-from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, layout_family,
-                      layout_for_tab, layout_name, aligned_slots)
+from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_slot_count,
+                      layout_family, layout_for_tab, layout_name, aligned_slots)
 from .history_ui import HistoryView
 from .theme import apply_theme
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    """One analysis or live reading handed from a worker thread to the UI.
+
+    Workers must not touch Tk widgets, so every reading crosses the queue. This
+    used to be a tuple of six or seven items whose length the consumer probed
+    (`payload[6] if len(payload) > 6`), which silently decided behaviour.
+    """
+    frame: object
+    tab: dict | None
+    readings: list
+    reason: str
+    league: str
+    layout_id: str | None
+    provisional: tuple = ()
 
 
 class App(tk.Tk):
@@ -476,7 +494,7 @@ class App(tk.Tk):
                 if tab is None and layout_id and tab_ocr:
                     tab, reason = self.profiles.observe(frame, league, layout_id, tab_ocr)
                 readings = self.scanner.read(frame, layout_id) if layout_id else []
-                self.messages.put(('analysis', (frame,tab,readings,reason,league,layout_id)))
+                self.messages.put(('analysis', ScanResult(frame, tab, readings, reason, league, layout_id)))
             except Exception as exc:
                 failure('analyze', exc)
                 self.messages.put(('error', str(exc)))
@@ -593,9 +611,7 @@ class App(tk.Tk):
             entries = [r for r in rows if r[0]==tab['id']]
             estimate = estimate_readings([Reading(r[1],r[2],r[3]) for r in entries],prices,unit)
             amount = f'≈ {estimate.amount:,.2f} {symbol}' if estimate.amount is not None else '—'
-            expected_slots = (sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
-                              if layout_family(layout_for_tab(tab).id) == 'runes'
-                              else len(layout_for_tab(tab).slots))
+            expected_slots = expected_slot_count(tab)
             # Read and known to be empty is not unread: without this the card of a
             # fully scanned tab would claim to be partial forever.
             confirmed_empty = sum(1 for tab_id,_slot in empty if tab_id == tab['id'])
@@ -680,7 +696,7 @@ class App(tk.Tk):
                     self.scanner.reset_incremental()
                     activity('preview', t('status.unknown_layout'))
                     if last_signature != ('unknown',):
-                        self.messages.put(('live', (frame,None,[],'',league,None)))
+                        self.messages.put(('live', ScanResult(frame, None, [], '', league, None)))
                         last_signature = ('unknown',)
                     continue
                 identity = tab['id'] if tab else 'preview:'+layout_id
@@ -695,7 +711,8 @@ class App(tk.Tk):
                              tuple((r.slot,r.item,r.quantity,r.reason,r.approximate,r.alternatives) for r in readings),
                              tuple((r.slot,r.item,r.quantity,r.approximate) for r in provisional))
                 if signature != last_signature or scans % 12 == 0:
-                    self.messages.put(('live', (frame,tab,readings,reason,league,layout_id,provisional)))
+                    self.messages.put(('live', ScanResult(frame, tab, readings, reason, league,
+                                                          layout_id, tuple(provisional))))
                     last_signature = signature
         except Exception as exc:
             failure('live_loop', exc)
@@ -756,10 +773,8 @@ class App(tk.Tk):
         preview = estimate_readings(readings, prices, unit)
         stored = estimate_readings([Reading(slot,item,quantity) for tab,slot,item,quantity,stamp,stale in rows], prices, unit)
         uncertain = sum(bool(row[5]) for row in rows)
-        expected = sum((sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
-                        if layout_family(layout_for_tab(t).id) == 'runes'
-                        else len(layout_for_tab(t).slots))
-                       for t in self.profiles.data['tabs'] if t['league']==league)
+        expected = sum(expected_slot_count(profile) for profile in self.profiles.data['tabs']
+                       if profile['league'] == league)
         amount = stored.amount if rows else preview.amount
         estimate = stored if rows else preview
         missing = estimate.unpriced
@@ -811,10 +826,8 @@ class App(tk.Tk):
         if self.market_league != league:
             return None
         market = self.market
-        expected = {tab['id']: (sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
-                                if layout_family(layout_for_tab(tab).id) == 'runes'
-                                else len(layout_for_tab(tab).slots))
-                    for tab in self.profiles.data['tabs'] if tab['league']==league}
+        expected = {tab['id']: expected_slot_count(tab)
+                    for tab in self.profiles.data['tabs'] if tab['league'] == league}
         return self.store.record_valuation(league, market, expected, reason, force)
 
     def mark_session(self):
@@ -893,17 +906,16 @@ class App(tk.Tk):
                     if self.frame is not None and not self.running:
                         self.after_idle(self.analyze)
                 elif kind in ('analysis', 'live'):
-                    frame,tab,readings,reason,league = payload[:5]
-                    layout_id = payload[5] if len(payload) > 5 else (layout_for_tab(tab).id if tab else
-                                ('expedition' if readings and readings[0].slot.startswith('E') else 'currency' if readings else None))
+                    scan = payload
+                    tab, readings, league = scan.tab, scan.readings, scan.league
                     if league != self.league.get().strip():
                         continue
-                    self.frame, self.last_tab, self.last_readings = frame, tab, readings
-                    self.provisional_readings = payload[6] if kind == 'live' and len(payload) > 6 else []
+                    self.frame, self.last_tab, self.last_readings = scan.frame, tab, readings
+                    self.provisional_readings = list(scan.provisional) if kind == 'live' else []
                     self.reading_league = league
-                    self.active_layout_id = layout_id
+                    self.active_layout_id = scan.layout_id
                     if tab:
-                        self.tab_frames[tab['id']] = frame.copy()
+                        self.tab_frames[tab['id']] = scan.frame.copy()
                     if not self.selected_tab_id:
                         self.detail_title.set(t('detail.live_preview_of', layout=layout_name(self.active_layout_id or 'unknown')))
                     self.show_readings(self.display_readings())
@@ -915,14 +927,15 @@ class App(tk.Tk):
                         known = sum(r.item is not None and r.quantity is not None for r in occupied)
                         detail = (t('status.synced_partial', name=tab['name'], known=known, total=len(occupied))
                                   if known < len(occupied) else t('status.synced', name=tab['name']))
-                        self.status.set(f'{reason} {detail}' if reason else detail)
+                        self.status.set(f'{scan.reason} {detail}' if scan.reason else detail)
                     else:
                         self.refresh_inventory()
                         occupied = [r for r in readings if r.reason != Reason.EMPTY]
                         known = sum(r.item is not None and r.quantity is not None for r in occupied)
-                        suffix = (reason or t('status.tab_to_recognise')) if not tab else (reason or t('status.ready_for_tracking'))
+                        suffix = (scan.reason or (t('status.tab_to_recognise') if not tab
+                                                  else t('status.ready_for_tracking')))
                         self.status.set(t('status.identified', known=known, total=len(occupied), suffix=suffix)
-                                        if layout_id else t('status.unknown_layout_short'))
+                                        if scan.layout_id else t('status.unknown_layout_short'))
                 elif kind in ('error', 'price_error'):
                     self.status.set(str(payload))
                     if kind == 'price_error':

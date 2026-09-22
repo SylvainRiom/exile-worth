@@ -92,6 +92,33 @@ holds the version ranges.
 - Both catalogues must keep the same key set and the same `{placeholders}`;
   a mismatch raises at runtime inside `.format()`.
 
+## Structural debt in app.py — 22 September 2026
+
+- `expected_slot_count` existed as **three identical inline copies** in `app.py`:
+  the dashboard card, the grand total and the valuation point each recomputed
+  "sum the five Runes views, otherwise this layout's cells". The next multi-view
+  stash would have made them diverge, and a disagreement there shows up as a wrong
+  "partial" badge rather than as a crash. It now lives once in
+  `layouts.expected_slot_count(tab)`, next to the geometry it reads.
+- The worker-to-UI message for an analysis or a live reading was a tuple of six or
+  seven items whose length the consumer probed:
+  `layout_id = payload[5] if len(payload) > 5 else …` and
+  `provisional = payload[6] if kind == 'live' and len(payload) > 6 else []`.
+  A producer adding a field in the wrong position changed behaviour silently.
+  It is now the frozen `ScanResult` dataclass in `app.py`, with named fields and
+  `provisional` defaulting to empty.
+- The `payload[5]` fallback guessed the layout from the first slot's name prefix
+  (`'expedition' if readings[0].slot.startswith('E')`). All three producers had
+  been sending `layout_id` for a while, so that branch was dead **and** would have
+  guessed wrong for the Runes views. Removed.
+- `tests/test_structure.py` pins both: every Runes view yields the same
+  expectation, a legacy profile without `layout_id` counts as Currencies, an
+  unknown id falls back without raising, the three former call sites agree by
+  construction, and `ScanResult` is immutable with an explicit `None` layout
+  rather than an absent tuple element.
+- Behaviour unchanged: the margin harness is identical and `smoke_ui` passes.
+- Last validation: **115 tests passed**, as well as `python -m tests.smoke_ui`.
+
 ## Live-loop geometry cost — 22 September 2026
 
 - Problem addressed: `resolve_layout` calls `detect_layout` on every iteration of
