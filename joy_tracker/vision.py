@@ -5,6 +5,7 @@ import re
 import sqlite3
 import time
 import unicodedata
+from contextlib import closing
 from dataclasses import asdict
 from functools import lru_cache
 from pathlib import Path
@@ -240,7 +241,8 @@ class Profiles:
         if not database.exists():
             return True
         try:
-            with sqlite3.connect(database) as connection:
+            # `with sqlite3.connect(...)` commits but does not close: use closing().
+            with closing(sqlite3.connect(database)) as connection:
                 return not any(connection.execute(f'SELECT 1 FROM {table} WHERE tab=? LIMIT 1',
                                                   (tab_id,)).fetchone()
                                for table in ('slots', 'history'))
@@ -434,7 +436,9 @@ class Scanner:
         started = time.perf_counter()
         clock = time.monotonic() if clock is None else clock
         key = (identity, layout_id)
-        config = (id(self.matcher), json.dumps(self.profiles.data['slots'], sort_keys=True))
+        # A rebuilt matcher must invalidate the cache. id() can be reused after
+        # collection, so the matcher carries its own monotonic revision.
+        config = (self.matcher.revision, json.dumps(self.profiles.data['slots'], sort_keys=True))
         if key != self.live_key or config != self.live_config:
             self.reset_incremental()
             self.live_key, self.live_config = key, config

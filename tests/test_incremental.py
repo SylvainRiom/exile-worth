@@ -1,4 +1,5 @@
 import tempfile
+import itertools
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,7 +20,12 @@ class Digits:
 
 
 class Matcher:
+    # Mirrors IconMatcher: a rebuilt catalogue must be a new revision, because
+    # the scanner keys its incremental cache on that, not on id().
+    _revisions = itertools.count()
+
     def __init__(self):
+        self.revision = next(Matcher._revisions)
         self.calls = 0
 
     def match_many(self, patches):

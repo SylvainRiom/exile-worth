@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +12,13 @@ from urllib.request import Request, urlopen
 import cv2
 import numpy as np
 
+from .diagnostics import log
 from .model import DATA
+
+# Artwork paths from the economy API are relative and resolve here. urljoin()
+# happily returns an absolute URL untouched, so checking only the scheme would
+# let a catalogue entry point this downloader at any https host.
+ICON_HOSTS = frozenset({'web.poecdn.com'})
 
 SAGA_FAMILY = frozenset(('medveds-saga', 'voranas-saga', 'uhtreds-saga',
                          'olroths-saga', 'aldurs-saga'))
@@ -28,7 +35,9 @@ def fetch_icons(items, directory=DATA / 'icons', progress=None):
             errors.append(item_id)
             continue
         url = urljoin('https://web.poecdn.com', source)
-        if urlparse(url).scheme != 'https':
+        parts = urlparse(url)
+        if parts.scheme != 'https' or parts.hostname not in ICON_HOSTS:
+            log.warning('icon %s refused: %s is not a permitted source', item_id, url)
             errors.append(item_id)
             continue
         sources.setdefault(url, []).append(item_id)
@@ -73,6 +82,10 @@ def fetch_icons(items, directory=DATA / 'icons', progress=None):
     return images, errors
 
 
+# id() is reused after collection, so it cannot identify a rebuilt matcher.
+_revisions = itertools.count()
+
+
 @dataclass(frozen=True)
 class IconMatch:
     item: str | None
@@ -89,6 +102,7 @@ class IconMatcher:
     extra weight. The runner-up is a *different currency*, not another scale.
     """
     def __init__(self, images, threshold=.92, margin=.015):
+        self.revision = next(_revisions)
         self.threshold, self.margin = threshold, margin
         self.ids, templates, masks = [], [], []
         unique = {}

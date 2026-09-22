@@ -227,20 +227,6 @@ class Store:
         return None
 
 
-def value_inventory(rows, prices):
-    total, missing, uncertain = 0.0, 0, 0
-    for _tab, _slot, item, quantity, _confirmed, stale in rows:
-        uncertain += bool(stale)
-        price = prices.get(item)
-        if quantity == 0:
-            continue
-        if price is None or not math.isfinite(price) or price < 0:
-            missing += 1
-        else:
-            total += quantity * price
-    return total, missing, uncertain
-
-
 def line_value(item, quantity, prices, unit='divine'):
     """Price and reference rate must belong to the same league and overview."""
     rate = prices.get(unit)

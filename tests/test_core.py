@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-from joy_tracker.model import Reading, Store, value_inventory
+from joy_tracker.model import Reading, Store, estimate_readings
 from joy_tracker.pricing import Ninja, parse_overview
 from joy_tracker.vision import Consensus, Profiles, Scanner, SLOTS, normalize
 
@@ -37,13 +37,22 @@ class InventoryTests(unittest.TestCase):
     def test_tabs_and_leagues_are_isolated(self):
         for league,tab,n in [('A','one',10),('A','two',20),('B','one',100)]:
             self.store.sync(league,tab,[Reading('1','exalted',n)])
-        total,missing,_ = value_inventory(self.store.rows('A'),{'exalted':.5})
-        self.assertEqual(total,15)
-        self.assertEqual(missing,0)
+        prices = {'exalted':.5,'divine':1.0}
+        estimate = estimate_readings(
+            [Reading(slot,item,qty) for _t,slot,item,qty,_c,_u in self.store.rows('A')], prices)
+        self.assertEqual(estimate.amount,15)      # 10+20 exalted at .5, divine at 1
+        self.assertEqual(estimate.unpriced,0)
+        other = estimate_readings(
+            [Reading(slot,item,qty) for _t,slot,item,qty,_c,_u in self.store.rows('B')], prices)
+        self.assertEqual(other.amount,50)         # league B is valued on its own
 
     def test_missing_price_excluded_and_reported(self):
         self.store.sync('A','one',[Reading('1','unknown',7)])
-        self.assertEqual(value_inventory(self.store.rows('A'),{}),(0,1,0))
+        estimate = estimate_readings(
+            [Reading(slot,item,qty) for _t,slot,item,qty,_c,_u in self.store.rows('A')],
+            {'divine':1.0})
+        self.assertEqual(estimate.unpriced,1)
+        self.assertIsNone(estimate.amount, 'an unpriced item must not be valued at zero')
 
 
 class VisionTests(unittest.TestCase):
