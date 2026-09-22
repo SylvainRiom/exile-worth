@@ -12,6 +12,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from .diagnostics import ChangeGate, format_scores, log
 from .model import DATA, Reading, Reason
 from .i18n import t
 from .icons import IconMatcher, SAGA_FAMILY
@@ -158,6 +159,7 @@ class Profiles:
     def __init__(self, directory=DATA):
         self.directory = directory
         directory.mkdir(parents=True, exist_ok=True)
+        self.gate = ChangeGate()
         self.file = directory / 'profiles.json'
         self.data = json.loads(self.file.read_text('utf-8')) if self.file.exists() else {'tabs': [], 'slots': {}}
 
@@ -289,11 +291,24 @@ class Profiles:
                 score = similarity(crop(frame, tab['rect']), np.array(tab['label'], np.uint8))
                 candidates.append((score, tab))
         candidates.sort(key=lambda pair: pair[0], reverse=True)
+        ranked = [(score, tab['name']) for score, tab in candidates]
         if not candidates or candidates[0][0] < .96:
+            self.record_identity(
+                'no candidate passed the border filter' if not candidates else
+                f'best {ranked[0][1]}={ranked[0][0]:.4f} < .96', ranked)
             return None, t('profile.unknown_tab')
         if len(candidates) > 1 and candidates[0][0] - candidates[1][0] < .04:
+            self.record_identity(f'ambiguous: {ranked[0][1]} and {ranked[1][1]} '
+                                 f'differ by {ranked[0][0]-ranked[1][0]:.4f} < .04', ranked)
             return None, t('profile.ambiguous_identity')
+        self.record_identity(f'matched {ranked[0][1]} ({ranked[0][0]:.4f})', ranked)
         return candidates[0][1], ''
+
+    def record_identity(self, verdict, ranked):
+        if not self.gate.passes('identity', verdict):
+            return
+        log.info('tab identity: %s | candidates %s', verdict,
+                 format_scores(ranked) or 'none')
 
 
 class DigitReader:
@@ -386,6 +401,10 @@ class Scanner:
         self.digits = digits or DigitReader()
         self.matcher = matcher or IconMatcher({})
         self.last_layout_id = 'currency'
+        # Why the last decision went the way it did, for the session log.
+        self.last_layout_scores = []
+        self.last_layout_verdict = ''
+        self.gate = ChangeGate()
         self.reset_incremental()
 
     def reset_incremental(self):
@@ -436,6 +455,9 @@ class Scanner:
         self.last_metrics = dict(cells=len(slots), ocr=len(pending),
                                  icons=len(pending)-len(matches),
                                  milliseconds=(time.perf_counter()-started)*1000)
+        log.debug('frame %s: %d cells, %d re-read, %d icon searches, %.1f ms',
+                  layout_id, len(slots), len(pending), len(pending)-len(matches),
+                  self.last_metrics['milliseconds'])
         return [result[slot] for slot in slots]
 
     def detect_layout(self, frame, borders_only=False):
@@ -457,9 +479,17 @@ class Scanner:
                 found += sum(score >= .65 for score in sides) >= 3
             structures.append((found / len(layout.slots), layout.id))
         structures.sort(reverse=True)
-        if structures[0][0] >= .55 and structures[0][0]-structures[1][0] >= .12:
-            return structures[0][1]
+        self.last_layout_scores = structures
+        best, runner = structures[0], structures[1]
+        if best[0] >= .55 and best[0]-runner[0] >= .12:
+            self.record_layout(f'borders accepted {best[1]} '
+                               f'(score {best[0]:.3f} >= .55, margin {best[0]-runner[0]:.3f} >= .12)',
+                               structures)
+            return best[1]
+        reason = (f'score {best[0]:.3f} < .55' if best[0] < .55
+                  else f'margin over {runner[1]} only {best[0]-runner[0]:.3f} < .12')
         if borders_only:
+            self.record_layout(f'borders rejected: {reason}', structures)
             return None
         scores = []
         for layout in LAYOUTS.values():
@@ -468,8 +498,24 @@ class Scanner:
             scores.append((score,layout.id))
         scores.sort(reverse=True)
         if scores[0][0] < 2 or scores[0][0] - scores[1][0] < 2:
+            self.record_layout(
+                f'borders rejected ({reason}); icons rejected too '
+                f'(best {scores[0][1]}={scores[0][0]}, runner {scores[1][1]}={scores[1][0]}, '
+                'needs >=2 and a lead of >=2)', structures, scores)
             return None
+        self.record_layout(f'borders rejected ({reason}); icons accepted {scores[0][1]} '
+                           f'({scores[0][0]} vs {scores[1][0]})', structures, scores)
         return scores[0][1]
+
+    def record_layout(self, verdict, borders, icons=None):
+        """Log a layout decision, but only when the verdict actually changes."""
+        self.last_layout_verdict = verdict
+        if not self.gate.passes('layout', verdict):
+            return
+        message = 'layout: %s | borders %s' % (verdict, format_scores(borders))
+        if icons is not None:
+            message += ' | icons %s' % format_scores(icons)
+        log.info(message)
 
     def read(self, frame, layout_id='currency', slot_ids=None, cached_matches=None):
         self.last_layout_id = layout_id
@@ -519,7 +565,29 @@ class Scanner:
                                        Reason.LOCAL_REF if quantity is not None else Reason.UNREADABLE_COUNT, approximate))
             else:
                 results.append(Reading(slot, None, quantity, confidence, Reason.HIDDEN_ICON, approximate))
+        self.record_coverage(layout_id, results, matches)
         return results
+
+    def record_coverage(self, layout_id, results, matches):
+        """Log the cells that stayed unidentified, with the near-miss the matcher saw.
+
+        `IconMatch.candidate` and `.margin` exist for exactly this question: when a
+        cell is refused, what was the runner-up and by how much did it miss?
+        """
+        unknown = [r for r in results if r.item is None and r.reason != Reason.EMPTY]
+        identified = sum(1 for r in results if r.item)
+        empty = sum(1 for r in results if r.reason == Reason.EMPTY)
+        state = (layout_id, identified, empty, tuple(sorted(r.slot for r in unknown)))
+        if not self.gate.passes('coverage', state):
+            return
+        log.info('recognition %s: %d identified, %d empty, %d unidentified',
+                 layout_id, identified, empty, len(unknown))
+        for reading in unknown:
+            match = matches.get(reading.slot)
+            if match is None:
+                continue
+            log.info('  %-4s unidentified reason=%-15s best=%-28s score=%.4f margin=%.4f',
+                     reading.slot, reading.reason, match.candidate, match.confidence, match.margin)
 
 
 def visually_empty(cell):

@@ -16,6 +16,7 @@ from PIL import Image, ImageTk
 
 from .capture import capture_game
 from . import i18n
+from .diagnostics import failure, log, setup as setup_log
 from .i18n import t
 from .model import DATA, Reading, Reason, Event, Store, estimate_readings, line_value
 from .pricing import Ninja
@@ -30,7 +31,9 @@ from .theme import apply_theme
 class App(tk.Tk):
     def __init__(self, auto_load=True):
         super().__init__()
+        setup_log()
         i18n.load_language()
+        log.info('--- session start --- language=%s', i18n.language())
         self.title(t('app.title'))
         self.geometry('1380x920')
         self.minsize(1080, 780)
@@ -225,6 +228,7 @@ class App(tk.Tk):
         if code == i18n.language():
             return
         i18n.set_language(code)
+        log.info('language changed to %s', code)
         self.retranslate()
 
     def retranslate(self):
@@ -290,6 +294,7 @@ class App(tk.Tk):
                 market['icon_errors'] = errors
                 self.messages.put(('prices', (league, leagues, market)))
             except Exception as exc:
+                failure('load_prices', exc)
                 self.messages.put(('price_error', str(exc)))
         threading.Thread(target=work, daemon=True).start()
 
@@ -318,6 +323,7 @@ class App(tk.Tk):
                     raise ValueError(t('error.unreadable_image'))
                 self.set_frame(image)
             except Exception as exc:
+                failure('import_image', exc)
                 messagebox.showerror(t('error.title_capture'), str(exc))
 
     def delayed_capture(self):
@@ -335,6 +341,7 @@ class App(tk.Tk):
                         raise ValueError(t('error.foreground'))
                     self.set_frame(frame)
                 except Exception as exc:
+                    failure('delayed_capture', exc)
                     self.status.set(str(exc))
                 finally:
                     self.busy = False
@@ -471,6 +478,7 @@ class App(tk.Tk):
                 readings = self.scanner.read(frame, layout_id) if layout_id else []
                 self.messages.put(('analysis', (frame,tab,readings,reason,league,layout_id)))
             except Exception as exc:
+                failure('analyze', exc)
                 self.messages.put(('error', str(exc)))
             finally:
                 self.messages.put(('done', None))
@@ -518,6 +526,7 @@ class App(tk.Tk):
             latest.with_suffix('.json').write_text(metadata, encoding='utf-8')
             self.status.set(t('status.image_saved', path=path))
         except (OSError, ValueError, cv2.error) as exc:
+            failure('save_diagnostic', exc)
             self.status.set(t('status.save_failed', error=exc))
 
     def display_slots(self):
@@ -632,6 +641,7 @@ class App(tk.Tk):
         self.refresh_capture_state()
         self.league_box.configure(state='disabled')
         self.status.set(t('status.started'))
+        log.info('tracking started: league=%s override=%s', league, self.layout_override or 'auto')
         threading.Thread(target=self.live_loop, args=(league,), daemon=True).start()
 
     def live_loop(self, league):
@@ -684,8 +694,10 @@ class App(tk.Tk):
                     self.messages.put(('live', (frame,tab,readings,reason,league,layout_id,provisional)))
                     last_signature = signature
         except Exception as exc:
+            failure('live_loop', exc)
             self.messages.put(('error', str(exc)))
         finally:
+            log.info('tracking stopped after %d scans', scans)
             self.messages.put(('stopped', None))
 
     def show_readings(self, readings):
@@ -864,6 +876,9 @@ class App(tk.Tk):
                     self.price_status.set(t('status.prices_received', stamp=stamp)+
                                           (t('status.prices_stale_suffix') if market['stale'] else ''))
                     self.refresh_inventory()
+                    log.info('prices loaded: league=%s items=%d families=%d unavailable=%s',
+                             league, len(market['items']), len(self.matcher.groups),
+                             market.get('unavailable_categories') or 'none')
                     errors = market.get('icon_errors', [])
                     self.status.set(t('status.catalog_loaded', families=len(self.matcher.groups))+
                                     (t('status.icons_missing', count=len(errors)) if errors else ''))

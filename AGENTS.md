@@ -92,6 +92,40 @@ holds the version ranges.
 - Both catalogues must keep the same key set and the same `{placeholders}`;
   a mismatch raises at runtime inside `.format()`.
 
+## Session log — 22 September 2026
+
+- Problem addressed: layout scores, icon runners-up and scanner metrics were all
+  computed on every frame and then discarded, and the five `except Exception`
+  handlers kept only `str(exc)`. A failure report left nothing to read, which is
+  why the diagnosis cycles recorded below were so long.
+- `joy_tracker/diagnostics.py` configures a rotating `data/session.log`
+  (2 MB × 4) and exposes `log`, `failure(context, exc)` and `ChangeGate`.
+  A read-only data directory falls back to a `NullHandler`: logging must never
+  prevent the application from starting.
+- `INFO` records lifecycle events and every **decision change**; `DEBUG`
+  (`JOY_LOG_LEVEL=DEBUG`) adds per-frame metrics and per-cell detail. The live
+  loop runs three times a second, so `ChangeGate` suppresses an unchanged
+  verdict. Keep it that way: an unconditional line per frame would bury the
+  transition that matters.
+- `Scanner.detect_layout` now keeps `last_layout_scores` and `last_layout_verdict`
+  and states which threshold was missed (`score < .55` or `margin < .12`).
+  `Profiles.identify` logs its ranked candidates and the reason for a refusal.
+  `Scanner.record_coverage` logs each unidentified cell with the near-miss:
+  this is the first real use of `IconMatch.candidate` and `.margin`.
+- Verified against the real fixtures: Expedition gives
+  `borders accepted expedition (score 1.000, margin 0.733)` then
+  `25 identified, 7 empty, 0 unidentified`. Rune artwork against the Expedition
+  catalogue gives scores of 0.90–0.93 against a 0.92 threshold with margins of
+  0.0008–0.01 against a required 0.015 — enough to tell a threshold problem from
+  a missing catalogue entry.
+- `tests/test_diagnostics.py` pins the traceback, the numbers behind a verdict,
+  the near-miss line, the DEBUG level of frame metrics, the absence of repeats
+  and the unusable-directory fallback.
+- The accepted-layout test also asserts the margin over the runner-up. That is a
+  first step towards the margin harness that is still missing: the suite is still
+  otherwise pass/fail and does not show how close a threshold came to failing.
+- Last validation: **79 tests passed**, as well as `python -m tests.smoke_ui`.
+
 ## Current behaviour
 
 ### Capture and synchronisation

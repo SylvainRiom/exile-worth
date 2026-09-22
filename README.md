@@ -208,6 +208,35 @@ other users**, point `JOY_PRICE_BASE` at a caching backend, as poe.ninja request
 and set `JOY_CONTACT` to a real contact. The backend must expose the same paths.
 Do not multiply direct clients against the site.
 
+## Session log
+
+Recognition failures are diagnosed from `data/session.log` (rotating, 2 MB × 4,
+local only, never uploaded). It records the numbers behind every decision, which
+is what a screenshot alone cannot tell you:
+
+```
+layout: borders accepted expedition (score 1.000 >= .55, margin 0.733 >= .12)
+        | borders expedition=1.000, kalguuran=0.267, ancient_augments=0.235
+recognition expedition: 25 identified, 7 empty, 0 unidentified
+  R06  unidentified reason=unknown_icon  best=uhtreds-saga  score=0.9097 margin=0.0008
+```
+
+The third line is the useful one: the cell was refused because its margin over the
+runner-up was 0.0008, far below the required 0.015, while its score sat just under
+the 0.92 threshold. That distinguishes "raise the threshold" from "add a catalogue
+entry", which was previously guesswork.
+
+- `INFO` (default) logs lifecycle events and every **decision change**. The live
+  loop runs three times a second, so repeated identical verdicts are suppressed;
+  a line means something actually changed.
+- `JOY_LOG_LEVEL=DEBUG` adds per-frame metrics (cells, re-reads, icon searches,
+  milliseconds) and per-cell detail.
+- Exceptions are recorded with their full traceback. The interface keeps showing
+  its own short message.
+
+After a failure report, read this file together with the PNG saved by
+**Save the image**: the PNG shows what was seen, the log shows why it was refused.
+
 ## Language
 
 The interface language is chosen in the toolbar and stored in `data/settings.json`.
