@@ -1,4 +1,49 @@
 {
+  "dollar_tab.arrow_rows": {
+    "detail": "widest warm row beside the menu",
+    "direction": "min",
+    "headroom": 2.0,
+    "kind": "margin",
+    "measured": 4.0,
+    "name": "dollar_tab.arrow_rows",
+    "threshold": 2.0
+  },
+  "dollar_tab.arrow_total": {
+    "detail": "warm pixels in the arrow column",
+    "direction": "min",
+    "headroom": 18.0,
+    "kind": "margin",
+    "measured": 26.0,
+    "name": "dollar_tab.arrow_total",
+    "threshold": 8.0
+  },
+  "dollar_tab.symbol_menu": {
+    "detail": "template cut from this capture",
+    "direction": "min",
+    "headroom": 0.1997,
+    "kind": "margin",
+    "measured": 0.9997,
+    "name": "dollar_tab.symbol_menu",
+    "threshold": 0.8
+  },
+  "dollar_tab.symbol_top": {
+    "detail": "template cut from this capture",
+    "direction": "min",
+    "headroom": 0.1999,
+    "kind": "margin",
+    "measured": 0.9999,
+    "name": "dollar_tab.symbol_top",
+    "threshold": 0.8
+  },
+  "dollar_tab.tab_run_length": {
+    "detail": "longest lit run of 2",
+    "direction": "min",
+    "headroom": 12.0,
+    "kind": "margin",
+    "measured": 44.0,
+    "name": "dollar_tab.tab_run_length",
+    "threshold": 32.0
+  },
   "expedition_real.alignment_shift": {
     "detail": "dx=0 dy=0, refused beyond +/-20",
     "direction": "max",

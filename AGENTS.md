@@ -245,7 +245,13 @@ why it was refused.
 **`python -m tests.margins`** reports the headroom of every recognition decision
 against its threshold, recorded in `tests/margin_baseline.json`.
 `tests/test_margins.py` fails on shrinking headroom, a **relaxed threshold** or a
-changed count.
+changed count. It covers the Expedition stash, the Runes stash, and the `$$` tab
+selection and label.
+
+The two `dollar_tab.symbol_*` scores are near-tautological: the templates in
+`reference_tabs/` were cut from that very capture, so ~1.0 means the matcher
+still recognises its own source, not that `$$` is robust in general. They guard
+against preprocessing changes, nothing more.
 
 ### Before touching a threshold
 
@@ -261,6 +267,9 @@ in the baseline and compared separately, and why that test must not be removed.
   separation threshold must not be lowered again. It also blocks two
   optimisations: a cross-frame layout cache and a confirm-only detection shortcut,
   both of which could keep a stale page after a view change.
+- **The sidebar arrow clears its floor by 2** (`dollar_tab.arrow_rows`, 4 measured
+  against a required 2). It is the narrowest absolute margin outside the Runes
+  separation, and it decides whether the side menu can confirm the active tab.
 - **Four of the five Runes geometries rest on chat screenshots**, not on real
   captures. Only the first view is validated. Do not tune them on synthetic grids.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
@@ -275,15 +284,11 @@ in the baseline and compared separately, and why that test must not be removed.
 
 1. Capture the four unvalidated Runes views with **Save the image**, then verify
    their coordinates and selection indicator against real files.
-2. Extend `tests/margins.py` to the `$$` Currencies and `tab_labels` fixtures, so
-   more than two captures are guarded.
-3. Move the i18n catalogue consistency check (identical key sets and
-   `{placeholders}`) into `tests/` — it currently exists only as a scratch script.
-4. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or find a more
+2. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or find a more
    robust discriminant.
-5. Check the OCR truncation risk: when the K/M suffix is not recognised on the full
+3. Check the OCR truncation risk: when the K/M suffix is not recognised on the full
    image, the glyph crop must not accept part of the number.
-6. In time: other resolutions and scales, other stash types, persisting
+4. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

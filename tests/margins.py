@@ -22,7 +22,8 @@ import numpy as np
 from exile_worth.icons import IconMatcher
 from exile_worth.layouts import LAYOUTS, aligned_slots
 from exile_worth.model import Reason
-from exile_worth.vision import Profiles, Scanner, similarity, crop
+from exile_worth.vision import (Profiles, Scanner, crop, known_symbol,
+                                selected_tab_rect, symbol_reference)
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 BASELINE = Path(__file__).parent / 'margin_baseline.json'
@@ -140,6 +141,71 @@ def alignment_margins(frame, layout_id, label):
                       f'dx={dx} dy={dy}, refused beyond +/-20', direction='max')]
 
 
+# Thresholds from `selected_tab_rect`, `active_tab` and `known_symbol`.
+TAB_RUN_MIN = 32
+ARROW_ROWS_MIN = 2
+ARROW_TOTAL_MIN = 8
+SYMBOL_THRESHOLD = .80
+
+
+def dollar_frame():
+    """The `$$` scenario: the real stash with SAGA deselected and the real menu."""
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    frame[:765, :645] = cv2.imread(str(FIXTURES / 'expedition_real' / 'stash.png'),
+                                   cv2.IMREAD_COLOR)
+    frame[121, 500:591] = frame[126, 500:591]
+    frame[182:225, 666:855] = cv2.imread(str(FIXTURES / 'tab_labels' / 'dollar_selected_menu.png'),
+                                         cv2.IMREAD_COLOR)
+    return frame
+
+
+def tab_label_margins(frame, label):
+    """Selecting and naming the `$$` tab, whose label OCR cannot read.
+
+    The two `symbol_*` scores are close to tautological: the templates in
+    `reference_tabs/` were cut from this very capture, so a score near 1.0 says
+    the matcher still recognises its own source, **not** that `$$` is robust in
+    general. They are worth guarding anyway: preprocessing changes show up here
+    first. The run length and the arrow counts are real measurements.
+    """
+    results = []
+    rect = selected_tab_rect(frame)
+    assert rect is not None, f'{label}: no tab appears selected'
+
+    strip = frame[121, 40:594].astype(np.int16)
+    high, low = strip.max(axis=1), strip.min(axis=1)
+    active = (high > 48) & ((high - low > 10) | (high > 65))
+    runs, start = [], None
+    for index, value in enumerate([*active, False]):
+        if value and start is None:
+            start = index
+        elif not value and start is not None:
+            runs.append(index - start)
+            start = None
+    results.append(Margin.of(f'{label}.tab_run_length', max(runs), TAB_RUN_MIN,
+                             f'longest lit run of {len(runs)}'))
+
+    arrow = frame[90:755, 666:686].astype(np.int16)
+    warm = (arrow[:, :, 2] > 100) & (arrow[:, :, 2] > arrow[:, :, 1] + 30) &            (arrow[:, :, 2] > arrow[:, :, 0] + 20)
+    rows = warm.sum(axis=1)
+    results.append(Margin.of(f'{label}.arrow_rows', rows.max(), ARROW_ROWS_MIN,
+                             'widest warm row beside the menu'))
+    results.append(Margin.of(f'{label}.arrow_total', rows.sum(), ARROW_TOTAL_MIN,
+                             'warm pixels in the arrow column'))
+
+    peak = int(rows.argmax()) + 90
+    images = {'menu': frame[max(90, peak-13):min(755, peak+13), 685:854],
+              'top': crop(frame, rect)}
+    for place, image in images.items():
+        template = symbol_reference(place)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        score = float(cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED).max())
+        results.append(Margin.of(f'{label}.symbol_{place}', score, SYMBOL_THRESHOLD,
+                                 'template cut from this capture'))
+        assert known_symbol(image, place) == '$$', f'{label}: {place} no longer reads $$'
+    return results
+
+
 def measure():
     results = []
     expedition = expedition_frame()
@@ -150,6 +216,8 @@ def measure():
     runes = load_frame(FIXTURES / 'runes_real' / 'stash.png')
     results += layout_margins(runes, 'runes', 'runes_real')
     results += alignment_margins(runes, 'runes', 'runes_real')
+
+    results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results
 
 

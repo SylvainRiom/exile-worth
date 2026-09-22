@@ -243,8 +243,9 @@ The last line is the most fragile decision in the project: Runes separates from
 Kalguuran by 0.15 against a required 0.12, so 0.03 of headroom. That threshold
 was already lowered once, from 18 to 12 points, to make Runes detect at all.
 
-`tests/test_margins.py` compares the measurements against
-`tests/margin_baseline.json` and fails on:
+Four captures are guarded: the Expedition stash, the Runes stash, and the `$$`
+tab selection and label. `tests/test_margins.py` compares the measurements
+against `tests/margin_baseline.json` and fails on:
 
 - **shrinking headroom** — a code change degraded a measurement;
 - **a relaxed threshold** — lowering a threshold *raises* headroom, so it would
