@@ -1,0 +1,92 @@
+{
+  "expedition_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "expedition_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "expedition_real.border_margin": {
+    "detail": "expedition over kalguuran (0.267)",
+    "direction": "min",
+    "headroom": 0.6133,
+    "kind": "margin",
+    "measured": 0.7333,
+    "name": "expedition_real.border_margin",
+    "threshold": 0.12
+  },
+  "expedition_real.border_score": {
+    "detail": "expedition",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "expedition_real.border_score",
+    "threshold": 0.55
+  },
+  "expedition_real.empty": {
+    "detail": "7 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 7.0,
+    "name": "expedition_real.empty",
+    "threshold": 7.0
+  },
+  "expedition_real.icon_margin_min": {
+    "detail": "closest call E31",
+    "direction": "min",
+    "headroom": 0.0105,
+    "kind": "margin",
+    "measured": 0.0255,
+    "name": "expedition_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "expedition_real.icon_score_min": {
+    "detail": "weakest cell E22",
+    "direction": "min",
+    "headroom": 0.0141,
+    "kind": "margin",
+    "measured": 0.9341,
+    "name": "expedition_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "expedition_real.identified": {
+    "detail": "21 by matcher + 4 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 25.0,
+    "name": "expedition_real.identified",
+    "threshold": 25.0
+  },
+  "runes_real.alignment_shift": {
+    "detail": "dx=0 dy=3, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 17.0,
+    "kind": "margin",
+    "measured": 3.0,
+    "name": "runes_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "runes_real.border_margin": {
+    "detail": "runes over kalguuran (0.850)",
+    "direction": "min",
+    "headroom": 0.03,
+    "kind": "margin",
+    "measured": 0.15,
+    "name": "runes_real.border_margin",
+    "threshold": 0.12
+  },
+  "runes_real.border_score": {
+    "detail": "runes",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "runes_real.border_score",
+    "threshold": 0.55
+  }
+}

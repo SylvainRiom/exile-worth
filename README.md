@@ -208,6 +208,42 @@ other users**, point `JOY_PRICE_BASE` at a caching backend, as poe.ninja request
 and set `JOY_CONTACT` to a real contact. The backend must expose the same paths.
 Do not multiply direct clients against the site.
 
+## Margin harness
+
+A pass/fail suite cannot tell a decision that barely held from one that held
+comfortably, and that distinction is what keeps breaking this project. Every
+recognition decision is measured against its threshold, with the **headroom**
+between them:
+
+```powershell
+.\.venv311\Scripts\python.exe -m tests.margins
+```
+
+```
+decision                          measured  threshold   headroom  detail
+expedition_real.border_margin       0.7333     0.1200     0.6133  expedition over kalguuran
+expedition_real.icon_score_min      0.9341     0.9200     0.0141  weakest cell E22  <-- TIGHT
+runes_real.border_margin            0.1500     0.1200     0.0300  runes over kalguuran  <-- TIGHT
+```
+
+The last line is the most fragile decision in the project: Runes separates from
+Kalguuran by 0.15 against a required 0.12, so 0.03 of headroom. That threshold
+was already lowered once, from 18 to 12 points, to make Runes detect at all.
+
+`tests/test_margins.py` compares the measurements against
+`tests/margin_baseline.json` and fails on:
+
+- **shrinking headroom** — a code change degraded a measurement;
+- **a relaxed threshold** — lowering a threshold *raises* headroom, so it would
+  otherwise hide itself; the thresholds are pinned separately;
+- **a changed count** — fewer identified cells, even when the margins hold.
+
+After a deliberate change, re-measure every fixture and refresh the baseline:
+
+```powershell
+.\.venv311\Scripts\python.exe -m tests.margins --update
+```
+
 ## Session log
 
 Recognition failures are diagnosed from `data/session.log` (rotating, 2 MB × 4,

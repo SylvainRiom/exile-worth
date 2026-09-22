@@ -92,6 +92,39 @@ holds the version ranges.
 - Both catalogues must keep the same key set and the same `{placeholders}`;
   a mismatch raises at runtime inside `.format()`.
 
+## Margin harness — 22 September 2026
+
+- Problem addressed: the suite was binary. When `test_rune_pages` passed, nothing
+  said whether it passed by 0.30 or by 0.005. The structural separation threshold
+  had already been lowered from 18 to 12 points for Runes with no measurement of
+  what it cost Expedition.
+- `tests/margins.py` measures each decision against its threshold and reports
+  `headroom`, the distance to the point where the decision would flip.
+  `python -m tests.margins` prints the table, `--update` rewrites the baseline.
+- **Measured state, the numbers that matter:**
+  `runes_real.border_margin` = 0.1500 against a required 0.1200, so **0.03 of
+  headroom — the most fragile decision in the project**. Expedition is comfortable
+  (0.6133). The tight icon decisions are `expedition_real.icon_score_min` 0.0141
+  and `icon_margin_min` 0.0105.
+- `tests/test_margins.py` guards three distinct regressions:
+  shrinking headroom, a **relaxed threshold**, and a changed count.
+- The threshold guard exists because of a hole found while building this:
+  lowering a threshold *raises* measured headroom, so the original design stayed
+  silent on exactly the historical mistake it was meant to catch. Thresholds are
+  therefore pinned in the baseline and compared separately. Do not remove that
+  test; without it the harness is blind in the direction that matters most.
+- Cells resolved by fixed-slot position (the four sagas) are excluded from the
+  icon-margin measurement: `ICON_MARGIN_MIN` never governed them, so including
+  them reported a false failure.
+- Verified by injecting real regressions: lowering the separation to .06 is caught
+  as two relaxed thresholds; shifting the Expedition geometry by 6 px is caught
+  three ways (identified 25 → 21, `icon_margin_min` 0.0105 → 0.0063,
+  `icon_score_min` 0.0141 → 0.0119).
+- **Before changing any recognition threshold**, run the harness, make the change,
+  run it again and compare. Refresh the baseline deliberately, never to make a red
+  test go green.
+- Last validation: **86 tests passed**, as well as `python -m tests.smoke_ui`.
+
 ## Session log — 22 September 2026
 
 - Problem addressed: layout scores, icon runners-up and scanner metrics were all
