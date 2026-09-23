@@ -762,3 +762,18 @@ not rewrite an entry to match later behaviour, add a new one.
   the item, or says an empty cell was learned. `fix.need_tab` no longer tells
   the user to "analyse".
 - Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## Scrollbars only when needed; the smoke test ignores user settings — 23 September 2026
+
+- User remark: the stash page always showed a scrollbar, even with nothing to
+  scroll. The cards and the tables now use `auto_hide` as their
+  `yscrollcommand`: the bar is packed only while the content overflows, back
+  on the right of its widget. Checked on screen at 1380 px (no bar, 14 cards)
+  and at 1100 px (bar present, wheel scrolling).
+- Found while testing: `tests.smoke_ui` read the real `data/settings.json`. The
+  user had switched the interface to French, and the English assertions failed.
+  The smoke test now points `i18n.DATA` at its temporary directory, so it runs
+  in the default language and never writes the user's settings.
+- Seen, not changed: the French interface still shows the English layout name
+  `Currencies`, and numbers keep the English `1,275.00` format.
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.

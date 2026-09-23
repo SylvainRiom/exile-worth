@@ -47,7 +47,7 @@ use `.venv311`.
 # Unit tests and OCR integration
 .\.venv311\Scripts\python.exe -m unittest discover -s tests -v
 
-# Interface test in a hidden window with temporary data
+# Interface test in a hidden window with temporary data and default settings
 .\.venv311\Scripts\python.exe -m tests.smoke_ui
 
 # Headroom of every recognition decision (see "Before touching a threshold")
@@ -225,6 +225,8 @@ No screenshot or inventory ever leaves the machine.
   as many columns as the width allows (`place_cards`, one per 290 px, at most
   six). The whole card opens the detail. The mouse wheel scrolls the cards
   wherever the pointer is over them (`wheel_cards`, bound on `all`).
+- Scrollbars (cards and tables) appear only when there is something to scroll
+  (`auto_hide` as the `yscrollcommand`).
 - The reading table has **no state column**. A normal line carries no mark; a
   line being confirmed (`PENDING`) is grey; one needing attention (unreadable
   count, unknown or hidden icon, uncertain tier, to check) is amber with a ⚠

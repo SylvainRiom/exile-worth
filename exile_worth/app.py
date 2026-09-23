@@ -51,6 +51,22 @@ class ScanResult:
     provisional: tuple = ()
 
 
+def auto_hide(scroll, neighbour):
+    """A `yscrollcommand` that shows the scrollbar only when there is something to scroll.
+
+    `neighbour` is the scrolled widget, packed on the left; the bar comes back
+    on its right.
+    """
+    def update(first, last):
+        scroll.set(first, last)
+        if float(first) <= 0 and float(last) >= 1:
+            if scroll.winfo_manager():
+                scroll.pack_forget()
+        elif not scroll.winfo_manager():
+            scroll.pack(side='right', fill='y', before=neighbour)
+    return update
+
+
 class App(tk.Tk):
     def __init__(self, auto_load=True):
         super().__init__()
@@ -193,8 +209,7 @@ class App(tk.Tk):
         cards_box.pack(fill='both',expand=True)
         self.cards_canvas = tk.Canvas(cards_box,bg='#10151e',highlightthickness=0)
         cards_scroll = ttk.Scrollbar(cards_box,orient='vertical',command=self.cards_canvas.yview)
-        cards_scroll.pack(side='right',fill='y')
-        self.cards_canvas.configure(yscrollcommand=cards_scroll.set)
+        self.cards_canvas.configure(yscrollcommand=auto_hide(cards_scroll, self.cards_canvas))
         self.cards_canvas.pack(side='left',fill='both',expand=True)
         self.cards = ttk.Frame(self.cards_canvas)
         cards_window = self.cards_canvas.create_window((0,0),window=self.cards,anchor='nw')
@@ -324,8 +339,7 @@ class App(tk.Tk):
         tree.tag_configure('even', background='#192332')
         tree.tag_configure('odd', background='#1e2b3d')
         scroll = ttk.Scrollbar(box, orient='vertical', command=tree.yview)
-        tree.configure(yscrollcommand=scroll.set)
-        scroll.pack(side='right', fill='y')
+        tree.configure(yscrollcommand=auto_hide(scroll, tree))
         tree.pack(side='left', fill='both', expand=True)
         self._trees.append((tree, columns))
         return tree

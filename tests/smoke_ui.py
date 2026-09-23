@@ -20,8 +20,10 @@ def main():
     print('UI smoke: building widgets', flush=True)
     with tempfile.TemporaryDirectory() as temporary:
         path = Path(temporary)
+        # The user's own settings (language) must not leak into the test.
         with (patch('exile_worth.app.Store', lambda: Store(path/'inventory.sqlite')),
-              patch('exile_worth.app.Profiles', lambda: Profiles(path))):
+              patch('exile_worth.app.Profiles', lambda: Profiles(path)),
+              patch('exile_worth.i18n.DATA', path)):
             app = App(auto_load=False)
             # Install the fake OCR before any frame can schedule an analysis.
             app.scanner = Scanner(app.profiles, Digits(), app.matcher)
@@ -146,6 +148,16 @@ def main():
                 assert app.tab_icon('currency') and app.tab_icon('ancient_augments') is app.tab_icon('runes')
                 assert app.tab_icon(None) == '' and app.tab_icon('unknown') == ''
                 app.show_readings(app.last_readings)
+                from exile_worth.app import auto_hide
+                bar = [w for w in app.read_tree.master.winfo_children() if w.winfo_class() == 'TScrollbar'][0]
+                update = auto_hide(bar, app.read_tree)
+                update('0.0', '1.0')
+                assert not bar.winfo_manager(), 'Nothing to scroll: no scrollbar'
+                update('0.0', '0.5')
+                assert bar.winfo_manager() == 'pack', 'Overflow: the scrollbar comes back'
+                assert bar.master.pack_slaves().index(bar) < bar.master.pack_slaves().index(app.read_tree)
+                update('0.0', '1.0')
+                assert not bar.winfo_manager()
                 print('UI smoke: inventories and history', flush=True)
                 app.store.sync('Forbidden Rites','tab1',[Reading('C03','divine',10)])
                 app.store.sync('Forbidden Rites','tab2',[Reading('C03','divine',2)])
