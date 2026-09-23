@@ -794,3 +794,25 @@ not rewrite an entry to match later behaviour, add a new one.
   beyond), and the table fills the rest. Checked on screen with six tabs.
 - The sort key accepts a percentage (`12.5 %`).
 - Last validation: **166 tests passed**, `python -m tests.smoke_ui`.
+
+## Alloys, crests and Verisium lost their prices — 23 September 2026
+
+- User report: in Expedition tabs, every alloy, crest and Verisium line had no
+  value. Recognition was fine; the price was missing.
+- Cause: poe.ninja split its Expedition overview. `type=Expedition` now returns
+  18 items (sagas, fluxes, logbook); alloys, crests, Verisium and Starlit Ores
+  moved to a new `type=Verisium` overview (24 items), which the app did not
+  request. Found by probing the overview types for those names.
+- The local visual catalogue kept identifying them, which is exactly its
+  purpose: a known name without a rate stays displayed, unpriced.
+- Fix: `Verisium` joins `STASH_CATEGORIES`. Its 24 image URLs are identical to
+  the ones in `item_catalog.json`, so the icon templates, and therefore
+  recognition, do not change. Checked end to end against the live API in a
+  temporary cache: `sovereign-alloy` 0.3109, `voranas-crest-of-the-scythe`
+  0.001675, `verisium` 4.8e-05 div, no unavailable category.
+- If a stash family loses its prices again, probe the overview types before
+  suspecting recognition.
+- Seen, not changed: `tests.smoke_ui` writes its fake price loads into the real
+  `data/session.log`.
+- Last validation: **167 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` unchanged.

@@ -35,7 +35,32 @@ class CatalogueTests(unittest.TestCase):
             self.assertIn('verisium', market['items'])
             self.assertEqual(market['prices'], {})
             self.assertEqual(market['unavailable_categories'],
-                             ['Currency', 'Expedition', 'Runes', 'SoulCores', 'Idols'])
+                             ['Currency', 'Expedition', 'Verisium', 'Runes', 'SoulCores', 'Idols'])
+
+    def test_expedition_tab_is_priced_from_both_overviews(self):
+        """Alloys, crests and Verisium live in the `Verisium` overview, not `Expedition`."""
+        overviews = {
+            'Currency': dict(items={'divine': {'name': 'Divine Orb'}}, prices={'divine': 1},
+                             primary='divine', fetched=1, stale=False),
+            'Expedition': dict(items={'uhtreds-saga': {'name': "Uhtred's Saga"}},
+                               prices={'uhtreds-saga': 1.76}, primary='divine', fetched=1, stale=False),
+            'Verisium': dict(items={'sovereign-alloy': {'name': 'Sovereign Alloy'},
+                                    'voranas-crest-of-the-scythe': {'name': "Vorana's Crest of the Scythe"}},
+                             prices={'sovereign-alloy': .31, 'voranas-crest-of-the-scythe': .0017},
+                             primary='divine', fetched=1, stale=False),
+        }
+        def overview(_league, category):
+            if category in overviews:
+                return overviews[category]
+            raise OSError('not needed here')
+        with tempfile.TemporaryDirectory() as directory:
+            client = Ninja(cache=Path(directory))
+            with patch.object(client, 'overview', side_effect=overview):
+                market = client.stash_market('A')
+        self.assertEqual(market['prices']['sovereign-alloy'], .31)
+        self.assertEqual(market['prices']['voranas-crest-of-the-scythe'], .0017)
+        self.assertEqual(market['prices']['uhtreds-saga'], 1.76)
+        self.assertNotIn('Verisium', market['unavailable_categories'])
 
     def test_currency_prices_survive_missing_expedition(self):
         currency = dict(items={}, prices={'divine': 1}, primary='divine', fetched=1, stale=False)
@@ -69,7 +94,7 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(market['prices']['rune'], 2)
         self.assertEqual(market['prices']['soul-core'], 2)
         self.assertEqual(market['prices']['idol'], 2)
-        self.assertEqual(market['unavailable_categories'], ['Expedition'])
+        self.assertEqual(market['unavailable_categories'], ['Expedition', 'Verisium'])
 
     def test_scraper_excludes_navigation_prices_and_price_currencies(self):
         parser = CatalogueParser('https://poe2db.tw/us/Economy_Expedition', 'Expedition')

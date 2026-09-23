@@ -278,7 +278,9 @@ Reference documentation: https://poe.ninja/docs/api
 
 - Leagues: `/poe2/api/economy/leagues`. Prices:
   `/poe2/api/economy/exchange/current/overview?league=…&type=Currency`, and the
-  same path with `type=Expedition`, `Runes`, `SoulCores`, `Idols`.
+  same path with `type=Expedition`, `Verisium`, `Runes`, `SoulCores`, `Idols`.
+  An Expedition tab needs two of them: `Expedition` holds the sagas, fluxes and
+  logbooks, `Verisium` the alloys, crests, Verisium and Starlit Ores.
 - Metadata: **top-level `items`** holds the full catalogue; `core.items` only the
   reference currencies. Rates: `lines[].primaryValue`; currency: `core.primary`.
 - Relative image paths `/gen/image/…` resolve against **`https://web.poecdn.com`**,
@@ -306,7 +308,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  166 tests, OK
+python -m unittest discover -s tests   ->  167 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```
