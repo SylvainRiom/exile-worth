@@ -547,3 +547,56 @@ not rewrite an entry to match later behaviour, add a new one.
   real Expedition capture, read with the real OCR, is unchanged.
 - Last validation: **149 tests passed**, `python -m tests.smoke_ui`, and
   `python -m tests.margins` at 27 decisions, no FAILS, the same 3 TIGHT.
+
+## The view selector decides between Runes views — 23 September 2026
+
+- The user pointed out that the selected view button carries an underline along
+  its bottom edge, and that hovering lights one much less sharply. Measuring only
+  that strip (y 176..182, inset 8 px) instead of the whole button changed
+  everything: lit 68.4 to 72.9, unlit 26.7 to 28.3, a lead of at least 40
+  against 4.2 for the whole-button measure. The golden conch artwork sits above
+  the strip, so its bias disappears and the five unlit buttons read alike.
+- The user also asked why the items themselves do not settle the view. The icon
+  fallback counts any recognised item per grid, not items belonging to that
+  view, and the Runes and Kalguuran grids overlap at 85 %, so it cannot use that
+  exclusivity. The catalogue is not split by view either. Content remains a
+  possible third signal; the selector works on an empty view without catalogue.
+- Rule: on a frame whose best grid is a Runes view, a lit selector (>= 45 and 20
+  ahead) names the view, provided its grid scores 0.55, beats every non-Runes
+  stash by 0.12, and does not trail another Runes grid by 0.12. A contradiction
+  is refused rather than resolved either way. An unlit or ambiguous selector
+  leaves the previous border/icon logic untouched.
+- Why it matters, measured: a 120 px overlay at the top left of the Runes grid
+  brings borders to runes 0.943 against kalguuran 0.850, a refusal. With the
+  selector the view is still read. Fifteen overlay positions out of the ones
+  tried produced that refusal on borders alone.
+- The selector is dark on the Expedition and `$$` captures (at most 23.9).
+- The margins baseline gained 10 selector entries and changed none. The 0.03
+  border headroom stays recorded: it is now the fallback, not the decision.
+- Last validation: **153 tests passed**, `python -m tests.smoke_ui`, and
+  `python -m tests.margins` at 37 decisions, no FAILS, the same 3 TIGHT.
+
+## Sortable tables with item icons — 23 September 2026
+
+- User request: the interface "is not great"; start with sortable tables and
+  icons in the tables to find one's way.
+- Sorting lives in `tables.py` and is generic in `make_tree`, so the reading,
+  inventory and history tables all get it. The live loop rebuilds the reading
+  table three times a second: a sort applied once on click would be undone by
+  the next frame. The chosen column is therefore kept per table and reapplied
+  after every refresh, and the stripes are recomputed from the displayed order.
+- Cells are formatted text (`≈ 24,700`, `37 (provisional)`, `—`), so the key
+  parses the displayed number rather than sorting strings: `1,000` must follow
+  `254`. Missing values stay last in both directions, otherwise a descending
+  sort would open on a column of dashes.
+- The value heading names its unit and is set outside `make_tree`; it now goes
+  through `set_heading`, which remembers the text, or a click would have reset
+  it to the bare translated label.
+- Icons come from the images `fetch_icons` already returned with the prices,
+  now kept on the market as `icons`. Nothing new is downloaded. Identity of the
+  shared Flux artwork is tested with `is`, never `id()`.
+- Checked visually on the real Expedition capture: icons beside each cell, value
+  column sorted descending.
+- Noticed, not fixed: the total appends a hard-coded French ` · partiel` even in
+  the English interface.
+- Last validation: **159 tests passed**, `python -m tests.smoke_ui`.

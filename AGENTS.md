@@ -70,6 +70,7 @@ holds the version ranges.
 | `exile_worth/model.py` | Readings, SQLite, history, valuation computations, stable keys |
 | `exile_worth/i18n.py` | Language selection and the English/French catalogues |
 | `exile_worth/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
+| `exile_worth/tables.py` | Sort order of displayed table cells |
 | `tests/margins.py` | Headroom of every recognition decision, against a baseline |
 | `tests/` | Storage, OCR, recognition, valuation, simulated capture and interface |
 
@@ -176,7 +177,14 @@ No screenshot or inventory ever leaves the machine.
 - Currencies: 37 fixed cells (`L…`, `C…`). The central weapon slot and the free
   bottom grid are excluded. Expedition: 32 areas `E…`. Runes: one profile over five
   view geometries with separate cell namespaces, so a hidden view keeps its stock.
-- `Scanner.detect_layout` compares cell borders first, then icons.
+- `Scanner.detect_layout` compares cell borders first, then icons. On a frame
+  whose best grid is a Runes view, the **view selector decides** instead: the
+  button of the visible view carries an amber underline (y 176..182, 64 px pitch
+  from x=175), measured by `selector_underlines`. `lit_rune_view` requires the
+  lit button at 45 or more and 20 ahead of every other; hover lights less, and
+  two lit buttons fall back to the borders. The selected grid must still score
+  0.55, beat every non-Runes stash by 0.12, and not trail another Runes grid by
+  0.12 — a selector contradicting a clearly better grid is refused.
   `App.resolve_layout` uses the manual choice, then the recognised saved profile,
   then automatic detection.
 - The matcher uses the reference PNGs, their transparency, several sizes and
@@ -201,6 +209,16 @@ No screenshot or inventory ever leaves the machine.
   represents the current screenshot and is not added to the saved total.
 - `Detail & reading`: screenshot, cells, items, quantities, per-line value,
   corrections, inventory and history.
+- The reading, inventory and history tables sort on a heading click (again to
+  reverse, arrow on the active column). The tables are rebuilt on every live
+  reading, so the order is a state `apply_sort` reapplies after each refresh,
+  never a one-off move. Numbers sort by value (`≈ 24,700`, `12 (provisional)`),
+  text in natural order (C2 before C10), and `—` stays last in both directions.
+- The reading and inventory tables show the item artwork in the tree column,
+  from `icon_images` (the images `fetch_icons` returned with the last prices).
+  An unknown item shows none; an unresolved family whose candidates share one
+  image (Flux tiers) shows that image without naming a tier. Thumbnails are
+  `PhotoImage`s built on the Tk thread and kept in `_thumbs`.
 - Per-tab screenshots are kept **in memory** (`tab_frames`), not persisted.
 - Conversion: sum of `quantity × primaryValue`, divided by the rate of the selected
   currency. Never assume the primary currency is always divine.
@@ -239,9 +257,9 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  149 tests, OK
+python -m unittest discover -s tests   ->  159 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
-python -m tests.margins                ->  27 decisions, none FAILS, 3 TIGHT
+python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```
 
 The three TIGHT decisions are expected and listed under "Known fragilities".
@@ -269,7 +287,8 @@ why it was refused.
 **`python -m tests.margins`** reports the headroom of every recognition decision
 against its threshold, recorded in `tests/margin_baseline.json`.
 `tests/test_margins.py` fails on shrinking headroom, a **relaxed threshold** or a
-changed count. It covers the Expedition stash, the Runes stash, and the `$$` tab
+changed count. It covers the Expedition stash, the five Runes views and their
+selector, and the `$$` tab
 selection and label.
 
 The two `dollar_tab.symbol_*` scores are near-tautological: the templates in
@@ -286,25 +305,23 @@ in the baseline and compared separately, and why that test must not be removed.
 
 ## Known fragilities
 
-- **Runes separates from Kalguuran by 0.03** (0.15 measured against a required
-  0.12) — the smallest structural headroom in the project, and the reason the
-  separation threshold must not be lowered again. It also blocks two
-  optimisations: a cross-frame layout cache and a confirm-only detection shortcut,
-  both of which could keep a stale page after a view change. The risk runs **one
-  way**: on a Runes capture the Kalguuran grid scores 0.850, while on a Kalguuran
-  capture the Runes grid reaches only 0.586, a comfortable 0.26. Only the Runes
-  view is at risk of being read as Kalguuran, never the reverse. The other three
-  views separate by 0.20 or more.
+- **Runes separates from Kalguuran by 0.03 on borders alone** (0.15 measured
+  against a required 0.12). The view selector now decides between Runes views
+  with a lead of 40 against a required 20, so this headroom only matters when the
+  selector is unlit or ambiguous (hover, two lit buttons). A 120 px overlay on
+  the grid is enough to make the borders refuse the Runes view; the selector
+  still names it. Do not lower the separation threshold: it remains the
+  fallback. It also still blocks a cross-frame layout cache and a confirm-only
+  detection shortcut, both of which could keep a stale page after a view change.
+  On borders alone the risk runs **one way**: a Runes capture scores 0.850 on
+  the Kalguuran grid, a Kalguuran capture only 0.586 on the Runes grid.
 - **The sidebar arrow clears its floor by 2** (`dollar_tab.arrow_rows`, 4 measured
   against a required 2). It is the narrowest absolute margin outside the Runes
-  separation, and it decides whether the side menu can confirm the active tab.
-- **The Runes view selector is measured but unused.** The five buttons above the
-  grid (64 px pitch from x=175, band y=130..190) light the visible view, and the
-  lit one wins by at least 4.2 of amber excess on the five captures — far more
-  headroom than the 0.03 of the grid comparison. Nothing in `vision.py` consults
-  it yet; `test_view_selector_lights_the_visible_view` pins the observation so it
-  cannot rot before that choice is made. The unlit conch button reads warm on its
-  own, so any decision built on this must compare buttons, never a fixed floor.
+  border separation, and it decides whether the side menu can confirm the active tab.
+- **The selector geometry is fixed.** Its position is measured at 1920×1080
+  only, like the grids. Hover was reported by the user as a much less sharp
+  underline but has not been captured; the lead requirement is what protects
+  against it.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
   scales are unverified, and a non-16:9 capture is refused outright.
 - **Renamed or moved tabs**: re-association is handled for a unique label with the
@@ -315,10 +332,7 @@ in the baseline and compared separately, and why that test must not be removed.
 
 ## Resumption points
 
-1. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or promote the
-   view selector to the discriminant. The measurement exists; the behaviour change
-   does not.
-2. In time: other resolutions and scales, other stash types, persisting
+1. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

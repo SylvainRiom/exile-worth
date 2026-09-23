@@ -92,6 +92,27 @@ def main():
                 assert app.store.rows('Forbidden Rites') == []
                 app.provisional_readings = []
                 app.show_readings(app.last_readings)
+                print('UI smoke: sortable tables and icons', flush=True)
+                app.icon_images = {'divine': artwork(17)}
+                app.show_readings([Reading('C03','divine',254), Reading('C01',None,5,.5,Reason.UNKNOWN_ICON),
+                                   Reading('C02','divine',31)])
+                assert app.read_tree.item('C03')['image'], 'Known item must show its artwork'
+                assert not app.read_tree.item('C01')['image'], 'Unknown item must not borrow an icon'
+                app.sort_by(app.read_tree, 'col.quantity')
+                assert app.read_tree.get_children() == ('C01', 'C02', 'C03')
+                assert app.read_tree.heading('col.quantity')['text'].endswith('▲')
+                app.sort_by(app.read_tree, 'col.quantity')
+                assert app.read_tree.get_children() == ('C03', 'C02', 'C01')
+                assert app.read_tree.heading('col.quantity')['text'].endswith('▼')
+                # A live refresh rebuilds the table; the chosen order must survive it.
+                app.show_readings([Reading('C02','divine',31), Reading('C03','divine',254)])
+                assert app.read_tree.get_children() == ('C03', 'C02')
+                assert app.read_tree.heading('col.value')['text'].startswith('Value')
+                assert not app.read_tree.heading('col.value')['text'].endswith(('▲', '▼'))
+                app.sort_by(app.read_tree, 'col.cell')
+                assert app.read_tree.get_children() == ('C02', 'C03')
+                assert not app.read_tree.heading('col.quantity')['text'].endswith(('▲', '▼'))
+                app.show_readings(app.last_readings)
                 print('UI smoke: inventories and history', flush=True)
                 app.store.sync('Forbidden Rites','tab1',[Reading('C03','divine',10)])
                 app.store.sync('Forbidden Rites','tab2',[Reading('C03','divine',2)])
