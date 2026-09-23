@@ -161,7 +161,9 @@ No screenshot or inventory ever leaves the machine.
 ### Capture and synchronisation
 
 - Import a screenshot, or capture the game after a five-second delay.
-- Automatic analysis after import. Estimation is possible without a registered tab.
+- There is no manual "Analyse" button. The screenshot is re-read automatically
+  after an import or capture, a layout choice, the arrival of the catalogue, and
+  a correction. Estimation is possible without a registered tab.
 - `Start` also works without a registered tab: live preview, without creating a
   persistent anonymous inventory.
 - Capture only reads the foreground window whose title contains `Path of Exile`.

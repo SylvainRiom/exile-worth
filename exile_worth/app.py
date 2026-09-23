@@ -161,8 +161,9 @@ class App(tk.Tk):
         self.language_choice.trace_add('write', self.language_changed)
         controls = ttk.Frame(self, padding=(16, 0, 16, 8))
         controls.pack(fill='x')
-        for key, action in [('bar.import', self.import_image), ('bar.capture', self.delayed_capture),
-                            ('bar.analyze', self.analyze)]:
+        # No manual "Analyse": every event that changes the answer (a new
+        # screenshot, a layout choice, the catalogue, a correction) re-reads.
+        for key, action in [('bar.import', self.import_image), ('bar.capture', self.delayed_capture)]:
             self.tr(ttk.Button(controls, text='', command=action), key).pack(side='left', padx=(0, 6))
         self.capture_button = ttk.Button(controls, textvariable=self.capture_action,
                                          command=self.toggle_live, width=18, style='Accent.TButton')
@@ -577,9 +578,10 @@ class App(tk.Tk):
             self.status.set(t('fix.need_item'))
             return
         self.profiles.calibrate(self.selected_slot, item, self.frame, empty)
-        self.status.set(t('fix.saved', slot=self.selected_slot,
-                         kind=t('fix.kind_empty') if empty else t('fix.kind_icon')))
+        self.status.set(t('fix.saved_empty') if empty else t('fix.saved', name=self.item_name(item)))
         self.draw()
+        # Show the correction's effect at once instead of waiting for a new image.
+        self.after_idle(self.analyze)
 
     def analyze(self):
         if self.running or self.busy or self.frame is None:

@@ -748,3 +748,17 @@ not rewrite an entry to match later behaviour, add a new one.
   dropped the selection three times a second.
 - The `reading.*_suffix` keys went with the column.
 - Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## The Analyse button goes — 23 September 2026
+
+- The user asked what the Analyse button was for. It re-read the displayed
+  screenshot, which already happens on import or capture, on a layout choice and
+  when the catalogue arrives. Its only remaining use was after a correction in
+  the Corrections tab: the correction was saved but the table was not re-read,
+  so the user had to click Analyse to see its effect — an omission, not a
+  feature.
+- A correction now schedules the re-read itself, and the button is removed.
+- The confirmation named the cell (`C03: icon reference saved`); it now names
+  the item, or says an empty cell was learned. `fix.need_tab` no longer tells
+  the user to "analyse".
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.

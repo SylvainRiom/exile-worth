@@ -42,8 +42,16 @@ def main():
                 app.messages.put(('prices',('Forbidden Rites',[{'id':'Forbidden Rites'}],market)))
                 app.drain()
                 app.item_choice.set('Exalted Orb [exalted]')
-                app.calibrate(False)
+                # Only record the scheduling: running it here would reorder the
+                # analyses this test waits on further down.
+                with patch.object(app, 'after_idle') as scheduled:
+                    app.calibrate(False)
+                assert app.status.get() == 'Reference saved for Exalted Orb.', app.status.get()
+                scheduled.assert_called_once_with(app.analyze)
                 assert app.profiles.data['slots']['L11']['item'] == 'exalted'
+                labels = [str(w.cget('text')) for w in app.capture_button.master.winfo_children()
+                          if w.winfo_class() == 'TButton']
+                assert 'Analyse' not in labels, labels
                 app.refresh_inventory()
                 app.league.set('Standard')
                 assert app.total.get() == '—'
