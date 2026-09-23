@@ -236,8 +236,9 @@ class App(tk.Tk):
                            (notebook, history, 'tab.history'), (notebook, corrections, 'tab.corrections')]
         ttk.Label(detection, textvariable=self.recognition_status, style='Muted.TLabel',
                   wraplength=650, padding=(10,10)).pack(fill='x')
-        self.read_tree = self.make_tree(detection, ('col.cell','col.item','col.quantity','col.value','col.state'),
-                                        (48, 210, 75, 85, 180), icons=True)
+        # Cell ids (L11, E22…) stay internal: rows are keyed by them, never shown.
+        self.read_tree = self.make_tree(detection, ('col.quantity','col.value','col.state'),
+                                        (75, 85, 180), item_column=250)
         self.read_tree.bind('<<TreeviewSelect>>', self.select_tree)
         ttk.Label(corrections, textvariable=self.slot_status, wraplength=530).pack(fill='x', pady=5)
         self.item_box = ttk.Combobox(corrections, textvariable=self.item_choice, state='readonly')
@@ -248,8 +249,8 @@ class App(tk.Tk):
         self.tr(ttk.Button(row, text='', command=lambda: self.calibrate(True)), 'fix.learn_empty').pack(side='left', padx=4)
         self.tr(ttk.Button(corrections, text='', command=self.correct), 'fix.correct_quantity').pack(fill='x', pady=6)
         self.tr(ttk.Label(corrections, text='', wraplength=530, foreground='#a9b8ca'), 'fix.hint').pack(fill='x', pady=6)
-        self.inventory_tree = self.make_tree(inventory, ('col.tab','col.item','col.quantity','col.last_read'),
-                                             (100, 145, 55, 150), icons=True)
+        self.inventory_tree = self.make_tree(inventory, ('col.tab','col.quantity','col.last_read'),
+                                             (100, 55, 150), item_column=185)
         self.history_tree = self.make_tree(history, ('col.date','col.tab','col.saved_cells'), (160, 150, 140))
         self.tr(ttk.Label(self, text='', foreground='#a9b8ca', padding=12), 'app.footer').pack(anchor='w')
 
@@ -272,7 +273,7 @@ class App(tk.Tk):
         for notebook, page, key in self.page_keys:
             notebook.tab(page, text=t(key))
         for tree, columns in self._trees:
-            for name in columns:
+            for name in self.headings(tree):
                 self.set_heading(tree, name)
         # Comboboxes with translated entries keep the choice, not its old text.
         self.layout_box.configure(values=self.layout_values())
@@ -287,15 +288,20 @@ class App(tk.Tk):
         self.draw()
         self.status.set(t('status.language_changed', language=i18n.language_name()))
 
-    def make_tree(self, parent, columns, widths, icons=False):
+    def make_tree(self, parent, columns, widths, item_column=None):
+        """A sortable table; `item_column` (a width) adds the item column.
+
+        The item column is the tree column (#0): the artwork and the name share
+        one cell, which a regular Treeview column cannot hold.
+        """
         box = ttk.Frame(parent)
         box.pack(fill='both', expand=True)
-        # The tree column (#0) holds the item artwork; without icons it is hidden.
-        tree = ttk.Treeview(box, columns=columns, show='tree headings' if icons else 'headings', height=10)
-        if icons:
-            tree.heading('#0', text='')
-            tree.column('#0', width=40, minwidth=40, stretch=False, anchor='center')
+        tree = ttk.Treeview(box, columns=columns, show='tree headings' if item_column else 'headings', height=10)
         tree.heading_texts = {}
+        tree.item_heading = 'col.item' if item_column else None
+        if item_column:
+            tree.column('#0', width=item_column, minwidth=120, anchor='w')
+            self.set_heading(tree, '#0')
         for name, width in zip(columns, widths):
             tree.column(name, width=width, minwidth=40)
             self.set_heading(tree, name)
@@ -316,7 +322,7 @@ class App(tk.Tk):
         """
         if text is not None:
             tree.heading_texts[name] = text
-        label = tree.heading_texts.get(name, t(name))
+        label = tree.heading_texts.get(name, t(tree.item_heading if name == '#0' else name))
         column, descending = self._sort.get(tree, (None, False))
         if column == name:
             label += ' ▼' if descending else ' ▲'
@@ -326,16 +332,22 @@ class App(tk.Tk):
         """First click sorts ascending, the next one flips the direction."""
         column, descending = self._sort.get(tree, (None, False))
         self._sort[tree] = (name, not descending if column == name else False)
-        for other in tree['columns']:
+        for other in self.headings(tree):
             self.set_heading(tree, other)
         self.apply_sort(tree)
+
+    @staticmethod
+    def headings(tree):
+        """Every sortable column, the item (tree) column included."""
+        return (['#0'] if tree.item_heading else []) + list(tree['columns'])
 
     def apply_sort(self, tree):
         """Reorder rows by the chosen column; unsorted tables keep insertion order."""
         column, descending = self._sort.get(tree, (None, False))
         rows = tree.get_children()
         if column is not None:
-            rows = sorted_rows([(row, tree.set(row, column)) for row in rows], descending)
+            rows = sorted_rows([(row, tree.item(row, 'text') if column == '#0' else tree.set(row, column))
+                                for row in rows], descending)
             for index, row in enumerate(rows):
                 tree.move(row, '', index)
         # Stripes follow the displayed order, not the insertion order.
@@ -525,9 +537,9 @@ class App(tk.Tk):
 
     def select_slot(self, slot):
         self.selected_slot = slot
-        self.slot_status.set(t('fix.slot_selected', slot=slot))
         entry = self.profiles.data['slots'].get(slot, {})
         detected = next((r.item for r in self.last_readings if r.slot == slot and r.item), entry.get('item'))
+        self.slot_status.set(t('fix.slot_selected', name=self.item_name(detected)))
         for label, item in getattr(self, 'choices', {}).items():
             if item == detected:
                 self.item_choice.set(label)
@@ -890,7 +902,8 @@ class App(tk.Tk):
                     quantity_text += ' → '+('≈ ' if candidate.approximate else '')+f'{candidate.quantity:,}'+t('reading.provisional')
                 suffix = t('reading.last_confirmed_suffix')
             self.read_tree.insert('', 'end', iid=r.slot, image=self.item_icon(r.item, r.alternatives),
-                                  tags=('odd' if index%2 else 'even',), values=(r.slot,self.reading_name(r),
+                                  text=' '+self.reading_name(r),
+                                  tags=('odd' if index%2 else 'even',), values=(
                                   quantity_text,
                                   '—' if value is None else f'{value:.3f}',t('reason.'+r.reason)+suffix))
         self.apply_sort(self.read_tree)
@@ -948,7 +961,8 @@ class App(tk.Tk):
         self.inventory_tree.delete(*self.inventory_tree.get_children())
         names = {t['id']:t['name'] for t in self.profiles.data['tabs']}
         for tab,slot,item,quantity,stamp,stale in rows:
-            self.inventory_tree.insert('', 'end', image=self.item_icon(item), values=(names.get(tab,tab), self.item_name(item),
+            self.inventory_tree.insert('', 'end', image=self.item_icon(item), text=' '+self.item_name(item),
+                                       values=(names.get(tab,tab),
                                        f'≈ {quantity:,}' if (tab,slot) in approximate_slots else quantity,
                                        stamp[11:19]+' UTC'+(' · '+t('reason.to_check') if stale else '')))
         self.history_tree.delete(*self.history_tree.get_children())

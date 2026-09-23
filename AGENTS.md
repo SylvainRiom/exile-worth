@@ -84,6 +84,9 @@ These are the ones that have been broken before. Each has an entry in the journa
 - An unknown reading is **not zero**: keep the last state and flag it.
 - An unknown icon, an unreadable quantity or a missing price must never produce an
   invented price. Show that the estimate is partial.
+- A `PENDING` reading (a re-confirmation in progress) leaves the stored row
+  untouched. Only a failed reading — unreadable count, unknown or hidden icon —
+  flags it `uncertain` ("to check"), which also counts in the valuation history.
 - A cell **confirmed empty three times** clears its stock. It is then stored as read
   and holding nothing (`empty=1`, no item, no quantity), never as a zero.
 - Each stash type has its own geometry, independently of the tab name. Expedition
@@ -225,7 +228,11 @@ No screenshot or inventory ever leaves the machine.
   reading, so the order is a state `apply_sort` reapplies after each refresh,
   never a one-off move. Numbers sort by value (`≈ 24,700`, `12 (provisional)`),
   text in natural order (C2 before C10), and `—` stays last in both directions.
-- The reading and inventory tables show the item artwork in the tree column,
+- **Cell ids (`L11`, `E22`, `R05`…) are never shown to the user**: they key the
+  reading rows (`iid`) and the corrections, and stay in the CSV export. The
+  correction panel names the selected item instead.
+- The reading and inventory tables show the item artwork and name together in
+  the tree column (`#0`, sortable like the others),
   from `icon_images` (the images `fetch_icons` returned with the last prices).
   An unknown item shows none; an unresolved family whose candidates share one
   image (Flux tiers) shows that image without naming a tier. Thumbnails are
@@ -275,7 +282,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  161 tests, OK
+python -m unittest discover -s tests   ->  165 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```

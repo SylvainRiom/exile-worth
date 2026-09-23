@@ -89,15 +89,15 @@ def main():
                     return found
                 assert 'Currencies · tab not identified' in card_texts(0), card_texts(0)
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
-                assert app.read_tree.item('C03')['values'][3] == '254.000'
+                assert app.read_tree.item('C03')['values'][1] == '254.000'
                 from exile_worth.model import Reading
                 # A single live observation appears in the table, but cannot
                 # become a saved quantity or a valued line before consensus.
                 pending = Reading('C03','divine',None,.99,Reason.PENDING)
                 app.provisional_readings = [Reading('C03','divine',37,.99,Reason.AUTO)]
                 app.show_readings([pending, Reading('C04',None,None,0,Reason.EMPTY)])
-                assert '37 (provisional)' in str(app.read_tree.item('C03')['values'][2])
-                assert app.read_tree.item('C03')['values'][3] == '—'
+                assert '37 (provisional)' in str(app.read_tree.item('C03')['values'][0])
+                assert app.read_tree.item('C03')['values'][1] == '—'
                 assert not app.read_tree.exists('C04')
                 assert app.store.rows('Forbidden Rites') == []
                 app.provisional_readings = []
@@ -119,8 +119,13 @@ def main():
                 assert app.read_tree.get_children() == ('C03', 'C02')
                 assert app.read_tree.heading('col.value')['text'].startswith('Value')
                 assert not app.read_tree.heading('col.value')['text'].endswith(('▲', '▼'))
-                app.sort_by(app.read_tree, 'col.cell')
-                assert app.read_tree.get_children() == ('C02', 'C03')
+                app.sort_by(app.read_tree, '#0')
+                assert app.read_tree.heading('#0')['text'] == 'Item ▲'
+                # Equal names keep their previous order.
+                assert app.read_tree.get_children() == ('C03', 'C02')
+                # Cell ids key the rows but are never shown to the user.
+                assert app.read_tree.item('C03')['text'].strip() == 'Divine Orb'
+                assert not any(str(v).startswith('C0') for v in app.read_tree.item('C03')['values'])
                 assert not app.read_tree.heading('col.quantity')['text'].endswith(('▲', '▼'))
                 assert app.tab_icon('currency') and app.tab_icon('ancient_augments') is app.tab_icon('runes')
                 assert app.tab_icon(None) == '' and app.tab_icon('unknown') == ''
@@ -192,8 +197,8 @@ def main():
                                                      (Reading('C03','divine',9,.99,Reason.AUTO),))))
                 app.drain()
                 values = app.read_tree.item('C03')['values']
-                assert str(values[2]) == '7 → 9 (provisional)', values
-                assert 'last confirmed' in values[4], values
+                assert str(values[0]) == '7 → 9 (provisional)', values
+                assert 'last confirmed' in values[2], values
                 app.messages.put(('activity', ('waiting', 'Back to the game.')))
                 app.drain()
                 assert app.capture_state.get() == '● Waiting for the game'

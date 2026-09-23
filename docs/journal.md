@@ -677,3 +677,34 @@ not rewrite an entry to match later behaviour, add a new one.
   Pending is "in progress", not "unknown"; whether it should flag the row is a
   decision left to the user.
 - Last validation: **161 tests passed**, `python -m tests.smoke_ui`.
+
+## A re-confirmation no longer flags a cell "to check" — 23 September 2026
+
+- Follow-up of the previous entry, decided by the user. `Store.sync` treated a
+  `PENDING` reading like a failed one and set `uncertain=1`. Every re-confirmation
+  (tab switch, changed patch, the 30 s expiry) therefore turned confirmed cells
+  into "to check" and the total into "partial" for about a second — 75 cells on
+  the report — and a valuation recorded in that window stored the degraded
+  quality in the history.
+- Now a `PENDING` reading leaves the stored row untouched. Unreadable counts and
+  unknown or hidden icons still flag it; a confirmed reading still clears the
+  flag.
+- If the game loses the foreground before a changed count reaches consensus, the
+  stored row keeps its last confirmed quantity unflagged. That is what "last
+  known state" means; the new count is confirmed on the next visit.
+- Existing flags set by past re-confirmations are not rewritten: each clears on
+  the cell's next confirmed reading.
+- `tests/test_pending_sync.py`: the pending case fails on the previous code.
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## Cell ids leave the interface — 23 September 2026
+
+- User remark: the cell column (`L11`, `E22`…) is a developer's notion; a player
+  has no use for it. The reading table no longer shows it, and the correction
+  panel says `Selected: Divine Orb` instead of `Cell C03`.
+- The id still keys each row (`iid`), the canvas selection and the corrections,
+  and stays in the CSV export, which is data rather than interface.
+- The item name moved into the tree column beside its artwork, in both the
+  reading and inventory tables: a regular Treeview column cannot hold an image,
+  and a separate icon column wasted width. Sorting reads that column's text.
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.

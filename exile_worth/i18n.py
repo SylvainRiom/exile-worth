@@ -186,7 +186,7 @@ CATALOG = {
     'reading.last_confirmed_suffix': ' · last confirmed quantity',
     # --- Corrections -------------------------------------------------------
     'fix.slot_placeholder': 'Click a cell on the screenshot.',
-    'fix.slot_selected': 'Cell {slot} — a correction is possible if the automatic reading is uncertain.',
+    'fix.slot_selected': 'Selected: {name} — a correction is possible if the automatic reading is uncertain.',
     'fix.correct_icon': 'Correct the icon',
     'fix.learn_empty': 'Learn the empty cell',
     'fix.correct_quantity': 'Correct a quantity…',
@@ -387,7 +387,7 @@ CATALOG = {
     'reading.abbreviated_suffix': ' · abrégé',
     'reading.last_confirmed_suffix': ' · dernière quantité confirmée',
     'fix.slot_placeholder': 'Clique une case sur la capture.',
-    'fix.slot_selected': 'Case {slot} — une correction est possible si la lecture automatique est incertaine.',
+    'fix.slot_selected': 'Sélection : {name} — une correction est possible si la lecture automatique est incertaine.',
     'fix.correct_icon': 'Corriger l’icône',
     'fix.learn_empty': 'Apprendre la case vide',
     'fix.correct_quantity': 'Corriger une quantité…',
