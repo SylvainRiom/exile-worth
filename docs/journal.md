@@ -729,3 +729,22 @@ not rewrite an entry to match later behaviour, add a new one.
 - Removed the translation keys the old cards used (`see_detail`, `last_read`,
   `partial`, `abbreviated`, `never_synced`, `preview_detail`).
 - Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## The state column leaves the reading table — 23 September 2026
+
+- The user found the state column a mystery. It displayed each reading's
+  `Reason` key raw: `Auto` on almost every line, and developer wording
+  elsewhere. Only the failures (unreadable count, unknown icon, uncertain tier,
+  hidden icon, to check) ever asked anything of the user.
+- The column is gone. A normal line has no mark; a line being confirmed is grey;
+  a line needing attention is amber with a ⚠ after its name. Selecting a line
+  shows one sentence in player terms above the table — where the Corrections
+  tab can help, it says so. With nothing selected, a one-line legend.
+- Two details the first render exposed: the note placed under the table fell
+  off-screen, so it sits above; and the legend is muted, amber being kept for
+  a line that needs attention.
+- Stripe tags no longer overwrite the other row tags when a table is re-sorted,
+  and the selected line is restored after each live rebuild, which previously
+  dropped the selection three times a second.
+- The `reading.*_suffix` keys went with the column.
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.

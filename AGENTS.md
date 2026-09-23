@@ -223,9 +223,15 @@ No screenshot or inventory ever leaves the machine.
   as many columns as the width allows (`place_cards`, one per 290 px, at most
   six). The whole card opens the detail. The mouse wheel scrolls the cards
   wherever the pointer is over them (`wheel_cards`, bound on `all`).
+- The reading table has **no state column**. A normal line carries no mark; a
+  line being confirmed (`PENDING`) is grey; one needing attention (unreadable
+  count, unknown or hidden icon, uncertain tier, to check) is amber with a ⚠
+  after its name. Selecting a line shows its explanation above the table
+  (`note.*` keys, player wording); the selection survives the live refreshes.
+  `Reason` keys still drive the logic; only their display changed.
 - On the live tab, a cell that is re-confirming (`Reason.PENDING`) or whose count
   is unreadable right now shows its **last confirmed** stored quantity and value,
-  marked `last confirmed quantity`, as long as the same item is recognised. A
+  explained as such in its note, as long as the same item is recognised. A
   different provisional count shows beside it as `141 → 145 (provisional)`; the
   value stays that of the confirmed quantity until consensus.
 - `Detail & reading`: screenshot, cells, items, quantities, per-line value,

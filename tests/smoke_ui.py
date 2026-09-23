@@ -109,6 +109,13 @@ def main():
                                    Reading('C02','divine',31)])
                 assert app.read_tree.item('C03')['image'], 'Known item must show its artwork'
                 assert not app.read_tree.item('C01')['image'], 'Unknown item must not borrow an icon'
+                # No state column: an unknown item is marked, a normal line is not.
+                assert app.read_tree['columns'] == ('col.quantity', 'col.value')
+                assert app.read_tree.item('C01')['text'].endswith('⚠')
+                assert 'attention' in app.read_tree.item('C01')['tags']
+                assert 'Corrections' in app.read_notes['C01']
+                assert not app.read_tree.item('C03')['text'].endswith('⚠')
+                assert 'attention' not in app.read_tree.item('C03')['tags']
                 app.sort_by(app.read_tree, 'col.quantity')
                 assert app.read_tree.get_children() == ('C01', 'C02', 'C03')
                 assert app.read_tree.heading('col.quantity')['text'].endswith('▲')
@@ -199,7 +206,8 @@ def main():
                 app.drain()
                 values = app.read_tree.item('C03')['values']
                 assert str(values[0]) == '7 → 9 (provisional)', values
-                assert 'last confirmed' in values[2], values
+                assert 'pending' in app.read_tree.item('C03')['tags']
+                assert 'last confirmed' in app.read_notes['C03'], app.read_notes
                 app.messages.put(('activity', ('waiting', 'Back to the game.')))
                 app.drain()
                 assert app.capture_state.get() == '● Waiting for the game'

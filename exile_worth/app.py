@@ -242,8 +242,18 @@ class App(tk.Tk):
         ttk.Label(detection, textvariable=self.recognition_status, style='Muted.TLabel',
                   wraplength=650, padding=(10,10)).pack(fill='x')
         # Cell ids (L11, E22…) stay internal: rows are keyed by them, never shown.
-        self.read_tree = self.make_tree(detection, ('col.quantity','col.value','col.state'),
-                                        (75, 85, 180), item_column=250)
+        # No state column: a normal line carries no mark, a line being confirmed
+        # is grey, one that needs attention is amber with a ⚠, and the selected
+        # line's explanation appears below the table.
+        self.read_notes = {}
+        self.read_note = tk.StringVar(value=t('note.legend'))
+        self.read_note_label = ttk.Label(detection, textvariable=self.read_note, style='Muted.TLabel',
+                                         wraplength=650, padding=(10,0,10,8))
+        self.read_note_label.pack(fill='x')
+        self.read_tree = self.make_tree(detection, ('col.quantity','col.value'),
+                                        (120, 110), item_column=300)
+        self.read_tree.tag_configure('pending', foreground='#8a97a8')
+        self.read_tree.tag_configure('attention', foreground='#ffcf70')
         self.read_tree.bind('<<TreeviewSelect>>', self.select_tree)
         ttk.Label(corrections, textvariable=self.slot_status, wraplength=530).pack(fill='x', pady=5)
         self.item_box = ttk.Combobox(corrections, textvariable=self.item_choice, state='readonly')
@@ -355,9 +365,11 @@ class App(tk.Tk):
                                 for row in rows], descending)
             for index, row in enumerate(rows):
                 tree.move(row, '', index)
-        # Stripes follow the displayed order, not the insertion order.
+        # Stripes follow the displayed order, not the insertion order; the other
+        # tags (a line being confirmed, one needing attention) are kept.
         for index, row in enumerate(rows):
-            tree.item(row, tags=('odd' if index % 2 else 'even',))
+            marks = [tag for tag in tree.item(row, 'tags') if tag not in ('odd', 'even')]
+            tree.item(row, tags=(*marks, 'odd' if index % 2 else 'even'))
 
     def item_icon(self, item, alternatives=()):
         """A small thumbnail of an item's artwork, or '' when none is known.
@@ -538,7 +550,10 @@ class App(tk.Tk):
     def select_tree(self, _event):
         selection = self.read_tree.selection()
         if selection:
-            self.select_slot(selection[0])
+            self.show_note(selection[0])
+            # A refresh restores the selection; that is not a new choice.
+            if selection[0] != self.selected_slot:
+                self.select_slot(selection[0])
 
     def select_slot(self, slot):
         self.selected_slot = slot
@@ -902,6 +917,7 @@ class App(tk.Tk):
 
     def show_readings(self, readings):
         self.read_tree.delete(*self.read_tree.get_children())
+        self.read_notes = {}
         readings = [r for r in readings if r.reason != Reason.EMPTY]
         provisional = {r.slot:r for r in self.provisional_readings} if self.showing_live() else {}
         unit = self.unit.get()
@@ -931,22 +947,44 @@ class App(tk.Tk):
             quantity_text = ('—' if shown_quantity is None else
                              ('≈ ' if shown_approximate else '')+f'{shown_quantity:,}'+
                              (t('reading.provisional') if pending else ''))
-            suffix = (t('reading.provisional_suffix') if pending else
-                      t('reading.abbreviated_suffix') if r.approximate else '')
             known = confirmed.get(r.slot)
-            if r.quantity is None and r.item and known and known[0] == r.item:
+            fallback = bool(r.quantity is None and r.item and known and known[0] == r.item)
+            if fallback:
                 stored = known[1]
                 value = line_value(r.item, stored, prices, unit)
                 quantity_text = ('≈ ' if (live, r.slot) in abbreviated else '')+f'{stored:,}'
                 if pending and (candidate.quantity != stored or candidate.approximate != ((live, r.slot) in abbreviated)):
                     quantity_text += ' → '+('≈ ' if candidate.approximate else '')+f'{candidate.quantity:,}'+t('reading.provisional')
-                suffix = t('reading.last_confirmed_suffix')
+            # What the line needs from the user: nothing, patience, or attention.
+            attention = r.reason in (Reason.UNREADABLE_COUNT, Reason.UNKNOWN_ICON, Reason.VARIANT,
+                                     Reason.HIDDEN_ICON, Reason.TO_CHECK)
+            waiting = r.reason == Reason.PENDING
+            notes = [t('note.last_confirmed') if fallback and waiting else
+                     t('note.'+r.reason) if waiting or attention or r.reason in (Reason.MANUAL, Reason.LOCAL_REF)
+                     else t('note.fine')]
+            if fallback and attention:
+                notes.append(t('note.last_confirmed'))
+            if shown_approximate or (fallback and (live, r.slot) in abbreviated):
+                notes.append(t('note.abbreviated'))
+            self.read_notes[r.slot] = ' '.join(notes)
             self.read_tree.insert('', 'end', iid=r.slot, image=self.item_icon(r.item, r.alternatives),
-                                  text=' '+self.reading_name(r),
-                                  tags=('odd' if index%2 else 'even',), values=(
-                                  quantity_text,
-                                  '—' if value is None else f'{value:.3f}',t('reason.'+r.reason)+suffix))
+                                  text=' '+self.reading_name(r)+('  ⚠' if attention else ''),
+                                  tags=(('attention',) if attention else ('pending',) if waiting else ())
+                                       + ('odd' if index%2 else 'even',),
+                                  values=(quantity_text, '—' if value is None else f'{value:.3f}'))
         self.apply_sort(self.read_tree)
+        # The table is rebuilt on every live reading; keep the chosen line.
+        if self.selected_slot and self.read_tree.exists(self.selected_slot):
+            self.read_tree.selection_set(self.selected_slot)
+            self.show_note(self.selected_slot)
+        else:
+            self.show_note(None)
+
+    def show_note(self, slot):
+        """The selected line's explanation, amber when it needs attention."""
+        attention = slot is not None and 'attention' in self.read_tree.item(slot, 'tags')
+        self.read_note.set(self.read_notes.get(slot, '') if slot else t('note.legend'))
+        self.read_note_label.configure(foreground='#ffcf70' if attention else '#b0bfd2')
 
     def item_name(self, item):
         return self.market['items'].get(item, {}).get('name', item or t('item.unknown'))
