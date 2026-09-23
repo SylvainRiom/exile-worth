@@ -187,6 +187,10 @@ No screenshot or inventory ever leaves the machine.
 - Quantity OCR is independent of item identification. `K`/`M` and a decimal comma
   are supported: `24.7K` becomes **about 24,700**, with `approximate=True`. Never
   present those as exact.
+- A K/M suffix or a decimal mark seen by **any** of the three reads (full
+  counter, raw crop, white crop), even below the 0.90 confidence bar, forbids an
+  exact result: the cell is then unreadable rather than `247` for `24.7K`. A crop
+  that reads the suffix itself keeps `approximate=True`.
 - `LEGACY_EXPEDITION_SLOTS` preserves the identification coordinates of profiles
   registered before the 14 px correction. Do not remove that compatibility, and do
   not rewrite existing inventories to fix a geometry.
@@ -235,7 +239,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  143 tests, OK
+python -m unittest discover -s tests   ->  149 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  27 decisions, none FAILS, 3 TIGHT
 ```
@@ -314,12 +318,7 @@ in the baseline and compared separately, and why that test must not be removed.
 1. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or promote the
    view selector to the discriminant. The measurement exists; the behaviour change
    does not.
-2. Check the OCR truncation risk: when the K/M suffix is not recognised on the full
-   image, the glyph crop must not accept part of the number. The gap is not the
-   crop, which keeps the suffix: it is that `DigitReader.read` forgets a suffix
-   seen below the confidence bar, after which two agreeing crops can return a
-   truncated **exact** quantity with no `approximate` flag.
-3. In time: other resolutions and scales, other stash types, persisting
+2. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

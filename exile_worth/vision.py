@@ -9,6 +9,7 @@ from contextlib import closing
 from dataclasses import asdict
 from functools import lru_cache
 from pathlib import Path
+from typing import NamedTuple
 
 import cv2
 import numpy as np
@@ -330,26 +331,35 @@ class DigitReader:
         bounds = self.counter_bounds(white)
         # A decimal point and a K suffix are not digit-shaped components. Check
         # the full counter first so that 24.7K cannot silently become 24 or 247.
-        full_quantity, full_confidence, full_approximate = self.recognize_info(raw_image)
-        if full_approximate and full_quantity is not None:
-            self.last_approximate = True
-            return full_quantity, full_confidence
+        full = self.recognize_info(raw_image)
+        if full.approximate and full.quantity is not None:
+            return self.accept(full)
         if bounds is not None:
             x,y,w,h = bounds
             image, white = image[y:y+h,x:x+w], white[y:y+h,x:x+w]
-        raw_quantity, raw_confidence = self.recognize(image)
-        filtered = cv2.cvtColor(white, cv2.COLOR_GRAY2BGR)
-        clean_quantity, clean_confidence = self.recognize(filtered)
-        if raw_quantity is not None and clean_quantity is not None and raw_quantity != clean_quantity:
-            return None, min(raw_confidence, clean_confidence)
-        if raw_quantity is not None:
-            return raw_quantity, raw_confidence
-        if clean_quantity is None and bounds is not None and full_quantity is not None:
+        raw = self.recognize_info(image)
+        clean = self.recognize_info(cv2.cvtColor(white, cv2.COLOR_GRAY2BGR))
+        if raw.quantity is not None and clean.quantity is not None and raw.quantity != clean.quantity:
+            return None, min(raw.confidence, clean.confidence)
+        if raw.quantity is not None:
+            chosen = raw
+        elif clean.quantity is None and bounds is not None and full.quantity is not None:
             # A tight crop can remove the context OCR needs (real Expedition 6).
             # Reuse the already validated full read only when neither crop
             # produced a conflicting number, never when no glyph was found.
-            return full_quantity, full_confidence
-        return clean_quantity, clean_confidence
+            chosen = full
+        else:
+            chosen = clean
+        # A suffix or decimal mark seen by any read, even below the confidence
+        # bar, means the counter is abbreviated: an exact number read elsewhere
+        # is then the truncated digits of 24.7K, not a count.
+        if chosen.quantity is not None and not chosen.approximate and (full.marked or raw.marked or clean.marked):
+            return None, chosen.confidence
+        return self.accept(chosen)
+
+    def accept(self, info):
+        self.last_approximate = info.approximate and info.quantity is not None
+        return info.quantity, info.confidence
 
     @staticmethod
     def counter_bounds(white):
@@ -371,21 +381,36 @@ class DigitReader:
         return max(0,x1-1),max(0,y1-1),min(white.shape[1],x2+1)-max(0,x1-1),min(white.shape[0],y2+1)-max(0,y1-1)
 
     def recognize(self, image):
-        quantity, confidence, _ = self.recognize_info(image)
-        return quantity, confidence
+        info = self.recognize_info(image)
+        return info.quantity, info.confidence
 
     def recognize_info(self, image):
         enlarged = cv2.resize(image, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
         enlarged = cv2.copyMakeBorder(enlarged, 12,12,12,12, cv2.BORDER_CONSTANT)
         result, _ = self.ocr(enlarged, use_det=False, use_cls=False, use_rec=True)
         if not result:
-            return None, 0.0, False
+            return CounterRead(None, 0.0, False, False)
         text, confidence = result[0]
         text = text.strip()
         quantity, approximate = parse_quantity(text)
+        # `marked` survives a refused read: it is evidence about the counter's
+        # format even when the digits themselves are not trusted.
+        marked = abbreviation_marked(text)
         if quantity is not None and confidence >= .90:
-            return quantity, float(confidence), approximate
-        return None, float(confidence), False
+            return CounterRead(quantity, float(confidence), approximate, marked)
+        return CounterRead(None, float(confidence), False, marked)
+
+
+class CounterRead(NamedTuple):
+    quantity: int | None
+    confidence: float
+    approximate: bool
+    marked: bool
+
+
+def abbreviation_marked(text):
+    """A K/M suffix or a decimal mark after a digit: the count is abbreviated."""
+    return bool(re.search(r'[0-9][.,]?[0-9]*[KkMm]|[0-9][.,][0-9]', text))
 
 
 def parse_quantity(text):

@@ -526,3 +526,24 @@ not rewrite an entry to match later behaviour, add a new one.
   the buttons fails the selector test.
 - Last validation: **143 tests passed**, `python -m tests.smoke_ui`, and
   `python -m tests.margins` at 27 decisions, no FAILS, the same 3 TIGHT.
+
+## An abbreviated counter could pass as exact — 23 September 2026
+
+- The resumption point was confirmed as a real defect, and it had a second half.
+  `recognize_info` dropped everything about a read below the 0.90 bar, so a
+  `24.7K` seen at 0.80 on the full counter left no trace, and two crops agreeing
+  on `247` returned 247 **exact**. Separately, `recognize` discarded the
+  `approximate` flag, so a crop that read `24.7K` confidently returned 24,700
+  as an exact count.
+- Each read now returns a `CounterRead` with a `marked` field: a K/M suffix or a
+  decimal mark after a digit, recorded whatever the confidence. If any of the
+  three reads is marked and the chosen result is not approximate, the cell is
+  unreadable. Unknown is recoverable on the next frame; a count 100 times too
+  small is not flagged anywhere.
+- A decimal mark counts as evidence on its own: PoE counters only show one with
+  a suffix, and `24.7` read without its `K` would otherwise lead to `247`.
+- Six scripted-OCR tests in `tests/test_ocr.py`; three of them fail on the
+  previous code, which is how the defect was confirmed rather than assumed. The
+  real Expedition capture, read with the real OCR, is unchanged.
+- Last validation: **149 tests passed**, `python -m tests.smoke_ui`, and
+  `python -m tests.margins` at 27 decisions, no FAILS, the same 3 TIGHT.

@@ -35,3 +35,61 @@ class OCRIntegrationTests(unittest.TestCase):
         for seed in (8,17,41):
             with self.subTest(seed=seed):
                 self.assertEqual(self.reader.read(render(artwork(seed))[:18])[0],254)
+
+
+class ScriptedOCR:
+    """Answers each call with the next (text, confidence): full image, raw crop, clean crop."""
+    def __init__(self, *answers):
+        self.answers = list(answers)
+
+    def __call__(self, image, **_):
+        text, confidence = self.answers.pop(0)
+        return [(text, confidence)], None
+
+
+def scripted_reader(*answers):
+    reader = DigitReader.__new__(DigitReader)
+    reader.ocr = ScriptedOCR(*answers)
+    reader.last_approximate = False
+    return reader
+
+
+def counter():
+    image = np.zeros((18,52,3),np.uint8)
+    cv2.putText(image,'24.7K',(1,14),cv2.FONT_HERSHEY_SIMPLEX,.45,(255,255,255),1,cv2.LINE_AA)
+    return image
+
+
+class AbbreviatedCounterTests(unittest.TestCase):
+    """A K/M suffix seen once must never let a truncated number pass as exact."""
+
+    def test_suffix_below_the_bar_refuses_agreeing_truncated_crops(self):
+        reader = scripted_reader(('24.7K', .80), ('247', .97), ('247', .96))
+        quantity, _ = reader.read(counter())
+        self.assertIsNone(quantity)
+        self.assertFalse(reader.last_approximate)
+
+    def test_suffix_seen_by_one_crop_refuses_the_other(self):
+        reader = scripted_reader(('', .10), ('24', .95), ('24K', .70))
+        self.assertIsNone(reader.read(counter())[0])
+
+    def test_a_crop_that_reads_the_suffix_stays_approximate(self):
+        reader = scripted_reader(('24.7K', .80), ('24.7K', .95), ('', 0.0))
+        self.assertEqual(reader.read(counter())[0], 24_700)
+        self.assertTrue(reader.last_approximate)
+
+    def test_full_read_above_the_bar_is_approximate(self):
+        reader = scripted_reader(('24.7K', .95))
+        self.assertEqual(reader.read(counter())[0], 24_700)
+        self.assertTrue(reader.last_approximate)
+
+    def test_plain_counts_stay_exact(self):
+        reader = scripted_reader(('247', .80), ('247', .97), ('247', .96))
+        self.assertEqual(reader.read(counter())[0], 247)
+        self.assertFalse(reader.last_approximate)
+
+    def test_a_previous_approximate_read_does_not_leak(self):
+        reader = scripted_reader(('24.7K', .95), ('', .1), ('247', .97), ('247', .96))
+        reader.read(counter())
+        reader.read(counter())
+        self.assertFalse(reader.last_approximate)
