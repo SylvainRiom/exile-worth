@@ -52,7 +52,13 @@ use `.venv311`.
 
 # Headroom of every recognition decision (see "Before touching a threshold")
 .\.venv311\Scripts\python.exe -m tests.margins
+
+# Installer: tests, PyInstaller build, packaged self-test, Inno Setup
+.\packaging\build.ps1            # -SkipTests to skip the unit tests
 ```
+
+Building the installer needs Inno Setup 6 (`winget install JRSoftware.InnoSetup`)
+and the build tools pinned in `requirements-build.txt`, which `build.ps1` installs.
 
 Tested dependencies are pinned in `requirements-lock.txt`; `requirements.txt`
 holds the version ranges.
@@ -71,6 +77,11 @@ holds the version ranges.
 | `exile_worth/i18n.py` | Language selection and the English/French catalogues |
 | `exile_worth/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
 | `exile_worth/tables.py` | Sort order of displayed table cells |
+| `exile_worth/settings.py` | `settings.json`: small preferences merged key by key |
+| `exile_worth/updater.py` | Release check on GitHub, verified download, installer launch |
+| `exile_worth/selftest.py` | `--self-test`: a packaged build loads its OCR, data files and Tk |
+| `packaging/` | PyInstaller spec, Inno Setup script, `build.ps1` |
+| `.github/workflows/release.yml` | A `v*` tag builds the installer and publishes the release |
 | `exile_worth/assets/tab_icons/` | In-game stash tab icons per layout family, with `sources.json` |
 | `tests/margins.py` | Headroom of every recognition decision, against a baseline |
 | `tests/` | Storage, OCR, recognition, valuation, simulated capture and interface |
@@ -102,6 +113,12 @@ These are the ones that have been broken before. Each has an entry in the journa
 **Data**
 
 - Preserve existing inventories and UUIDs across changes. Migrations are additive.
+- User data lives in `%LOCALAPPDATA%\ExileWorth` (`model.DATA`; `EXILE_DATA_DIR`
+  overrides), never next to the code, which an installer or update replaces.
+  `migrate_legacy_data` copies an old `data/` folder there once, at start-up,
+  only while the target holds none of `USER_FILES`; it never merges into or
+  overwrites an inventory, and the old folder stays as a backup. Nothing but
+  `__main__` may create user files before it runs.
 - `Store.rows()` keeps its six fields **and its meaning**: cells holding stock.
   Confirmed-empty cells are reached through `empty_slots()`, approximations through
   `approximate_slots()`. Putting either into `rows()` turns every consumer —
@@ -130,7 +147,7 @@ These are the ones that have been broken before. Each has an entry in the journa
 
 **Language.** `i18n.py` holds `LANGUAGES`, the `CATALOG` for `en` and `fr`, and
 `t(key, **fields)`. A missing key falls back to English, then to the key itself.
-The choice is persisted in `data/settings.json`. Both catalogues must keep the
+The choice is persisted in `settings.json` in the data folder. Both catalogues must keep the
 same key set and the same `{placeholders}`; a mismatch raises inside `.format()`
 in one language only. `App.retranslate()` relabels in place.
 
@@ -154,9 +171,43 @@ explicit revision counter (`IconMatcher.revision`). `id()` is never a cache key.
 
 **Network.** Icon downloads are pinned to `ICON_HOSTS` with
 `urlparse().hostname`, which also rejects `https://web.poecdn.com@elsewhere/`.
+Updates are pinned the same way to `UPDATE_HOSTS`, **including every redirect**
+(`PinnedRedirects`): a GitHub download link redirects to its asset storage.
 No screenshot or inventory ever leaves the machine.
 
+**Releases.** `exile_worth.__version__` is the only version number: the tag
+(`v` + it, checked by the workflow), the executable's file version and the
+update check all read it. The installer's `AppId` in `packaging/installer.iss`
+must never change, or an update installs a second copy beside the first.
+An installer is run only after its SHA-256 matches the `.sha256` published
+beside it; a release lacking either asset is not offered.
+
 ## Current behaviour
+
+### Installation and updates
+
+- `ExileWorth-Setup-<version>.exe` installs per user in
+  `%LOCALAPPDATA%\Programs\ExileWorth`, with no administrator rights. It is a
+  PyInstaller one-folder build (about 225 MB installed, 70 MB to download);
+  one-file was avoided because it unpacks on every start. The installer
+  replaces `_internal` whole, so no stale library survives an update, and
+  uninstalling leaves the user data.
+- The build is unsigned: Windows SmartScreen warns on the first install. The
+  updater's own download carries no web mark, so updates do not warn.
+- Only a packaged build checks (`updater.enabled`; `EXILE_UPDATE_CHECK=1` forces
+  it from source, `0` turns it off). Five seconds after start, at most once a
+  day, a worker asks `releases/latest`; a 404 (no release yet) means up to date.
+  A failed automatic check is silent (logged); a manual one ("Check now") says so.
+- A newer version shows a banner under the header: update and restart, what's
+  new, later, skip this version. A skipped version is not offered again
+  automatically, but "Check now" still shows it. The toolbar checkbox turns the
+  daily check off (`update_auto` in `settings.json`).
+- "Update" downloads to `updates/` in the data folder with its progress in the
+  banner, verifies the hash, starts the installer detached with
+  `/SILENT /CLOSEAPPLICATIONS /RELAUNCH=1 /LANG=…` and closes the app; the
+  installer reuses the previous folder and `RELAUNCH` starts the new version.
+  Any refusal (hash, size, redirect host, download, launch) leaves the banner
+  with its reason and a Retry button; nothing is run.
 
 ### Capture and synchronisation
 
@@ -354,10 +405,14 @@ Reference documentation: https://poe.ninja/docs/api
 - For distribution to several users, plan for the caching backend recommended by
   poe.ninja; `EXILE_PRICE_BASE` and `EXILE_CONTACT` exist for that.
 
-The `data/` directory is ignored by Git and holds user data: `profiles.json`
-(tabs, label and structure signatures, local corrections), `inventory.sqlite3`
+User data lives in `%LOCALAPPDATA%\ExileWorth` in every mode, source or
+packaged, so a later install finds the same inventory: `profiles.json` (tabs,
+label and structure signatures, local corrections), `inventory.sqlite3`
 (quantities, history, valuations), `settings.json` (language), `session.log`,
-and the `prices/` and `icons/` network caches.
+`diagnostics/` (saved images) and the `prices/` and `icons/` network caches.
+`EXILE_DATA_DIR` points it elsewhere; off Windows it falls back to `data/`.
+The repository's `data/` directory, ignored by Git, is the pre-move location:
+it is copied once and then carries a `MOVED.txt`, and is no longer read.
 
 ## Expected state
 
@@ -365,7 +420,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  182 tests, OK
+python -m unittest discover -s tests   ->  209 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
 ```
@@ -385,7 +440,7 @@ baseline test is the real guard either way.
 
 Two tools exist because a screenshot alone never explained a refusal.
 
-**`data/session.log`** (rotating, local). `INFO` records lifecycle events and
+**`session.log`** in the data folder (rotating, local). `INFO` records lifecycle events and
 every *decision change* — the live loop runs three times a second, so an
 unchanged verdict is suppressed and a line means something really changed. It
 carries the numbers behind each verdict, the near-miss on every refused cell
@@ -469,6 +524,8 @@ in the baseline and compared separately, and why that test must not be removed.
 3. A real Currency capture, to measure Essences against Currencies both ways.
 4. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
+5. Code signing (for example Azure Trusted Signing), to remove the SmartScreen
+   warning on first install; and an application icon for the executable.
 
 The user may launch the application while work is in progress. Avoid leaving calls
 to missing methods between two changes; verify the whole path before announcing a

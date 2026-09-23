@@ -6,10 +6,7 @@ to SQLite, so a key must never change when the display language does.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
-from .model import DATA
+from . import settings
 
 LANGUAGES = {'en': 'English', 'fr': 'Français'}
 DEFAULT = 'en'
@@ -18,16 +15,13 @@ _current = DEFAULT
 
 
 def settings_file(directory=None):
-    return Path(directory or DATA) / 'settings.json'
+    return settings.settings_file(directory)
 
 
 def load_language(directory=None):
     """A missing or damaged settings file must not prevent the app from starting."""
     global _current
-    try:
-        stored = json.loads(settings_file(directory).read_text('utf-8')).get('language')
-    except (OSError, ValueError, AttributeError):
-        stored = None
+    stored = settings.read(directory).get('language')
     _current = stored if stored in LANGUAGES else DEFAULT
     return _current
 
@@ -37,22 +31,8 @@ def set_language(code, directory=None):
     if code not in LANGUAGES:
         raise ValueError(f'Unknown language: {code}')
     _current = code
-    file = settings_file(directory)
-    try:
-        file.parent.mkdir(parents=True, exist_ok=True)
-        data = {}
-        if file.exists():
-            try:
-                data = json.loads(file.read_text('utf-8'))
-            except ValueError:
-                data = {}
-        data['language'] = code
-        temporary = file.with_suffix('.tmp')
-        temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False), 'utf-8')
-        temporary.replace(file)
-    except OSError:
-        # A read-only data directory still allows the session to switch language.
-        pass
+    # A read-only data directory still allows the session to switch language.
+    settings.write(directory, language=code)
     return code
 
 
@@ -131,6 +111,25 @@ CATALOG = {
     'bar.league': 'League',
     'bar.load_prices': 'Load prices',
     'bar.language': 'Language',
+    'bar.update_auto': 'Check for updates',
+    'bar.update_check': 'Check now',
+    'update.available': 'Exile Worth {version} is available (you have {current}).',
+    'update.install': 'Update and restart',
+    'update.notes': "What's new",
+    'update.later': 'Later',
+    'update.skip': 'Skip this version',
+    'update.retry': 'Retry',
+    'update.checking': 'Checking for updates…',
+    'update.up_to_date': 'Exile Worth {current} is up to date.',
+    'update.skipped': 'Version {version} will not be offered again automatically; "Check now" still shows it.',
+    'update.downloading': 'Downloading version {version}… {percent} %',
+    'update.installing': 'Installing version {version}. Exile Worth closes and restarts by itself.',
+    'update.error.check': 'Could not check for updates (is GitHub reachable?).',
+    'update.error.download': 'The download failed. Nothing was changed.',
+    'update.error.checksum': 'The downloaded file does not match its checksum. It was deleted and not run.',
+    'update.error.size': 'The download is larger than any installer should be. It was stopped.',
+    'update.error.host': 'The download was redirected to an unexpected site. It was stopped.',
+    'update.error.install': 'The installer could not be started. Nothing was changed.',
     'bar.import': 'Import a screenshot',
     'bar.capture': 'Capture in 5 s',
     'bar.export_csv': 'Export CSV',
@@ -353,6 +352,25 @@ CATALOG = {
     'bar.league': 'Ligue',
     'bar.load_prices': 'Charger les prix',
     'bar.language': 'Langue',
+    'bar.update_auto': 'Vérifier les mises à jour',
+    'bar.update_check': 'Vérifier maintenant',
+    'update.available': 'Exile Worth {version} est disponible (vous avez la {current}).',
+    'update.install': 'Mettre à jour et redémarrer',
+    'update.notes': 'Nouveautés',
+    'update.later': 'Plus tard',
+    'update.skip': 'Ignorer cette version',
+    'update.retry': 'Réessayer',
+    'update.checking': 'Recherche de mises à jour…',
+    'update.up_to_date': 'Exile Worth {current} est à jour.',
+    'update.skipped': "La version {version} ne sera plus proposée automatiquement ; « Vérifier maintenant » l'affiche toujours.",
+    'update.downloading': 'Téléchargement de la version {version}… {percent} %',
+    'update.installing': "Installation de la version {version}. Exile Worth se ferme et redémarre tout seul.",
+    'update.error.check': 'Impossible de vérifier les mises à jour (GitHub est-il joignable ?).',
+    'update.error.download': "Le téléchargement a échoué. Rien n'a été modifié.",
+    'update.error.checksum': "Le fichier téléchargé ne correspond pas à sa somme de contrôle. Il a été supprimé sans être lancé.",
+    'update.error.size': "Le téléchargement dépasse la taille d'un installeur. Il a été interrompu.",
+    'update.error.host': 'Le téléchargement a été redirigé vers un site inattendu. Il a été interrompu.',
+    'update.error.install': "L'installeur n'a pas pu démarrer. Rien n'a été modifié.",
     'bar.import': 'Importer une capture',
     'bar.capture': 'Capturer dans 5 s',
     'bar.export_csv': 'Exporter CSV',

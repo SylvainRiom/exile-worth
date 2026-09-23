@@ -23,7 +23,8 @@ def main():
         # The user's own settings (language) must not leak into the test.
         with (patch('exile_worth.app.Store', lambda: Store(path/'inventory.sqlite')),
               patch('exile_worth.app.Profiles', lambda: Profiles(path)),
-              patch('exile_worth.i18n.DATA', path)):
+              patch('exile_worth.settings.DATA', path),
+              patch('exile_worth.updater.enabled', lambda: True)):
             app = App(auto_load=False)
             # Install the fake OCR before any frame can schedule an analysis.
             app.scanner = Scanner(app.profiles, Digits(), app.matcher)
@@ -253,10 +254,59 @@ def main():
                 assert app._card_columns == 1 and app.cards.winfo_children()[1].grid_info()['row'] == 1
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
-                print('UI smoke OK: widgets, image preview, calibration, prices, league isolation')
+                check_update_banner(app, path)
+                print('UI smoke OK: widgets, image preview, calibration, prices, league isolation, updates')
             finally:
                 print('UI smoke: shutdown', flush=True)
                 app.close()
+
+
+def check_update_banner(app, path):
+    """The update banner: offered, progress, refusal, skip, language, the setting."""
+    import json
+    from exile_worth import updater
+    from exile_worth.app import UpdateCheck, UpdateFailure, UpdateProgress
+    stored = lambda: json.loads((path / 'settings.json').read_text('utf-8'))
+    release = updater.Release((9, 9, 9), 'v9.9.9', 'https://github.com/x/ExileWorth-Setup-9.9.9.exe',
+                              'ExileWorth-Setup-9.9.9.exe', 1, 'https://github.com/x/sum', updater.RELEASES)
+    assert not app.update_bar.winfo_manager(), 'No banner before a newer version is found'
+    app.messages.put(('update_check', UpdateCheck(None, True)))
+    app.drain()
+    assert not app.update_bar.winfo_manager() and 'up to date' in app.status.get(), app.status.get()
+    app.messages.put(('update_check', UpdateCheck(release, False)))
+    app.drain()
+    assert app.update_bar.winfo_manager() and '9.9.9' in app.update_message.get()
+    assert isinstance(stored()['update_checked'], float)
+    app.messages.put(('update_progress', UpdateProgress(50, 100)))
+    app.drain()
+    assert app.update_message.get().endswith('50 %'), app.update_message.get()
+    app.messages.put(('update_failed', UpdateFailure('checksum', True, 'download')))
+    app.drain()
+    assert 'checksum' in app.update_message.get() and app.update_install.cget('text') == 'Retry'
+    assert app.update_install.instate(['!disabled'])
+    app.language_choice.set('Français')
+    assert 'somme de contrôle' in app.update_message.get(), app.update_message.get()
+    app.language_choice.set('English')
+    app.skip_update()
+    assert not app.update_bar.winfo_manager() and stored()['update_skip'] == '9.9.9'
+    app.messages.put(('update_check', UpdateCheck(release, False)))
+    app.drain()
+    assert not app.update_bar.winfo_manager(), 'A skipped version is not offered automatically'
+    app.messages.put(('update_check', UpdateCheck(release, True)))
+    app.drain()
+    assert app.update_bar.winfo_manager(), 'A manual check shows it anyway'
+    assert app.update_install.cget('text') == 'Update and restart'
+    started = []
+    with (patch('exile_worth.updater.start_install', lambda *args: started.append(args)),
+          patch.object(app, 'after', lambda delay, action: started.append(action))):
+        app.messages.put(('update_ready', path / 'ExileWorth-Setup-9.9.9.exe'))
+        app.drain()
+    assert started[0] == (path / 'ExileWorth-Setup-9.9.9.exe', 'en') and started[1] == app.close
+    assert 'restarts' in app.update_message.get()
+    app.update_auto.set(False)
+    app.update_auto_changed()
+    assert stored()['update_auto'] is False and not updater.due(stored())
+    app.hide_update_bar()
 
 
 def run_bounded(timeout=15):

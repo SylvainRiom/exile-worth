@@ -1,0 +1,49 @@
+# Pushing a tag vX.Y.Z builds the installer and publishes it as a GitHub release.
+# The in-app update check reads that release (see exile_worth/updater.py).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Tag matches the version in the code
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path exile_worth\__init__.py -Pattern "__version__ = '([^']+)'").Matches[0].Groups[1].Value
+          if ("v$version" -ne '${{ github.ref_name }}') { throw "Tag ${{ github.ref_name }} does not match __version__ $version" }
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ISCC.exe -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build, test and package
+        shell: pwsh
+        env:
+          EXILE_BUILD_PYTHON: python
+          # Keep the runner's test writes away from any default data folder.
+          EXILE_DATA_DIR: ${{ runner.temp }}\exile-data
+        run: .\packaging\build.ps1
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/installer/ExileWorth-Setup-*.exe
+            build/installer/ExileWorth-Setup-*.exe.sha256
+          generate_release_notes: true

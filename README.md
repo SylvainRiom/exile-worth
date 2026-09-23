@@ -7,7 +7,34 @@ poe.ninja prices and stores the history in SQLite.
 The interface is available in **English and French**; pick the language in the
 toolbar. English is the default.
 
-## Running
+## Installing
+
+Download `ExileWorth-Setup-<version>.exe` from the
+[releases](https://github.com/SylvainRiom/exile-worth/releases) and run it. It
+installs for the current user, without administrator rights. The installer is
+not signed yet, so Windows may show "Windows protected your PC": choose
+**More info → Run anyway**.
+
+The application checks for a new version once a day. When one exists, a banner
+offers to download it; the download is verified against its published SHA-256,
+then the installer updates the application and restarts it. Uncheck **Check for
+updates** in the toolbar to turn this off. The check sends one anonymous request
+to GitHub and nothing else. Uninstalling keeps your data in
+`%LOCALAPPDATA%\ExileWorth`.
+
+## Publishing a version
+
+1. Set `__version__` in `exile_worth/__init__.py` (for example `0.2.0`) and commit.
+2. Tag and push: `git tag v0.2.0` then `git push origin v0.2.0`.
+3. The `Release` workflow runs the tests, builds the installer, checks that the
+   packaged build loads its OCR models and data (`ExileWorth.exe --self-test`),
+   and publishes the installer and its `.sha256` as a GitHub release. Installed
+   copies see it within a day.
+
+To build locally: `.\packaging\build.ps1` (needs Inno Setup 6:
+`winget install JRSoftware.InnoSetup`). The result is in `build\installer\`.
+
+## Running from source
 
 Python **3.11** is required by the bundled RapidOCR build. On this machine it is
 available through `py -3.11`.
@@ -178,8 +205,14 @@ Capture reads only the client area of a foreground window whose title contains
 "Path of Exile". Use borderless windowed mode. Capture stops reading when the game
 loses focus; no key or click is ever sent to the game. Another program covering the
 stash can prevent recognition. Reference thumbnails and tab identities are stored
-locally in `data/profiles.json`, quantities and historical prices in
-`data/inventory.sqlite3`. No screenshot is ever sent over the network.
+locally in `profiles.json`, quantities and historical prices in
+`inventory.sqlite3`. No screenshot is ever sent over the network.
+
+All user data lives in `%LOCALAPPDATA%\ExileWorth`, outside the program folder,
+so reinstalling or updating never touches it. Set `EXILE_DATA_DIR` to use another
+folder. A `data/` folder from an earlier version (next to the code) is copied
+there once on the first start, only if the new folder holds no inventory yet; the
+old folder is kept as a backup, marked with a `MOVED.txt`, and no longer read.
 
 The frames are a first estimate from one visible screenshot. A real Expedition
 capture at 1920×1080 is now covered by a test: its 25 occupied stacks are identified
@@ -260,7 +293,7 @@ After a deliberate change, re-measure every fixture and refresh the baseline:
 
 ## Session log
 
-Recognition failures are diagnosed from `data/session.log` (rotating, 2 MB × 4,
+Recognition failures are diagnosed from `session.log` in the data folder (rotating, 2 MB × 4,
 local only, never uploaded). It records the numbers behind every decision, which
 is what a screenshot alone cannot tell you:
 
@@ -289,7 +322,7 @@ After a failure report, read this file together with the PNG saved by
 
 ## Language
 
-The interface language is chosen in the toolbar and stored in `data/settings.json`.
+The interface language is chosen in the toolbar and stored in `settings.json` in the data folder.
 Adding a language means adding one entry to `LANGUAGES` and one catalogue to
 `CATALOG` in `exile_worth/i18n.py`; both catalogues must share the same keys and the
 same `{placeholders}`.

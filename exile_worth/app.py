@@ -7,6 +7,7 @@ import queue
 import threading
 import time
 import tkinter as tk
+import webbrowser
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +18,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from .capture import capture_game
-from . import i18n
+from . import __version__, i18n, settings, updater
 from .diagnostics import failure, log, setup as setup_log
 from .i18n import t
 from .model import DATA, Reading, Reason, Event, Store, estimate_readings, line_value
@@ -29,6 +30,26 @@ from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_s
 from .history_ui import HistoryView
 from .theme import apply_theme
 from .tables import sorted_rows
+
+
+@dataclass(frozen=True)
+class UpdateCheck:
+    release: updater.Release | None
+    manual: bool
+
+
+@dataclass(frozen=True)
+class UpdateProgress:
+    done: int
+    total: int
+
+
+@dataclass(frozen=True)
+class UpdateFailure:
+    key: str
+    manual: bool
+    stage: str
+
 
 # In-game stash tab icons by layout family, verified on PoE2DB; see sources.json.
 TAB_ICONS = Path(__file__).with_name('assets') / 'tab_icons'
@@ -131,6 +152,13 @@ class App(tk.Tk):
         self.item_choice = tk.StringVar()
         self.capture_state = tk.StringVar(value=t('state.paused'))
         self.capture_action = tk.StringVar(value=t('bar.start'))
+        # Updates: only a packaged build checks (see updater.enabled).
+        self.updates_enabled = updater.enabled()
+        self.update_auto = tk.BooleanVar(value=settings.read().get('update_auto', True) is not False)
+        self.update_release = None
+        self.update_busy = False
+        self.update_message = tk.StringVar()
+        self._update_text = ('', {})
         self.build_ui()
         self.refresh_capture_state()
         self.refresh_inventory()
@@ -139,6 +167,8 @@ class App(tk.Tk):
         self.after(60000, self.refresh_prices_when_due)
         if auto_load:
             self.after(300, self.load_prices)
+            if self.updates_enabled:
+                self.after(5000, self.check_updates)
         self.protocol('WM_DELETE_WINDOW', self.close)
 
     def tr(self, widget, key, **fields):
@@ -155,8 +185,10 @@ class App(tk.Tk):
         self._sort = {}
         header = ttk.Frame(self, padding=16)
         header.pack(fill='x')
+        self.header = header
         self.tr(ttk.Label(header, text='', font=('Segoe UI', 20, 'bold')), 'app.brand').pack(side='left')
         self.tr(ttk.Label(header, text='', foreground='#a9b8ca'), 'app.tagline').pack(side='left')
+        ttk.Label(header, text=f'v{__version__}', style='Muted.TLabel').pack(side='left', padx=(10, 0))
         self.capture_badge = tk.Label(header, textvariable=self.capture_state,
                                       font=('Segoe UI', 11, 'bold'), padx=14, pady=7)
         self.capture_badge.pack(side='right')
@@ -175,6 +207,12 @@ class App(tk.Tk):
         self.language_box.pack(side='right', padx=(0, 10))
         self.tr(ttk.Label(bar, text=''), 'bar.language').pack(side='right', padx=(12, 6))
         self.language_choice.trace_add('write', self.language_changed)
+        if self.updates_enabled:
+            self.tr(ttk.Button(bar, text='', command=lambda: self.check_updates(manual=True)),
+                    'bar.update_check').pack(side='right', padx=(6, 0))
+            self.tr(ttk.Checkbutton(bar, text='', variable=self.update_auto, command=self.update_auto_changed),
+                    'bar.update_auto').pack(side='right', padx=(12, 0))
+        self.build_update_bar()
         controls = ttk.Frame(self, padding=(16, 0, 16, 8))
         controls.pack(fill='x')
         # No manual "Analyse": every event that changes the answer (a new
@@ -327,6 +365,8 @@ class App(tk.Tk):
             self.canvas.delete('all')
             self.canvas.create_text(258, 260, text=t('detail.canvas_empty'),
                                     fill='#a9b8ca', font=('Segoe UI', 14), justify='center')
+        key, fields = self._update_text
+        self.show_update_text(key, **fields)
         self.refresh_capture_state()
         self.refresh_inventory()
         self.draw()
@@ -1225,6 +1265,16 @@ class App(tk.Tk):
                         self.status.set(self.status.get()+t('status.categories_missing', categories=categories))
                     if self.frame is not None and not self.running:
                         self.after_idle(self.analyze)
+                elif kind == 'update_check':
+                    self.update_checked(payload)
+                elif kind == 'update_progress':
+                    percent = int(100 * payload.done / payload.total) if payload.total else 0
+                    self.show_update_text('update.downloading', version=self.update_release.label,
+                                          percent=percent)
+                elif kind == 'update_ready':
+                    self.install_update(payload)
+                elif kind == 'update_failed':
+                    self.update_failed(payload)
                 elif kind in ('analysis', 'live'):
                     scan = payload
                     tab, readings, league = scan.tab, scan.readings, scan.league
@@ -1287,6 +1337,141 @@ class App(tk.Tk):
         except queue.Empty:
             pass
         self.after(100, self.drain)
+
+    # --- Updates -------------------------------------------------------------
+
+    def build_update_bar(self):
+        """The banner offering a new version; packed only while there is one."""
+        bar = self.update_bar = ttk.Frame(self, padding=(16, 8), style='Update.TFrame')
+        ttk.Label(bar, textvariable=self.update_message, style='Update.TLabel').pack(side='left')
+        self.update_buttons = []
+        for key, action in [('update.skip', self.skip_update), ('update.later', self.hide_update_bar),
+                            ('update.notes', self.open_release_notes)]:
+            button = self.tr(ttk.Button(bar, text='', command=action), key)
+            button.pack(side='right', padx=(6, 0))
+            self.update_buttons.append(button)
+        self.update_install = self.tr(ttk.Button(bar, text='', command=self.download_update,
+                                                 style='Accent.TButton'), 'update.install')
+        self.update_install.pack(side='right', padx=(6, 0))
+
+    def show_update_text(self, key, **fields):
+        self._update_text = (key, fields)
+        self.update_message.set(t(key, **fields) if key else '')
+
+    def show_update_bar(self):
+        if not self.update_bar.winfo_manager():
+            self.update_bar.pack(fill='x', after=self.header)
+
+    def hide_update_bar(self):
+        if not self.update_busy:
+            self.update_bar.pack_forget()
+
+    def update_auto_changed(self):
+        settings.write(update_auto=bool(self.update_auto.get()))
+        log.info('automatic update check %s', 'on' if self.update_auto.get() else 'off')
+
+    def check_updates(self, manual=False):
+        """The daily check runs in a worker; its answer comes back through `drain`."""
+        if self.update_busy or not (manual or updater.due(settings.read())):
+            return
+        self.update_busy = True
+        if manual:
+            self.status.set(t('update.checking'))
+
+        def work():
+            updater.clean(DATA / 'updates')
+            try:
+                self.messages.put(('update_check', UpdateCheck(updater.newer_release(), manual)))
+            except Exception as error:
+                log.info('update check failed: %s', error)
+                self.messages.put(('update_failed', UpdateFailure('check', manual, 'check')))
+        threading.Thread(target=work, daemon=True).start()
+
+    def update_checked(self, check):
+        self.update_busy = False
+        settings.write(update_checked=time.time())
+        release = check.release
+        if release is None:
+            log.info('update check: %s is the latest version', __version__)
+            if check.manual:
+                self.status.set(t('update.up_to_date', current=__version__))
+            return
+        log.info('update check: %s available (running %s)', release.label, __version__)
+        if not check.manual and settings.read().get('update_skip') == release.label:
+            return
+        self.update_release = release
+        self.update_install.configure(text=t('update.install'))
+        self.show_update_text('update.available', version=release.label, current=__version__)
+        self.set_update_buttons(True)
+        self.show_update_bar()
+
+    def set_update_buttons(self, enabled):
+        state = ['!disabled'] if enabled else ['disabled']
+        for button in [self.update_install, *self.update_buttons]:
+            button.state(state)
+
+    def open_release_notes(self):
+        if self.update_release and updater.permitted(self.update_release.page_url):
+            webbrowser.open(self.update_release.page_url)
+
+    def skip_update(self):
+        if self.update_release and not self.update_busy:
+            settings.write(update_skip=self.update_release.label)
+            self.status.set(t('update.skipped', version=self.update_release.label))
+            self.update_bar.pack_forget()
+
+    def download_update(self):
+        release = self.update_release
+        if release is None or self.update_busy:
+            return
+        self.update_busy = True
+        self.set_update_buttons(False)
+        self.show_update_text('update.downloading', version=release.label, percent=0)
+        log.info('update: downloading %s', release.installer_url)
+        shown = [-1]
+
+        def progress(done, total):
+            percent = int(100 * done / total) if total else 0
+            if percent != shown[0]:
+                shown[0] = percent
+                self.messages.put(('update_progress', UpdateProgress(done, total)))
+
+        def work():
+            try:
+                path = updater.download(release, DATA / 'updates', progress)
+            except updater.UpdateError as error:
+                log.warning('update download refused: %s', error)
+                self.messages.put(('update_failed', UpdateFailure(error.key, True, 'download')))
+            except Exception as error:
+                log.warning('update download failed: %s', error)
+                self.messages.put(('update_failed', UpdateFailure('download', True, 'download')))
+            else:
+                self.messages.put(('update_ready', path))
+        threading.Thread(target=work, daemon=True).start()
+
+    def install_update(self, installer):
+        release = self.update_release
+        self.show_update_text('update.installing', version=release.label)
+        try:
+            updater.start_install(installer, i18n.language())
+        except OSError as error:
+            log.warning('update: installer did not start: %s', error)
+            self.update_failed(UpdateFailure('install', True, 'install'))
+            return
+        log.info('update: installer %s started, closing', installer.name)
+        # The installer also waits for this process through the Restart Manager.
+        self.after(500, self.close)
+
+    def update_failed(self, failure):
+        self.update_busy = False
+        if failure.stage == 'check':
+            if failure.manual:
+                self.status.set(t('update.error.check'))
+            return
+        self.show_update_text(f'update.error.{failure.key}')
+        self.update_install.configure(text=t('update.retry'))
+        self.set_update_buttons(True)
+        self.show_update_bar()
 
     def close(self):
         self.stop_event.set()

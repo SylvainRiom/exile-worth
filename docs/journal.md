@@ -958,3 +958,57 @@ not rewrite an entry to match later behaviour, add a new one.
 - Both tests fail on the previous code.
 - Last validation: **182 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.
+
+## User data moves out of the program folder — 23 September 2026
+
+- Goal: a packaged installer (PyInstaller + Inno Setup) and in-app updates. An
+  update replaces the program folder, and `data/` sat next to the code
+  (`ROOT / 'data'`), so the first update would have erased every inventory.
+- `model.DATA` is now `%LOCALAPPDATA%\ExileWorth`, in source mode too, so the
+  developer's own inventory is the one the installed build finds.
+  `EXILE_DATA_DIR` overrides it. `ROOT` follows `sys.executable` when frozen.
+- `migrate_legacy_data`, called from `__main__` before the app is built, copies
+  the old `data/` once. The decision rests on `USER_FILES` (settings, profiles,
+  inventory), not on an empty folder: the test suite itself writes `prices/` and
+  `session.log` to the default location, measured on the first run, and an
+  "empty target" rule would have blocked the migration for good. The copy is
+  staged in a sibling and renamed in, inventory last, so an interruption leaves
+  nothing that blocks a retry. Copy rather than move: the old folder stays as a
+  backup with a `MOVED.txt`.
+- Not run on the user's data during this change: the application was running
+  from the old code and still writing to `data/`; copying under it would have
+  stranded its later writes. It happens at the next start.
+- Last validation: **191 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.
+
+## Installer and in-app updates — 23 September 2026
+
+- User request: make the application simple to install, and have an installed
+  copy find, download and install new versions.
+- The data move (previous entry) ran on the user's real data at their next
+  start: 374 cells and 34 history rows identical, `MOVED.txt` in `data/`.
+- Packaging: PyInstaller one-folder (226 MB, 70 MB installer) wrapped by Inno
+  Setup, per user, no UAC. One-file was rejected: it unpacks on every start.
+  RapidOCR's `config.yaml` and models are collected explicitly. Memory in use is
+  the same as from source (764 MB against 772 MB), so not a packaging cost.
+- `--self-test` exists because a build can start and still miss a data file
+  that only fails once a stash is read. It reads a drawn `1234` with the real
+  OCR; a first version drew it 10 px from the edge and OCR read `2342`, so the
+  image is padded. The build and the release workflow both refuse on failure.
+- Updates come from GitHub Releases (the repository is public). The download is
+  pinned host by host, through redirects, and run only when its SHA-256 matches
+  the published file. `/RELAUNCH=1` is a parameter of our own installer script:
+  a plain silent install (not from the updater) does not start the app.
+- `i18n` now writes `settings.json` through `settings.py`, shared with the
+  update preferences; the file format is unchanged.
+- Measured end to end on this machine, outside the user's install: 0.1.0
+  installed and running; the updater's own `download` (served locally) and
+  `start_install` of a 0.1.1 build; the running copy closed with exit code 0,
+  0.1.1 installed in the same folder without `/DIR` and relaunched; uninstall
+  left nothing. `Start-Process -Wait` in a test hangs on the relaunch, because it
+  waits for the installer's children — an artefact of the test, not of updates.
+- Found by the smoke test: `retranslate` passed the banner's fields positionally.
+- Not validated: a download from GitHub itself (no release exists yet), and the
+  SmartScreen prompt, which needs a download from the web.
+- Last validation: **209 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.

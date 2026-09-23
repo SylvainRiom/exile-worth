@@ -1,15 +1,77 @@
 from __future__ import annotations
 
+import os
+import sys
 import json
 import math
+import shutil
 import hashlib
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / 'data'
+# A packaged build lives next to its executable, which an update replaces.
+ROOT = (Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False)
+        else Path(__file__).resolve().parent.parent)
+LEGACY_DATA = ROOT / 'data'
+
+
+def data_directory(environ=os.environ, legacy=LEGACY_DATA):
+    """User data lives outside the program folder, so installing or updating
+    never touches it. `EXILE_DATA_DIR` overrides; off Windows, the old place."""
+    if environ.get('EXILE_DATA_DIR'):
+        return Path(environ['EXILE_DATA_DIR'])
+    if environ.get('LOCALAPPDATA'):
+        return Path(environ['LOCALAPPDATA']) / 'ExileWorth'
+    return legacy
+
+
+DATA = data_directory()
+
+
+# What makes a data folder the user's, as opposed to caches and a log.
+# Moved last, the inventory very last: its presence means the move finished.
+USER_FILES = ('settings.json', 'profiles.json', 'inventory.sqlite3')
+
+
+def migrate_legacy_data(target=DATA, legacy=LEGACY_DATA):
+    """Copy the pre-install `data/` folder once into the new location.
+
+    Copy, never move: the old folder stays as a backup. Runs only while the
+    target holds none of `USER_FILES`, so it never overwrites or merges an
+    inventory; a log or cache written there first does not block it.
+    The copy lands in a sibling first, then each entry is renamed into place,
+    so an interrupted copy leaves nothing that would block the next attempt.
+    """
+    target, legacy = Path(target), Path(legacy)
+    if target.resolve() == legacy.resolve() or not legacy.is_dir():
+        return False
+    if not any((legacy / name).exists() for name in USER_FILES):
+        return False
+    if any((target / name).exists() for name in USER_FILES):
+        return False
+    staging = target.with_name(target.name + '.migrating')
+    shutil.rmtree(staging, ignore_errors=True)
+    shutil.copytree(legacy, staging)
+    target.mkdir(parents=True, exist_ok=True)
+    order = {name: rank for rank, name in enumerate(USER_FILES, 1)}
+    for entry in sorted(staging.iterdir(), key=lambda entry: order.get(entry.name, 0)):
+        destination = target / entry.name
+        if destination.is_dir():
+            shutil.rmtree(destination)
+        elif destination.exists():
+            destination.unlink()
+        entry.rename(destination)
+    staging.rmdir()
+    try:
+        (legacy / 'MOVED.txt').write_text(
+            f'Exile Worth now keeps its data in {target}\n'
+            'This folder is the copy made before the move; it is no longer read.\n',
+            encoding='utf-8')
+    except OSError:
+        pass
+    return True
 
 
 def now():

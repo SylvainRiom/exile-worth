@@ -7,6 +7,7 @@ TEXT = '#edf3fc'
 MUTED = '#b0bfd2'
 ACCENT = '#7ee2c0'
 LIVE = '#173229'
+UPDATE = '#1d3350'
 
 
 def apply_theme(root):
@@ -27,6 +28,13 @@ def apply_theme(root):
     style.configure('Live.TFrame', background=LIVE, relief='flat')
     style.configure('Live.TLabel', background=LIVE, foreground=TEXT)
     style.configure('TLabel', background=BG, foreground=TEXT)
+    style.configure('TCheckbutton', background=BG, foreground=TEXT, indicatorbackground=SURFACE,
+                    indicatorforeground=ACCENT, focusthickness=0)
+    style.map('TCheckbutton', background=[('active',BG)], foreground=[('disabled','#91a0b4')],
+              indicatorbackground=[('pressed','#304963'),('active','#26384e')])
+    # The banner offering a new version.
+    style.configure('Update.TFrame', background=UPDATE)
+    style.configure('Update.TLabel', background=UPDATE, foreground=TEXT, font=('Segoe UI',10,'bold'))
     style.configure('Muted.TLabel', foreground=MUTED)
     style.configure('Status.TLabel', background=SURFACE, foreground=MUTED, padding=(16,10))
     style.configure('TButton', background='#233247', foreground=TEXT, padding=(12,8),
