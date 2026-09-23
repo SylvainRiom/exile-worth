@@ -479,3 +479,50 @@ not rewrite an entry to match later behaviour, add a new one.
   catalogue, a renamed placeholder, a blank entry and a stray brace each fail the
   suite; the healthy state passes.
 - Last validation: **140 tests passed**, as well as `python -m tests.smoke_ui`.
+
+## The four unvalidated Runes views, captured — 22 September 2026
+
+- Four of the five Runes geometries had been measured on chat screenshots. The
+  user captured all five views through **Save the image**, at 1920x1080, in one
+  session. They are cropped to `frame[0:765, 0:655]`, the window the earlier
+  Runes fixture already used — verified pixel-identical before any file was
+  written, so the crop convention is measured, not assumed.
+- `stash.png` became `runes.png`, and the four new views take the view names.
+  Five references pointed at the old name, not the three a first grep suggested:
+  `margins.py`, `test_diagnostics.py`, `test_geometry_cache.py` and two in
+  `test_rune_pages.py`.
+- **All five geometries hold.** Cell counts are exact (70, 60, 47, 31, 17) and
+  each view aligns on a single translation of at most 3 px, against the ±20 px
+  the search allows. The coordinates read off chat screenshots were right.
+- Border separation on real captures: ancient_augments 0.83, idols 0.79,
+  kalguuran 0.38, soul_cores 0.32 — and runes **0.03**. The tight decision is
+  confirmed as the only one, and it is now known to be **one-directional**: a
+  Runes capture is nearly matched by the Kalguuran grid (0.850), while a
+  Kalguuran capture reaches only 0.586 on the Runes grid. Only one of the two
+  views can be misread.
+- The baseline gained 12 entries and changed none. That is the check that
+  mattered: adding views must not move a recorded headroom or a threshold.
+- Two of the four captures had been saved while the application displayed
+  `unknown`. Offline, every one of the five is recognised on both the
+  borders-only and the full path, so that was the app's state at save time, not
+  a recognition failure. Worth remembering when reading a sidecar: `layout` is
+  what was *displayed*, not what the frame contains.
+- **The view selector was found while looking for the selection indicator.**
+  Five buttons above the grid, 64 px pitch from x=175, band y=130..190; the
+  visible view is lit by an amber glow. On the five captures the lit button wins
+  by 4.2 to 10.0 of amber excess — two orders of magnitude more comfortable than
+  the 0.03 of the grid comparison, and it names the view without reading the
+  grid at all. This is the robust discriminant the Runes/Kalguuran resumption
+  point was asking for.
+- It is **measured, not wired in**. Promoting it changes how layouts are
+  resolved, which is the user's call, and the grid comparison is what every
+  stored profile was registered against. `test_view_selector_lights_the_visible_view`
+  pins the observation meanwhile.
+- The unlit conch button reads warm on its own (20.6 against 17.1 for its
+  neighbours), so a fixed threshold would pick it in three views out of five.
+  Any decision built on the selector has to compare buttons against each other.
+- Both new tests were verified by injection rather than assumed: a 9 px shift of
+  the Idols geometry fails the alignment test, and moving the selector band off
+  the buttons fails the selector test.
+- Last validation: **143 tests passed**, `python -m tests.smoke_ui`, and
+  `python -m tests.margins` at 27 decisions, no FAILS, the same 3 TIGHT.

@@ -206,6 +206,17 @@ def tab_label_margins(frame, label):
     return results
 
 
+# The five Runes views. `runes` keeps the original label so its recorded
+# baseline entries survive; the other four were captured on 22 September 2026.
+RUNE_VIEWS = {
+    'runes': 'runes_real',
+    'kalguuran': 'kalguuran_real',
+    'soul_cores': 'soul_cores_real',
+    'idols': 'idols_real',
+    'ancient_augments': 'ancient_augments_real',
+}
+
+
 def measure():
     results = []
     expedition = expedition_frame()
@@ -213,9 +224,12 @@ def measure():
     results += alignment_margins(expedition, 'expedition', 'expedition_real')
     results += icon_margins(expedition, 'expedition', expedition_icons(), 'expedition_real')
 
-    runes = load_frame(FIXTURES / 'runes_real' / 'stash.png')
-    results += layout_margins(runes, 'runes', 'runes_real')
-    results += alignment_margins(runes, 'runes', 'runes_real')
+    # All five Runes views, from real captures of one session. The first view
+    # keeps the `runes_real` label its baseline entries were recorded under.
+    for view, label in RUNE_VIEWS.items():
+        frame = load_frame(FIXTURES / 'runes_real' / f'{view}.png')
+        results += layout_margins(frame, view, label)
+        results += alignment_margins(frame, view, label)
 
     results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results

@@ -1,4 +1,31 @@
 {
+  "ancient_augments_real.alignment_shift": {
+    "detail": "dx=3 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 17.0,
+    "kind": "margin",
+    "measured": 3.0,
+    "name": "ancient_augments_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "ancient_augments_real.border_margin": {
+    "detail": "ancient_augments over soul_cores (0.170)",
+    "direction": "min",
+    "headroom": 0.7098,
+    "kind": "margin",
+    "measured": 0.8298,
+    "name": "ancient_augments_real.border_margin",
+    "threshold": 0.12
+  },
+  "ancient_augments_real.border_score": {
+    "detail": "ancient_augments",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "ancient_augments_real.border_score",
+    "threshold": 0.55
+  },
   "dollar_tab.arrow_rows": {
     "detail": "widest warm row beside the menu",
     "direction": "min",
@@ -107,6 +134,60 @@
     "name": "expedition_real.identified",
     "threshold": 25.0
   },
+  "idols_real.alignment_shift": {
+    "detail": "dx=0 dy=3, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 17.0,
+    "kind": "margin",
+    "measured": 3.0,
+    "name": "idols_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "idols_real.border_margin": {
+    "detail": "idols over soul_cores (0.213)",
+    "direction": "min",
+    "headroom": 0.6672,
+    "kind": "margin",
+    "measured": 0.7872,
+    "name": "idols_real.border_margin",
+    "threshold": 0.12
+  },
+  "idols_real.border_score": {
+    "detail": "idols",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "idols_real.border_score",
+    "threshold": 0.55
+  },
+  "kalguuran_real.alignment_shift": {
+    "detail": "dx=0 dy=3, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 17.0,
+    "kind": "margin",
+    "measured": 3.0,
+    "name": "kalguuran_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "kalguuran_real.border_margin": {
+    "detail": "kalguuran over runes (0.586)",
+    "direction": "min",
+    "headroom": 0.261,
+    "kind": "margin",
+    "measured": 0.381,
+    "name": "kalguuran_real.border_margin",
+    "threshold": 0.12
+  },
+  "kalguuran_real.border_score": {
+    "detail": "kalguuran",
+    "direction": "min",
+    "headroom": 0.4167,
+    "kind": "margin",
+    "measured": 0.9667,
+    "name": "kalguuran_real.border_score",
+    "threshold": 0.55
+  },
   "runes_real.alignment_shift": {
     "detail": "dx=0 dy=3, refused beyond +/-20",
     "direction": "max",
@@ -132,6 +213,33 @@
     "kind": "margin",
     "measured": 1.0,
     "name": "runes_real.border_score",
+    "threshold": 0.55
+  },
+  "soul_cores_real.alignment_shift": {
+    "detail": "dx=3 dy=3, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 17.0,
+    "kind": "margin",
+    "measured": 3.0,
+    "name": "soul_cores_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "soul_cores_real.border_margin": {
+    "detail": "soul_cores over idols (0.677)",
+    "direction": "min",
+    "headroom": 0.2026,
+    "kind": "margin",
+    "measured": 0.3226,
+    "name": "soul_cores_real.border_margin",
+    "threshold": 0.12
+  },
+  "soul_cores_real.border_score": {
+    "detail": "soul_cores",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "soul_cores_real.border_score",
     "threshold": 0.55
   }
 }

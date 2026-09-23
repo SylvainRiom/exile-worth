@@ -235,9 +235,9 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  140 tests, OK
+python -m unittest discover -s tests   ->  143 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
-python -m tests.margins                ->  15 decisions, none FAILS, 3 TIGHT
+python -m tests.margins                ->  27 decisions, none FAILS, 3 TIGHT
 ```
 
 The three TIGHT decisions are expected and listed under "Known fragilities".
@@ -286,12 +286,21 @@ in the baseline and compared separately, and why that test must not be removed.
   0.12) — the smallest structural headroom in the project, and the reason the
   separation threshold must not be lowered again. It also blocks two
   optimisations: a cross-frame layout cache and a confirm-only detection shortcut,
-  both of which could keep a stale page after a view change.
+  both of which could keep a stale page after a view change. The risk runs **one
+  way**: on a Runes capture the Kalguuran grid scores 0.850, while on a Kalguuran
+  capture the Runes grid reaches only 0.586, a comfortable 0.26. Only the Runes
+  view is at risk of being read as Kalguuran, never the reverse. The other three
+  views separate by 0.20 or more.
 - **The sidebar arrow clears its floor by 2** (`dollar_tab.arrow_rows`, 4 measured
   against a required 2). It is the narrowest absolute margin outside the Runes
   separation, and it decides whether the side menu can confirm the active tab.
-- **Four of the five Runes geometries rest on chat screenshots**, not on real
-  captures. Only the first view is validated. Do not tune them on synthetic grids.
+- **The Runes view selector is measured but unused.** The five buttons above the
+  grid (64 px pitch from x=175, band y=130..190) light the visible view, and the
+  lit one wins by at least 4.2 of amber excess on the five captures — far more
+  headroom than the 0.03 of the grid comparison. Nothing in `vision.py` consults
+  it yet; `test_view_selector_lights_the_visible_view` pins the observation so it
+  cannot rot before that choice is made. The unlit conch button reads warm on its
+  own, so any decision built on this must compare buttons, never a fixed floor.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
   scales are unverified, and a non-16:9 capture is refused outright.
 - **Renamed or moved tabs**: re-association is handled for a unique label with the
@@ -302,13 +311,15 @@ in the baseline and compared separately, and why that test must not be removed.
 
 ## Resumption points
 
-1. Capture the four unvalidated Runes views with **Save the image**, then verify
-   their coordinates and selection indicator against real files.
-2. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or find a more
-   robust discriminant.
-3. Check the OCR truncation risk: when the K/M suffix is not recognised on the full
-   image, the glyph crop must not accept part of the number.
-4. In time: other resolutions and scales, other stash types, persisting
+1. Decide the Runes/Kalguuran separation: accept 0.03 knowingly, or promote the
+   view selector to the discriminant. The measurement exists; the behaviour change
+   does not.
+2. Check the OCR truncation risk: when the K/M suffix is not recognised on the full
+   image, the glyph crop must not accept part of the number. The gap is not the
+   crop, which keeps the suffix: it is that `DigitReader.read` forgets a suffix
+   seen below the confidence bar, after which two agreeing crops can return a
+   truncated **exact** quantity with no `approximate` flag.
+3. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

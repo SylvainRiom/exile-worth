@@ -39,7 +39,7 @@ def expedition_frame():
 
 
 def runes_frame():
-    stash = cv2.imread(str(FIXTURES / 'runes_real' / 'stash.png'), cv2.IMREAD_COLOR)
+    stash = cv2.imread(str(FIXTURES / 'runes_real' / 'runes.png'), cv2.IMREAD_COLOR)
     frame = np.zeros((1080, 1920, 3), np.uint8)
     frame[:stash.shape[0], :stash.shape[1]] = stash
     return frame
