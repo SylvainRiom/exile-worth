@@ -206,14 +206,19 @@ class App(tk.Tk):
         ttk.Label(dashboard, textvariable=self.total_detail, foreground='#a9b8ca', wraplength=1080).pack(anchor='w')
         self.tr(ttk.Label(dashboard, text='', foreground='#a9b8ca'), 'dash.cards_hint').pack(anchor='w', pady=(4,16))
         cards_box = ttk.Frame(dashboard)
-        cards_box.pack(fill='both',expand=True)
+        cards_box.pack(fill='x')
         self.cards_canvas = tk.Canvas(cards_box,bg='#10151e',highlightthickness=0)
         cards_scroll = ttk.Scrollbar(cards_box,orient='vertical',command=self.cards_canvas.yview)
         self.cards_canvas.configure(yscrollcommand=auto_hide(cards_scroll, self.cards_canvas))
         self.cards_canvas.pack(side='left',fill='both',expand=True)
         self.cards = ttk.Frame(self.cards_canvas)
         cards_window = self.cards_canvas.create_window((0,0),window=self.cards,anchor='nw')
-        self.cards.bind('<Configure>',lambda event:self.cards_canvas.configure(scrollregion=self.cards_canvas.bbox('all')))
+        def cards_changed(event):
+            # The cards take their own height, up to four rows; beyond that
+            # they scroll, so the item table below always keeps its room.
+            self.cards_canvas.configure(scrollregion=self.cards_canvas.bbox('all'),
+                                        height=min(self.cards.winfo_reqheight(), 4*68))
+        self.cards.bind('<Configure>',cards_changed)
         def resized(event):
             self.cards_canvas.itemconfigure(cards_window,width=event.width)
             self.place_cards(event.width)
@@ -222,6 +227,14 @@ class App(tk.Tk):
         # The wheel scrolls the dashboard wherever the pointer is over it,
         # cards included; `all` bindings run after a widget's own ones.
         self.bind_all('<MouseWheel>', self.wheel_cards, add='+')
+        # Every item of the stash in one table, most valuable first, so that
+        # what is expensive shows at a glance under the cards.
+        self.tr(ttk.Label(dashboard, text='', foreground='#a9b8ca'), 'dash.items_title').pack(anchor='w', pady=(14,6))
+        self.items_tree = self.make_tree(dashboard, ('col.quantity','col.unit_price','col.value','col.share','col.tabs'),
+                                         (90, 100, 110, 70, 260), item_column=280)
+        self._sort[self.items_tree] = ('col.value', True)
+        for name in self.headings(self.items_tree):
+            self.set_heading(self.items_tree, name)
         body = ttk.Frame(self.detail_page, padding=(16, 0))
         body.pack(fill='both', expand=True)
         left = ttk.Frame(body)
@@ -823,6 +836,36 @@ class App(tk.Tk):
             card(tab['id'],tab['name'],amount,facts,layout_id,live=tab['id'] == live)
         self.place_cards()
 
+    def refresh_items(self, rows, approximate, prices, unit):
+        """One line per item across every tab: quantity, unit price, value, share.
+
+        `rows` has the shape of `Store.rows()`; the preview passes its readings
+        with no tab. Unpriced items stay listed with no value, never a zero.
+        """
+        symbol = 'div' if unit == 'divine' else unit
+        self.set_heading(self.items_tree, 'col.unit_price', t('col.unit_price', unit=symbol))
+        self.set_heading(self.items_tree, 'col.value', t('col.value_unit', unit=symbol))
+        names = {tab['id']: tab['name'] for tab in self.profiles.data['tabs']}
+        items = {}
+        for tab, slot, item, quantity, _stamp, _uncertain in rows:
+            entry = items.setdefault(item, dict(quantity=0, approximate=False, tabs=set()))
+            entry['quantity'] += quantity
+            entry['approximate'] |= (tab, slot) in approximate
+            if tab is not None:
+                entry['tabs'].add(names.get(tab, tab))
+        values = {item: line_value(item, entry['quantity'], prices, unit) for item, entry in items.items()}
+        total = sum(value for value in values.values() if value is not None)
+        self.items_tree.delete(*self.items_tree.get_children())
+        for item, entry in items.items():
+            value, each = values[item], line_value(item, 1, prices, unit)
+            self.items_tree.insert('', 'end', iid=item, image=self.item_icon(item), text=' '+self.item_name(item),
+                                   values=(('≈ ' if entry['approximate'] else '')+f"{entry['quantity']:,}",
+                                           '—' if each is None else f'{each:,.3f}',
+                                           '—' if value is None else f'{value:,.2f}',
+                                           '—' if value is None or not total else f'{100*value/total:.1f} %',
+                                           ', '.join(sorted(entry['tabs']))))
+        self.apply_sort(self.items_tree)
+
     def tab_icon(self, layout_id):
         """The in-game icon of a stash type, or '' for an unrecognised layout.
 
@@ -1052,6 +1095,10 @@ class App(tk.Tk):
             self.total_detail.set(self.total_detail.get()+t('dash.abbreviated_suffix'))
         self.show_readings(self.display_readings())
         self.refresh_cards(rows,prices,unit)
+        self.refresh_items(rows if rows else [(None, r.slot, r.item, r.quantity, '', 0) for r in readings
+                                              if r.item and r.quantity is not None],
+                           approximate_slots if rows else {(None, r.slot) for r in readings if r.approximate},
+                           prices, unit)
         self.inventory_tree.delete(*self.inventory_tree.get_children())
         names = {t['id']:t['name'] for t in self.profiles.data['tabs']}
         for tab,slot,item,quantity,stamp,stale in rows:

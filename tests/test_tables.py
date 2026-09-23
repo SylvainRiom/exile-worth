@@ -29,3 +29,6 @@ class SortKeyTests(unittest.TestCase):
 
     def test_a_pending_change_sorts_by_its_confirmed_quantity(self):
         self.assertEqual(sort_key('141 → 145 (provisional)'), (0, (141.0,)))
+
+    def test_a_share_sorts_by_its_percentage(self):
+        self.assertEqual(sorted_rows([('a', '12.5 %'), ('b', '3.0 %'), ('c', '—')]), ['b', 'a', 'c'])

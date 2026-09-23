@@ -777,3 +777,20 @@ not rewrite an entry to match later behaviour, add a new one.
 - Seen, not changed: the French interface still shows the English layout name
   `Currencies`, and numbers keep the English `1,275.00` format.
 - Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## Every item under the cards — 23 September 2026
+
+- User request: keep the `My stash` view, but list every item beneath the cards
+  so the expensive ones show at a glance.
+- `refresh_items` groups the stored rows by item across all tabs: total
+  quantity (`≈` if any part is abbreviated), unit price, value, share of the
+  valued total and the tabs holding it. It sorts by value, descending, by
+  default; every heading still sorts. It uses the same source as the total —
+  stored rows, or the preview readings while no tab is stored — so the table
+  and the total cannot disagree.
+- Unpriced items stay in the table with `—` in every price column; they are not
+  counted in the share, and are never shown as zero.
+- The cards now take their own height, capped at four rows (they scroll
+  beyond), and the table fills the rest. Checked on screen with six tabs.
+- The sort key accepts a percentage (`12.5 %`).
+- Last validation: **166 tests passed**, `python -m tests.smoke_ui`.

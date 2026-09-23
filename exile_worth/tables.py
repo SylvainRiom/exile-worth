@@ -9,9 +9,9 @@ import re
 
 # A displayed number: `1,234`, `≈ 24,700`, `0.125`, optionally followed by a
 # parenthesised note such as ` (provisional)` or a pending change `→ 145 (provisional)`,
-# which sorts by the confirmed number before the arrow. Thousands use a comma, as every
+# which sorts by the confirmed number before the arrow, or a share such as `12.5 %`. Thousands use a comma, as every
 # quantity in the interface is formatted with `{:,}`.
-_NUMBER = re.compile(r'^\s*≈?\s*(-?[0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:\(.*\)|→.*)?\s*$')
+_NUMBER = re.compile(r'^\s*≈?\s*(-?[0-9][0-9,]*(?:\.[0-9]+)?)\s*%?\s*(?:\(.*\)|→.*)?\s*$')
 _MISSING = {'', '—', '-'}
 
 

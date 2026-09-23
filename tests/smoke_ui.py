@@ -163,6 +163,12 @@ def main():
                 app.store.sync('Forbidden Rites','tab2',[Reading('C03','divine',2)])
                 app.refresh_inventory()
                 assert '12.00 div' in app.total.get(), 'Preview must not be added to saved tabs'
+                # The dashboard's item table adds the same item across tabs.
+                line = app.items_tree.item('divine')
+                assert line['text'].strip() == 'Divine Orb' and line['image'], line
+                assert [str(v) for v in line['values'][:4]] == ['12', '1.000', '12.00', '100.0 %'], line['values']
+                assert line['values'][4] == 'tab1, tab2', line['values']
+                assert app.items_tree.heading('col.value')['text'] == 'Value (div) ▼'
                 assert '254.00 div' in app.preview_total.get()
                 app.store.sync('Forbidden Rites','tab2',[Reading('C03','divine',2)])
                 app.refresh_inventory()

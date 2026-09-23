@@ -225,6 +225,13 @@ No screenshot or inventory ever leaves the machine.
   as many columns as the width allows (`place_cards`, one per 290 px, at most
   six). The whole card opens the detail. The mouse wheel scrolls the cards
   wherever the pointer is over them (`wheel_cards`, bound on `all`).
+- Under the cards, `My stash` lists **every item of the stash in one table**
+  (`refresh_items`): one line per item across all tabs, with total quantity,
+  unit price, value, share of the valued total and the tabs holding it,
+  most valuable first. It reads the same source as the total (stored rows, or
+  the preview readings when no tab is stored). An unpriced item stays listed
+  with `—`, never a zero. The cards take at most four rows so the table keeps
+  its room.
 - Scrollbars (cards and tables) appear only when there is something to scroll
   (`auto_hide` as the `yscrollcommand`).
 - The reading table has **no state column**. A normal line carries no mark; a
@@ -299,7 +306,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  165 tests, OK
+python -m unittest discover -s tests   ->  166 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```
