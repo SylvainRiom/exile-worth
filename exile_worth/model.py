@@ -124,6 +124,12 @@ class Store:
                         'INSERT OR REPLACE INTO slots(league,tab,slot,item,quantity,confirmed,uncertain,approximate,empty)'
                         ' VALUES(?,?,?,NULL,NULL,?,0,0,1)', (league, tab, r.slot, stamp))
                     continue
+                if r.reason == Reason.PENDING:
+                    # A re-confirmation in progress is not a failed reading: the
+                    # stored row is still the last confirmed state. Flagging it
+                    # would mark every re-read cell "to check" for a second, and
+                    # record that in the valuation history.
+                    continue
                 if r.quantity is None or r.item is None:
                     self.db.execute('UPDATE slots SET uncertain=1 WHERE league=? AND tab=? AND slot=?',
                                     (league, tab, r.slot))
