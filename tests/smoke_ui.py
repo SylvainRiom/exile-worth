@@ -28,6 +28,7 @@ def main():
             app.withdraw()
             try:
                 app.update_idletasks()
+                assert not app.cards.winfo_children(), 'No preview card before anything is read'
                 from tkinter import ttk
                 style = ttk.Style(app)
                 assert style.lookup('TCombobox','fieldbackground',('readonly',)) == '#192332'
@@ -86,7 +87,7 @@ def main():
                         stack.extend(widget.winfo_children())
                         if widget.winfo_class() == 'TLabel' and widget.cget('text'):
                             found.append(str(widget.cget('text')))
-                    return found
+                    return ' | '.join(found)
                 assert 'Currencies · tab not identified' in card_texts(0), card_texts(0)
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
                 assert app.read_tree.item('C03')['values'][1] == '254.000'
@@ -185,7 +186,7 @@ def main():
                 app.drain()
                 assert app.live_tab_id() == 'live1'
                 assert len(app.cards.winfo_children()) == 1, 'No preview card while a tab is synced'
-                assert 'Main currency' in card_texts(0) and '● Updating live' in card_texts(0), card_texts(0)
+                assert 'Main currency' in card_texts(0) and '● Live' in card_texts(0), card_texts(0)
                 assert str(app.cards.winfo_children()[0].cget('style')) == 'Live.TFrame'
                 app.open_stash('live1')
                 assert app.display_readings()[0].quantity == 7
@@ -211,7 +212,11 @@ def main():
                 assert not app.running and app.capture_state.get() == '● Paused'
                 assert app.live_tab_id() is None
                 assert len(app.cards.winfo_children()) == 2, 'A stop brings the preview card back'
-                assert not any('● Updating live' in text for text in card_texts(1))
+                assert '● Live' not in card_texts(1)
+                app.place_cards(1200)
+                assert app._card_columns == 4 and app.cards.winfo_children()[1].grid_info()['column'] == 1
+                app.place_cards(500)
+                assert app._card_columns == 1 and app.cards.winfo_children()[1].grid_info()['row'] == 1
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
                 print('UI smoke OK: widgets, image preview, calibration, prices, league isolation')

@@ -198,9 +198,14 @@ class App(tk.Tk):
         self.cards = ttk.Frame(self.cards_canvas)
         cards_window = self.cards_canvas.create_window((0,0),window=self.cards,anchor='nw')
         self.cards.bind('<Configure>',lambda event:self.cards_canvas.configure(scrollregion=self.cards_canvas.bbox('all')))
-        self.cards_canvas.bind('<Configure>',lambda event:self.cards_canvas.itemconfigure(cards_window,width=event.width))
-        for column in range(3):
-            self.cards.columnconfigure(column,weight=1,uniform='cards')
+        def resized(event):
+            self.cards_canvas.itemconfigure(cards_window,width=event.width)
+            self.place_cards(event.width)
+        self.cards_canvas.bind('<Configure>',resized)
+        self._card_boxes, self._card_columns = [], 0
+        # The wheel scrolls the dashboard wherever the pointer is over it,
+        # cards included; `all` bindings run after a widget's own ones.
+        self.bind_all('<MouseWheel>', self.wheel_cards, add='+')
         body = ttk.Frame(self.detail_page, padding=(16, 0))
         body.pack(fill='both', expand=True)
         left = ttk.Frame(body)
@@ -687,36 +692,64 @@ class App(tk.Tk):
         self.draw()
         self.stash_pages.select(self.detail_page)
 
+    def wheel_cards(self, event):
+        """Scroll the cards when the pointer is over them and they overflow."""
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        if widget is None or not str(widget).startswith(str(self.cards_canvas)):
+            return
+        if self.cards_canvas.yview() == (0.0, 1.0):
+            return
+        self.cards_canvas.yview_scroll(-1 if event.delta > 0 else 1, 'units')
+
+    def place_cards(self, width=None):
+        """As many card columns as the width allows, so the stash fits at a glance."""
+        width = width or self.cards_canvas.winfo_width()
+        columns = max(1, min(6, width // 290))
+        if columns != self._card_columns:
+            for column in range(max(columns, self._card_columns)):
+                self.cards.columnconfigure(column, weight=1 if column < columns else 0,
+                                           uniform='cards' if column < columns else '')
+            self._card_columns = columns
+        for index, box in enumerate(self._card_boxes):
+            box.grid(row=index//columns, column=index%columns, sticky='nsew', padx=4, pady=4)
+
+    @staticmethod
+    def card_time(stamp):
+        """A stored UTC stamp as local time; the date only when it is not today."""
+        moment = datetime.fromisoformat(stamp).astimezone()
+        return moment.strftime('%H:%M' if moment.date() == datetime.now().date() else '%d/%m %H:%M')
+
     def refresh_cards(self, rows, prices, unit):
         for child in self.cards.winfo_children():
             child.destroy()
+        self._card_boxes = []
         symbol = 'div' if unit=='divine' else unit
-        def card(index,tab_id,title,subtitle,amount,detail,layout_id=None,live=False):
+        def card(tab_id,title,amount,facts,layout_id=None,live=False):
+            """Two lines: icon, name and value; then the type and what is missing."""
             kind = 'Live' if live else 'Card'
-            box = ttk.Frame(self.cards,padding=20,style=f'{kind}.TFrame')
-            box.grid(row=index//3,column=index%3,sticky='nsew',padx=6,pady=6)
-            header = ttk.Frame(box,style=f'{kind}.TFrame')
-            header.pack(anchor='w',pady=4)
+            box = ttk.Frame(self.cards,padding=(12,8),style=f'{kind}.TFrame',cursor='hand2')
+            box.columnconfigure(1,weight=1)
             icon = self.tab_icon(layout_id)
-            parts = [ttk.Label(header,image=icon,style=f'{kind}.TLabel')] if icon else []
-            parts.append(ttk.Label(header,text=title,font=('Segoe UI',15,'bold'),foreground='#e7edf6',
-                                   wraplength=280 if icon else 315,style=f'{kind}.TLabel'))
-            for part in parts:
-                part.pack(side='left',padx=(0,10) if part is not parts[-1] else 0)
-                part.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
-            header.bind('<Button-1>',lambda event:self.open_stash(tab_id))
-            lines = [(subtitle,('Segoe UI',10),'#a9b8ca'),
-                     (amount,('Segoe UI',23,'bold'),'#83f0b6'),
-                     (detail,('Segoe UI',10),'#a9b8ca')]
+            widgets = [box]
+            if icon:
+                widgets.append(ttk.Label(box,image=icon,style=f'{kind}.TLabel'))
+                widgets[-1].grid(row=0,column=0,rowspan=2,sticky='w',padx=(0,10))
+            widgets.append(ttk.Label(box,text=title,font=('Segoe UI',11,'bold'),foreground='#e7edf6',
+                                     style=f'{kind}.TLabel'))
+            widgets[-1].grid(row=0,column=1,sticky='w')
+            widgets.append(ttk.Label(box,text=amount,font=('Segoe UI',12,'bold'),foreground='#83f0b6',
+                                     style=f'{kind}.TLabel'))
+            widgets[-1].grid(row=0,column=2,sticky='e',padx=(8,0))
             if live:
-                lines.insert(0,(t('dash.live_badge'),('Segoe UI',10,'bold'),'#7ee2c0'))
-            for text,font,colour in lines:
-                label = ttk.Label(box,text=text,font=font,foreground=colour,wraplength=315,style=f'{kind}.TLabel')
-                label.pack(anchor='w',pady=4)
-                label.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
-            ttk.Button(box,text=t('dash.see_detail'),command=lambda:self.open_stash(tab_id)).pack(anchor='w',pady=(8,0))
-            box.bind('<Button-1>',lambda event:self.open_stash(tab_id))
-        preview = estimate_readings(self.last_readings if self.reading_league==self.league.get().strip() else [],prices,unit)
+                facts = [t('dash.card_live')] + facts
+            widgets.append(ttk.Label(box,text=' · '.join(facts),font=('Segoe UI',9),
+                                     foreground='#7ee2c0' if live else '#a9b8ca',style=f'{kind}.TLabel'))
+            widgets[-1].grid(row=1,column=1,columnspan=2,sticky='w')
+            for widget in widgets:
+                widget.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
+            self._card_boxes.append(box)
+        preview_readings = self.last_readings if self.reading_league==self.league.get().strip() else []
+        preview = estimate_readings(preview_readings,prices,unit)
         amount = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
         # The preview names the tab being read, so the user can tell which card
         # the live readings are feeding; an unidentified tab says so.
@@ -724,13 +757,18 @@ class App(tk.Tk):
         title, subtitle = ((self.last_tab['name'], t('detail.live_preview_of', layout=layout)) if self.last_tab
                            else (t('dash.preview_card'), t('dash.preview_unidentified', layout=layout)))
         live = self.live_tab_id()
-        if live is None:
-            card(0,None,title,subtitle,amount,
-                 t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced),self.active_layout_id)
+        # Nothing read yet (at start-up, after a league change): no preview card.
+        if live is None and preview_readings:
+            facts = [subtitle, t('dash.card_screenshot')]
+            if preview.unread:
+                facts.append(t('dash.card_to_check', count=preview.unread))
+            if preview.unpriced:
+                facts.append(t('dash.card_unpriced', count=preview.unpriced))
+            card(None,title,amount,facts,self.active_layout_id)
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==self.league.get().strip()]
         approximate = self.store.approximate_slots(self.league.get().strip())
         empty = self.store.empty_slots(self.league.get().strip())
-        for index,tab in enumerate(tabs,0 if live else 1):
+        for tab in tabs:
             entries = [r for r in rows if r[0]==tab['id']]
             estimate = estimate_readings([Reading(r[1],r[2],r[3]) for r in entries],prices,unit)
             amount = f'≈ {estimate.amount:,.2f} {symbol}' if estimate.amount is not None else '—'
@@ -740,17 +778,19 @@ class App(tk.Tk):
             confirmed_empty = sum(1 for tab_id,_slot in empty if tab_id == tab['id'])
             unread = max(0, expected_slots-len(entries)-confirmed_empty)
             uncertain = sum(bool(r[5]) for r in entries)
-            detail = (t('dash.never_synced') if not entries else
-                      t('dash.last_read', stamp=max(r[4] for r in entries).replace('T',' ')))
-            if unread or uncertain or estimate.unpriced:
-                detail += t('dash.partial', count=unread+uncertain, unpriced=estimate.unpriced)
-            if any((r[0],r[1]) in approximate for r in entries):
-                detail += t('dash.abbreviated')
             # A Runes tab being read names the view on screen, not the family.
             layout_id = (self.active_layout_id if tab['id'] == live and self.active_layout_id
                          else layout_for_tab(tab).id)
-            card(index,tab['id'],tab['name'],layout_name(layout_id),amount,detail,layout_id,
-                 live=tab['id'] == live)
+            facts = [layout_name(layout_id),
+                     self.card_time(max(r[4] for r in entries)) if entries else t('dash.card_never')]
+            if unread or uncertain:
+                facts.append(t('dash.card_to_check', count=unread+uncertain))
+            if estimate.unpriced:
+                facts.append(t('dash.card_unpriced', count=estimate.unpriced))
+            if any((r[0],r[1]) in approximate for r in entries):
+                facts.append(t('dash.card_abbreviated'))
+            card(tab['id'],tab['name'],amount,facts,layout_id,live=tab['id'] == live)
+        self.place_cards()
 
     def tab_icon(self, layout_id):
         """The in-game icon of a stash type, or '' for an unrecognised layout.

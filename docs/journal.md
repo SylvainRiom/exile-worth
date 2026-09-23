@@ -708,3 +708,24 @@ not rewrite an entry to match later behaviour, add a new one.
   reading and inventory tables: a regular Treeview column cannot hold an image,
   and a separate icon column wasted width. Sorting reads that column's text.
 - Last validation: **165 tests passed**, `python -m tests.smoke_ui`.
+
+## Compact cards, no empty preview, wheel scrolling — 23 September 2026
+
+- User remarks: the preview card still showed at start-up although nothing had
+  been read; the cards were far too large, so seeing every tab meant scrolling;
+  and the mouse wheel did not scroll the dashboard.
+- The preview card now needs readings in the current league. At start-up and
+  after a league change there is none.
+- Each card is two lines: icon, name and value; then type, last read (local
+  time, the date only when not today) and what is missing (`to check`,
+  `unpriced`, `abbreviated`). The "See detail" button went: the whole card is
+  clickable. Columns follow the width, one per 290 px up to six. Fourteen tabs
+  fit without scrolling at 1380 px wide; checked visually.
+- The live card's badge is shortened to `● Live` so its line fits; the detail
+  title keeps `● Updating live`.
+- The wheel was never bound: a Tk canvas does not scroll on its own. It is now
+  bound on `all` and acts only when the pointer is over the cards and they
+  overflow; verified with a generated wheel event over a card in a small window.
+- Removed the translation keys the old cards used (`see_detail`, `last_read`,
+  `partial`, `abbreviated`, `never_synced`, `preview_detail`).
+- Last validation: **165 tests passed**, `python -m tests.smoke_ui`.

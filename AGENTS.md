@@ -215,7 +215,14 @@ No screenshot or inventory ever leaves the machine.
   view, and its detail shows the live readings including provisional ones. The
   preview card exists only for readings no card holds — an unidentified tab or
   an imported screenshot, which is analysed but never synchronised — and it is
-  never added to the saved total. Stopping the tracking removes the live mark.
+  never added to the saved total. With nothing read yet (start-up, league
+  change) there is no preview card at all. Stopping the tracking removes the
+  live mark.
+- Cards are compact so the whole stash is visible at a glance: two lines (icon,
+  name, value; then type, last read time in local time, what is missing), and
+  as many columns as the width allows (`place_cards`, one per 290 px, at most
+  six). The whole card opens the detail. The mouse wheel scrolls the cards
+  wherever the pointer is over them (`wheel_cards`, bound on `all`).
 - On the live tab, a cell that is re-confirming (`Reason.PENDING`) or whose count
   is unreadable right now shows its **last confirmed** stored quantity and value,
   marked `last confirmed quantity`, as long as the same item is recognised. A
