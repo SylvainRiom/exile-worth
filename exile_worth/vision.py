@@ -17,7 +17,8 @@ import numpy as np
 from .diagnostics import ChangeGate, format_scores, log
 from .model import DATA, Reading, Reason
 from .i18n import t
-from .icons import IconMatcher, SAGA_FAMILY
+from .catalog import reference_items
+from .icons import IconMatch, IconMatcher, SAGA_FAMILY
 from .layouts import (ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, RUNE_PAGES, layout_for_tab, aligned_slots,
                       edge_maps, LEGACY_EXPEDITION_SLOTS, has_views, layout_family, selector_underlines)
 
@@ -45,6 +46,61 @@ SAGA_ITEMS = ('medveds-saga', 'voranas-saga', 'uhtreds-saga', 'olroths-saga')
 for slot, item in zip(('E03', 'E04', 'E05', 'E06'), SAGA_ITEMS):
     TIER_ITEMS[slot] = item
     POSITION_FAMILIES[slot] = SAGA_FAMILY
+
+
+# Dedicated cells: the game accepts only one item in each. Where the item is
+# known, it settles near-identical artwork (the same essence at the same tier,
+# diluted emotions) and a clearly different match is refused, never renamed.
+# Established from real captures (filled cells) and the game's order (ghosts).
+SLOT_ITEMS = {}
+_ESSENCE_ROWS = (
+    [(f'ES{4*row+column+1:02}', base) for row, base in enumerate(
+        ('the-body', 'the-mind', 'enhancement', 'flames', 'insulation', 'ice',
+         'thawing', 'electricity', 'grounding', 'ruin')) for column in range(4)]
+    + [(f'ES{41+4*row+column:02}', base) for row, base in enumerate(
+        ('command', 'abrasion', 'sorcery', 'haste', 'alacrity', 'seeking',
+         'battle', 'the-infinite', 'opulence')) for column in range(4)])
+for (slot, base), tier in zip(_ESSENCE_ROWS, ('lesser-', '', 'greater-', 'perfect-') * 19):
+    SLOT_ITEMS[slot] = f'{tier}essence-of-{base}'
+# These two lesser essences do not exist; their cells stay unassigned.
+for slot in ('ES01', 'ES65'):
+    del SLOT_ITEMS[slot]
+SLOT_ITEMS.update(zip(('ES82', 'ES83', 'ES84', 'ES85', 'ES86', 'ES87'), (
+    'essence-of-hysteria', 'essence-of-horror', 'essence-of-delirium',
+    'essence-of-insanity', 'essence-of-the-abyss', 'essence-of-the-breach')))
+_EMOTIONS = ('diluted-liquid-ire', 'diluted-liquid-guilt', 'diluted-liquid-greed',
+             'liquid-disgust', 'liquid-despair', 'concentrated-liquid-fear',
+             'liquid-paranoia', 'liquid-envy', 'concentrated-liquid-suffering',
+             'concentrated-liquid-isolation')
+_POTENT = ('potent-liquid-melancholy', 'potent-liquid-ferocity', 'potent-liquid-contempt')
+SLOT_ITEMS.update(zip(('DE01', 'DE02', 'DE03'), ('simulacrum-splinter', 'simulacrum', 'raven-touched-shard')))
+SLOT_ITEMS.update(zip([f'DE{n:02}' for n in range(4, 14)], _EMOTIONS))
+SLOT_ITEMS.update(zip([f'DE{n:02}' for n in range(14, 24)], [f'ancient-{item}' for item in _EMOTIONS]))
+SLOT_ITEMS.update(zip([f'DE{n:02}' for n in range(27, 33)], _POTENT + tuple(f'ancient-{item}' for item in _POTENT)))
+
+
+# Cells that accept a family rather than one item. The Abyss tab's central
+# diamond holds Abyss bones only (its bottom row holds abyssal omens, which
+# poe.ninja files under Ritual, so the family is per cell, never per tab).
+SLOT_FAMILIES = {}
+_ABYSS_BONES = frozenset(item for item, entry in reference_items().items() if entry['category'] == 'Abyss')
+SLOT_FAMILIES.update({f'AB{number:02}': _ABYSS_BONES for number in range(1, 14)})
+
+
+def dedicated_item(slot, match):
+    """The item a dedicated cell holds, None when the artwork disagrees.
+
+    Returns `match.item` unchanged for a cell with no known item or family.
+    """
+    family = SLOT_FAMILIES.get(slot)
+    if family is not None:
+        return match.item if match.item in family else None
+    expected = SLOT_ITEMS.get(slot)
+    if expected is None:
+        return match.item
+    if match.item == expected or (match.item is None and expected in match.contenders):
+        return expected
+    return None
 
 
 def layout_anchors(frame, layout_id='currency'):
@@ -88,11 +144,22 @@ def read_tab_text(image, ocr):
     result, _ = ocr(enlarged)
     if not result:
         return None
-    parts = sorted((row[0][0][0], row[1].strip(), float(row[2])) for row in result
-                   if len(row) >= 3 and row[1].strip())
-    words = [word for _,word,confidence in parts if confidence >= .85 and
+    parts = sorted((min(p[0] for p in row[0]), max(p[0] for p in row[0]), row[1].strip(), float(row[2]))
+                   for row in result if len(row) >= 3 and row[1].strip())
+    # OCR sometimes reads a word's start twice (`De` over `Delirium`): a word
+    # that begins the next one and overlaps its box is that echo.
+    parts = [part for part, following in zip(parts, parts[1:] + [None])
+             if not (following and following[2].casefold().startswith(part[2].casefold())
+                     and part[1] > following[0])]
+    words = [word for _,_,word,confidence in parts if confidence >= .85 and
              (re.search(r'[\w]', word, re.UNICODE) or re.fullmatch(r'[$€£¥]+', word))]
     return ' '.join(words).strip() or None
+
+
+def high_contrast(image):
+    """Inverted, stretched brightness: dark text on a lit menu row reads again."""
+    value = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)[:, :, 2]
+    return cv2.cvtColor(255 - cv2.normalize(value, None, 0, 255, cv2.NORM_MINMAX), cv2.COLOR_GRAY2BGR)
 
 
 @lru_cache(maxsize=2)
@@ -194,6 +261,12 @@ def active_tab(frame, ocr):
         menu_image = frame[max(90,peak-13):min(755,peak+13),685:854]
         selected = read_tab_text(menu_image,ocr) or known_symbol(menu_image, 'menu')
         selected = without_menu_icon(selected, name)
+        if name and (not selected or tab_key(selected) != tab_key(name)):
+            # A lit row (dark text on bright green) can defeat OCR. A second,
+            # high-contrast read may only confirm the tab's title, never replace it.
+            retry = without_menu_icon(read_tab_text(high_contrast(menu_image), ocr), name)
+            if retry and tab_key(retry) == tab_key(name):
+                selected = retry
         if not selected or (name and tab_key(selected) != tab_key(name)):
             return None
         name = selected
@@ -401,7 +474,7 @@ class DigitReader:
         bright = image.max(axis=2).astype(np.int16)
         dark = image.min(axis=2).astype(np.int16)
         white = ((bright > 160) & (bright-dark < 60)).astype(np.uint8) * 255
-        bounds = self.counter_bounds(white)
+        bounds = self.counter_bounds(white, image)
         # A decimal point and a K suffix are not digit-shaped components. Check
         # the full counter first so that 24.7K cannot silently become 24 or 247.
         full = self.recognize_info(raw_image)
@@ -435,11 +508,22 @@ class DigitReader:
         return info.quantity, info.confidence
 
     @staticmethod
-    def counter_bounds(white):
-        """Follow aligned white glyphs from the top-left; ignore distant highlights."""
-        _, _, stats, _ = cv2.connectedComponentsWithStats(white)
-        letters = sorted((tuple(map(int,s[:4])) for s in stats[1:]
-                          if 2 <= s[2] <= 15 and 6 <= s[3] <= 18 and s[1] <= 10), key=lambda s:s[0])
+    def counter_bounds(white, image=None):
+        """Follow aligned white glyphs from the top-left; ignore distant highlights.
+
+        With `image`, a tinted component is not a glyph: counters are pure
+        white (mean saturation 0.0-0.1 measured), while pale artwork touching
+        them, such as essence crystals, measures 12.9 and more.
+        """
+        count, labels, stats, _ = cv2.connectedComponentsWithStats(white)
+        def neutral(index):
+            if image is None:
+                return True
+            pixels = image[labels == index].astype(np.int16)
+            return float((pixels.max(axis=1) - pixels.min(axis=1)).mean()) <= COUNTER_SATURATION_MAX
+        letters = sorted((tuple(map(int,s[:4])) for index, s in enumerate(stats[1:], 1)
+                          if 2 <= s[2] <= 15 and 6 <= s[3] <= 18 and s[1] <= 10 and neutral(index)),
+                         key=lambda s:s[0])
         if not letters or letters[0][0] > 10:
             return None
         run = [letters[0]]
@@ -467,11 +551,20 @@ class DigitReader:
         text = text.strip()
         quantity, approximate = parse_quantity(text)
         # `marked` survives a refused read: it is evidence about the counter's
-        # format even when the digits themselves are not trusted.
-        marked = abbreviation_marked(text)
+        # format even when the digits themselves are not trusted. Below
+        # MARK_CONFIDENCE_MIN the read is noise: `6M` at 0.38 on a Ritual omen
+        # was artwork, while the crops read `6` at 0.99.
+        marked = abbreviation_marked(text) and confidence >= MARK_CONFIDENCE_MIN
         if quantity is not None and confidence >= .90:
             return CounterRead(quantity, float(confidence), approximate, marked)
         return CounterRead(None, float(confidence), False, marked)
+
+
+# The most colour a counter glyph may carry (mean max-min of its pixels).
+COUNTER_SATURATION_MAX = 6
+
+# The least confidence at which a read's K/M or decimal mark is believed.
+MARK_CONFIDENCE_MIN = .5
 
 
 class CounterRead(NamedTuple):
@@ -506,6 +599,8 @@ class Scanner:
         self.last_layout_scores = []
         self.last_layout_verdict = ''
         self.last_selector = {}
+        # What the last detection rested on: 'borders', 'selector', 'icons' or None.
+        self.last_layout_basis = None
         self.gate = ChangeGate()
         # Alignment is fitted per frame and per layout; detection and reading ask
         # for the same one on the same frame. Keeping the frame object (never its
@@ -580,6 +675,7 @@ class Scanner:
     def detect_layout(self, frame, borders_only=False):
         # Borders identify the structure even with an empty/missing icon catalogue.
         # One set of edge maps serves every layout and their alignment searches.
+        self.last_layout_basis = None
         edges = edge_maps(frame)
         vertical, horizontal = edges
         structures = []
@@ -611,6 +707,7 @@ class Scanner:
             lit = (f'selector lit {view} ({underlines[view]:.1f}, '
                    f'next {sorted(underlines.values())[-2]:.1f})')
             if scores[view] >= .55 and scores[view]-foreign >= .12 and best[0]-scores[view] < .12:
+                self.last_layout_basis = 'selector'
                 self.record_layout(f'{lit}; accepted {view} (grid {scores[view]:.3f} >= .55, '
                                    f'{scores[view]-foreign:.3f} over other stashes >= .12)', structures)
                 return view
@@ -618,6 +715,7 @@ class Scanner:
                                f'{best[0]:.3f}, other stashes {foreign:.3f}', structures)
             return None
         if best[0] >= .55 and best[0]-runner[0] >= .12:
+            self.last_layout_basis = 'borders'
             self.record_layout(f'borders accepted {best[1]} '
                                f'(score {best[0]:.3f} >= .55, margin {best[0]-runner[0]:.3f} >= .12)',
                                structures)
@@ -639,6 +737,7 @@ class Scanner:
                 f'(best {scores[0][1]}={scores[0][0]}, runner {scores[1][1]}={scores[1][0]}, '
                 'needs >=2 and a lead of >=2)', structures, scores)
             return None
+        self.last_layout_basis = 'icons'
         self.record_layout(f'borders rejected ({reason}); icons accepted {scores[0][1]} '
                            f'({scores[0][0]} vs {scores[1][0]})', structures, scores)
         return scores[0][1]
@@ -678,7 +777,12 @@ class Scanner:
             if quantity is None and not ref and visually_empty(crop(frame, rect)):
                 results.append(Reading(slot, None, None, 0, Reason.EMPTY))
                 continue
-            item = match.item
+            item = dedicated_item(slot, match)
+            if item is None and (slot in SLOT_ITEMS or slot in SLOT_FAMILIES) and (match.item or match.contenders):
+                log.debug('cell %s: artwork %s does not fit its dedicated cell', slot,
+                          match.item or match.contenders)
+                # Refused by its cell: unrecognised, not a variant of the refused item.
+                match = IconMatch(None, match.confidence, match.candidate, match.margin)
             if len(match.alternatives) > 1:
                 expected = TIER_ITEMS.get(slot)
                 if expected in match.alternatives and set(match.alternatives) <= POSITION_FAMILIES.get(slot, set()):

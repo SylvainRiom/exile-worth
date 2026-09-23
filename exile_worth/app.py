@@ -627,7 +627,7 @@ class App(tk.Tk):
                 if tab and (layout_id is None or layout_family(layout_id) != layout_family(layout_for_tab(tab).id)):
                     tab = None
                 tab_ocr = getattr(getattr(self.scanner, 'digits', None), 'ocr', None)
-                if tab is None and layout_id and tab_ocr:
+                if tab is None and layout_id and tab_ocr and self.may_register():
                     tab, reason = self.profiles.observe(frame, league, layout_id, tab_ocr)
                 readings = self.scanner.read(frame, layout_id) if layout_id else []
                 self.messages.put(('analysis', ScanResult(frame, tab, readings, reason, league, layout_id)))
@@ -645,9 +645,22 @@ class App(tk.Tk):
             detected = self.scanner.detect_layout(frame, borders_only=True)
             family = layout_family(layout_for_tab(tab).id)
             if has_views(family):
-                return detected if layout_family(detected) == family else None
+                # An unrecognised view stays unrecognised. A structure the
+                # borders confidently place in another family is returned, so
+                # a profile registered with the wrong type before that type
+                # existed can be corrected (only while it holds no stock).
+                return detected
             return detected or layout_for_tab(tab).id
         return self.scanner.detect_layout(frame)
+
+    def may_register(self):
+        """Only a structure confirmed by its borders, the selector or the user registers a tab.
+
+        The icon fallback counts recognised items per grid; on a tab whose
+        structure was unknown (Ritual before its geometry existed) it named Runes
+        from 5 matches against 3, and the tab was saved with the wrong type.
+        """
+        return bool(self.layout_override) or getattr(self.scanner, 'last_layout_basis', None) in ('borders', 'selector')
 
     def layout_changed(self, *_):
         shown = self.layout_choice.get()
@@ -944,7 +957,7 @@ class App(tk.Tk):
                 if tab and (layout_id is None or layout_family(layout_id) != layout_family(layout_for_tab(tab).id)):
                     tab = None
                 tab_ocr = getattr(getattr(self.scanner, 'digits', None), 'ocr', None)
-                if tab is None and layout_id and tab_ocr:
+                if tab is None and layout_id and tab_ocr and self.may_register():
                     tab, reason = self.profiles.observe(frame, league, layout_id, tab_ocr)
                 if layout_id is None:
                     self.scanner.reset_incremental()

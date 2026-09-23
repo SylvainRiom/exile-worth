@@ -1,0 +1,421 @@
+{
+ "abyss": {
+  "read": {
+   "AB02": [
+    "preserved-cranium",
+    1
+   ],
+   "AB04": [
+    "preserved-jawbone",
+    22
+   ],
+   "AB06": [
+    "gnawed-collarbone",
+    1
+   ],
+   "AB07": [
+    "preserved-collarbone",
+    5
+   ],
+   "AB10": [
+    "gnawed-rib",
+    2
+   ],
+   "AB11": [
+    "preserved-rib",
+    5
+   ],
+   "AB12": [
+    "ancient-rib",
+    1
+   ],
+   "AB14": [
+    "omen-of-abyssal-echoes",
+    4
+   ],
+   "AB15": [
+    "omen-of-the-sovereign",
+    26
+   ],
+   "AB16": [
+    "omen-of-the-liege",
+    21
+   ],
+   "AB17": [
+    "omen-of-the-blackblooded",
+    39
+   ],
+   "AB18": [
+    "omen-of-putrefaction",
+    13
+   ],
+   "AB19": [
+    "omen-of-light",
+    3
+   ],
+   "AB20": [
+    "omen-of-sinistral-necromancy",
+    30
+   ],
+   "AB21": [
+    "omen-of-dextral-necromancy",
+    26
+   ]
+  },
+  "count_unreadable": {},
+  "unnamed": [
+   "AB01",
+   "AB05",
+   "AB09"
+  ]
+ },
+ "delirium": {
+  "read": {
+   "DE04": [
+    "diluted-liquid-ire",
+    40
+   ],
+   "DE05": [
+    "diluted-liquid-guilt",
+    35
+   ],
+   "DE06": [
+    "diluted-liquid-greed",
+    11
+   ],
+   "DE07": [
+    "liquid-disgust",
+    10
+   ],
+   "DE08": [
+    "liquid-despair",
+    6
+   ],
+   "DE10": [
+    "liquid-paranoia",
+    8
+   ],
+   "DE11": [
+    "liquid-envy",
+    21
+   ],
+   "DE14": [
+    "ancient-diluted-liquid-ire",
+    23
+   ],
+   "DE15": [
+    "ancient-diluted-liquid-guilt",
+    11
+   ],
+   "DE16": [
+    "ancient-diluted-liquid-greed",
+    7
+   ],
+   "DE18": [
+    "ancient-liquid-despair",
+    1
+   ],
+   "DE20": [
+    "ancient-liquid-paranoia",
+    4
+   ],
+   "DE21": [
+    "ancient-liquid-envy",
+    1
+   ]
+  },
+  "count_unreadable": {},
+  "unnamed": [
+   "DE13",
+   "DE23"
+  ]
+ },
+ "essences": {
+  "read": {
+   "ES03": [
+    "greater-essence-of-the-body",
+    33
+   ],
+   "ES04": [
+    "perfect-essence-of-the-body",
+    10
+   ],
+   "ES06": [
+    "essence-of-the-mind",
+    4
+   ],
+   "ES07": [
+    "greater-essence-of-the-mind",
+    31
+   ],
+   "ES08": [
+    "perfect-essence-of-the-mind",
+    13
+   ],
+   "ES11": [
+    "greater-essence-of-enhancement",
+    22
+   ],
+   "ES12": [
+    "perfect-essence-of-enhancement",
+    7
+   ],
+   "ES13": [
+    "lesser-essence-of-flames",
+    1
+   ],
+   "ES14": [
+    "essence-of-flames",
+    1
+   ],
+   "ES15": [
+    "greater-essence-of-flames",
+    20
+   ],
+   "ES16": [
+    "perfect-essence-of-flames",
+    11
+   ],
+   "ES19": [
+    "greater-essence-of-insulation",
+    23
+   ],
+   "ES20": [
+    "perfect-essence-of-insulation",
+    8
+   ],
+   "ES21": [
+    "lesser-essence-of-ice",
+    1
+   ],
+   "ES23": [
+    "greater-essence-of-ice",
+    26
+   ],
+   "ES24": [
+    "perfect-essence-of-ice",
+    10
+   ],
+   "ES27": [
+    "greater-essence-of-thawing",
+    44
+   ],
+   "ES28": [
+    "perfect-essence-of-thawing",
+    11
+   ],
+   "ES31": [
+    "greater-essence-of-electricity",
+    14
+   ],
+   "ES32": [
+    "perfect-essence-of-electricity",
+    6
+   ],
+   "ES35": [
+    "greater-essence-of-grounding",
+    14
+   ],
+   "ES36": [
+    "perfect-essence-of-grounding",
+    3
+   ],
+   "ES39": [
+    "greater-essence-of-ruin",
+    6
+   ],
+   "ES40": [
+    "perfect-essence-of-ruin",
+    1
+   ],
+   "ES41": [
+    "lesser-essence-of-command",
+    1
+   ],
+   "ES42": [
+    "essence-of-command",
+    1
+   ],
+   "ES43": [
+    "greater-essence-of-command",
+    5
+   ],
+   "ES44": [
+    "perfect-essence-of-command",
+    2
+   ],
+   "ES45": [
+    "lesser-essence-of-abrasion",
+    1
+   ],
+   "ES46": [
+    "essence-of-abrasion",
+    1
+   ],
+   "ES48": [
+    "perfect-essence-of-abrasion",
+    4
+   ],
+   "ES51": [
+    "greater-essence-of-sorcery",
+    32
+   ],
+   "ES52": [
+    "perfect-essence-of-sorcery",
+    11
+   ],
+   "ES55": [
+    "greater-essence-of-haste",
+    7
+   ],
+   "ES56": [
+    "perfect-essence-of-haste",
+    8
+   ],
+   "ES59": [
+    "greater-essence-of-alacrity",
+    12
+   ],
+   "ES60": [
+    "perfect-essence-of-alacrity",
+    1
+   ],
+   "ES63": [
+    "greater-essence-of-seeking",
+    10
+   ],
+   "ES64": [
+    "perfect-essence-of-seeking",
+    5
+   ],
+   "ES67": [
+    "greater-essence-of-battle",
+    12
+   ],
+   "ES68": [
+    "perfect-essence-of-battle",
+    1
+   ],
+   "ES71": [
+    "greater-essence-of-the-infinite",
+    10
+   ],
+   "ES72": [
+    "perfect-essence-of-the-infinite",
+    10
+   ],
+   "ES75": [
+    "greater-essence-of-opulence",
+    8
+   ],
+   "ES76": [
+    "perfect-essence-of-opulence",
+    3
+   ],
+   "ES84": [
+    "essence-of-delirium",
+    2
+   ],
+   "ES85": [
+    "essence-of-insanity",
+    2
+   ],
+   "ES86": [
+    "essence-of-the-abyss",
+    4
+   ]
+  },
+  "count_unreadable": {
+   "ES47": "greater-essence-of-abrasion"
+  },
+  "unnamed": []
+ },
+ "ritual": {
+  "read": {
+   "RI05": [
+    "omen-of-gambling",
+    6
+   ],
+   "RI06": [
+    "omen-of-bartering",
+    20
+   ],
+   "RI07": [
+    "omen-of-sinistral-exaltation",
+    8
+   ],
+   "RI08": [
+    "omen-of-dextral-exaltation",
+    7
+   ],
+   "RI09": [
+    "omen-of-greater-exaltation",
+    13
+   ],
+   "RI11": [
+    "omen-of-dextral-erasure",
+    2
+   ],
+   "RI12": [
+    "omen-of-whittling",
+    1
+   ],
+   "RI14": [
+    "omen-of-catalysing-exaltation",
+    5
+   ],
+   "RI15": [
+    "omen-of-chaotic-rarity",
+    20
+   ],
+   "RI16": [
+    "omen-of-chaotic-quantity",
+    17
+   ],
+   "RI17": [
+    "omen-of-chaotic-monsters",
+    14
+   ],
+   "RI18": [
+    "omen-of-chaotic-effectiveness",
+    5
+   ],
+   "RI19": [
+    "omen-of-sinistral-annulment",
+    1
+   ],
+   "RI22": [
+    "omen-of-the-ancients",
+    8
+   ],
+   "RI23": [
+    "omen-of-the-blessed",
+    1
+   ],
+   "RI26": [
+    "omen-of-sinistral-crystallisation",
+    7
+   ],
+   "RI27": [
+    "omen-of-resurgence",
+    1
+   ],
+   "RI28": [
+    "omen-of-amelioration",
+    4
+   ],
+   "RI32": [
+    "omen-of-secret-compartments",
+    1
+   ],
+   "RI33": [
+    "omen-of-reinforcements",
+    1
+   ]
+  },
+  "count_unreadable": {
+   "RI25": "omen-of-dextral-crystallisation"
+  },
+  "unnamed": []
+ }
+}

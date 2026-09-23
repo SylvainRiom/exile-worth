@@ -276,6 +276,15 @@ def measure():
     results += icon_margins(breach, 'breach', breach_icons(), 'breach_real')
     results += tab_colour_margins(breach, 'breach_real')
 
+    # Abyss, Delirium, Essences and Ritual, from the same day's captures.
+    from tests.test_stash_real import TABS, icons as stash_icons, stash_frame
+    images = stash_icons()
+    for name in TABS:
+        frame = stash_frame(name)
+        results += layout_margins(frame, name, f'{name}_real')
+        results += alignment_margins(frame, name, f'{name}_real')
+        results += icon_margins(frame, name, images, f'{name}_real')
+
     results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results
 

@@ -1,4 +1,67 @@
 {
+  "abyss_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "abyss_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "abyss_real.border_margin": {
+    "detail": "abyss over idols (0.097)",
+    "direction": "min",
+    "headroom": 0.7832,
+    "kind": "margin",
+    "measured": 0.9032,
+    "name": "abyss_real.border_margin",
+    "threshold": 0.12
+  },
+  "abyss_real.border_score": {
+    "detail": "abyss",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "abyss_real.border_score",
+    "threshold": 0.55
+  },
+  "abyss_real.empty": {
+    "detail": "3 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 3.0,
+    "name": "abyss_real.empty",
+    "threshold": 3.0
+  },
+  "abyss_real.icon_margin_min": {
+    "detail": "closest call AB10",
+    "direction": "min",
+    "headroom": 0.007,
+    "kind": "margin",
+    "measured": 0.022,
+    "name": "abyss_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "abyss_real.icon_score_min": {
+    "detail": "weakest cell AB18",
+    "direction": "min",
+    "headroom": 0.0281,
+    "kind": "margin",
+    "measured": 0.9481,
+    "name": "abyss_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "abyss_real.identified": {
+    "detail": "15 by matcher + 0 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 15.0,
+    "name": "abyss_real.identified",
+    "threshold": 15.0
+  },
   "ancient_augments_real.alignment_shift": {
     "detail": "dx=3 dy=0, refused beyond +/-20",
     "direction": "max",
@@ -125,6 +188,69 @@
     "name": "breach_real.tab_colour_selected",
     "threshold": 0.4
   },
+  "delirium_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "delirium_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "delirium_real.border_margin": {
+    "detail": "delirium over ancient_augments (0.176)",
+    "direction": "min",
+    "headroom": 0.7035,
+    "kind": "margin",
+    "measured": 0.8235,
+    "name": "delirium_real.border_margin",
+    "threshold": 0.12
+  },
+  "delirium_real.border_score": {
+    "detail": "delirium",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "delirium_real.border_score",
+    "threshold": 0.55
+  },
+  "delirium_real.empty": {
+    "detail": "17 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 17.0,
+    "name": "delirium_real.empty",
+    "threshold": 17.0
+  },
+  "delirium_real.icon_margin_min": {
+    "detail": "closest call DE04",
+    "direction": "min",
+    "headroom": 0.0009,
+    "kind": "margin",
+    "measured": 0.0159,
+    "name": "delirium_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "delirium_real.icon_score_min": {
+    "detail": "weakest cell DE07",
+    "direction": "min",
+    "headroom": 0.0398,
+    "kind": "margin",
+    "measured": 0.9598,
+    "name": "delirium_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "delirium_real.identified": {
+    "detail": "8 by matcher + 5 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 13.0,
+    "name": "delirium_real.identified",
+    "threshold": 13.0
+  },
   "dollar_tab.arrow_rows": {
     "detail": "widest warm row beside the menu",
     "direction": "min",
@@ -169,6 +295,69 @@
     "measured": 44.0,
     "name": "dollar_tab.tab_run_length",
     "threshold": 32.0
+  },
+  "essences_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "essences_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "essences_real.border_margin": {
+    "detail": "essences over currency (0.486)",
+    "direction": "min",
+    "headroom": 0.3935,
+    "kind": "margin",
+    "measured": 0.5135,
+    "name": "essences_real.border_margin",
+    "threshold": 0.12
+  },
+  "essences_real.border_score": {
+    "detail": "essences",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "essences_real.border_score",
+    "threshold": 0.55
+  },
+  "essences_real.empty": {
+    "detail": "38 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 38.0,
+    "name": "essences_real.empty",
+    "threshold": 38.0
+  },
+  "essences_real.icon_margin_min": {
+    "detail": "closest call ES55",
+    "direction": "min",
+    "headroom": 0.0039,
+    "kind": "margin",
+    "measured": 0.0189,
+    "name": "essences_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "essences_real.icon_score_min": {
+    "detail": "weakest cell ES13",
+    "direction": "min",
+    "headroom": 0.0502,
+    "kind": "margin",
+    "measured": 0.9702,
+    "name": "essences_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "essences_real.identified": {
+    "detail": "19 by matcher + 30 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 49.0,
+    "name": "essences_real.identified",
+    "threshold": 49.0
   },
   "expedition_real.alignment_shift": {
     "detail": "dx=0 dy=0, refused beyond +/-20",
@@ -322,6 +511,69 @@
     "measured": 72.941,
     "name": "kalguuran_real.selector_lit",
     "threshold": 45.0
+  },
+  "ritual_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "ritual_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "ritual_real.border_margin": {
+    "detail": "ritual over kalguuran (0.217)",
+    "direction": "min",
+    "headroom": 0.6633,
+    "kind": "margin",
+    "measured": 0.7833,
+    "name": "ritual_real.border_margin",
+    "threshold": 0.12
+  },
+  "ritual_real.border_score": {
+    "detail": "ritual",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "ritual_real.border_score",
+    "threshold": 0.55
+  },
+  "ritual_real.empty": {
+    "detail": "12 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 12.0,
+    "name": "ritual_real.empty",
+    "threshold": 12.0
+  },
+  "ritual_real.icon_margin_min": {
+    "detail": "closest call RI27",
+    "direction": "min",
+    "headroom": 0.0046,
+    "kind": "margin",
+    "measured": 0.0196,
+    "name": "ritual_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "ritual_real.icon_score_min": {
+    "detail": "weakest cell RI17",
+    "direction": "min",
+    "headroom": 0.0474,
+    "kind": "margin",
+    "measured": 0.9674,
+    "name": "ritual_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "ritual_real.identified": {
+    "detail": "21 by matcher + 0 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 21.0,
+    "name": "ritual_real.identified",
+    "threshold": 21.0
   },
   "runes_real.alignment_shift": {
     "detail": "dx=0 dy=3, refused beyond +/-20",

@@ -15,7 +15,8 @@ from .catalog import with_reference_items
 # poe.ninja split Expedition in September 2026: alloys, crests, Verisium and
 # Starlit Ores moved to their own `Verisium` overview; `Expedition` keeps the
 # sagas, fluxes and logbooks. Both are needed to price an Expedition tab.
-STASH_CATEGORIES = ('Currency', 'Expedition', 'Verisium', 'Breach', 'Runes', 'SoulCores', 'Idols')
+STASH_CATEGORIES = ('Currency', 'Expedition', 'Verisium', 'Breach', 'Abyss', 'Delirium', 'Essences',
+                    'Ritual', 'Runes', 'SoulCores', 'Idols')
 
 
 class Ninja:

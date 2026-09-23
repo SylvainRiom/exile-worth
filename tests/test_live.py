@@ -46,6 +46,7 @@ class LiveLoopTests(unittest.TestCase):
             app = SimpleNamespace(stop_event=LimitedLoop(5), messages=queue.Queue(), scanner=scanner,
                                   profiles=profiles, layout_override=None)
             app.resolve_layout = lambda image,tab: App.resolve_layout(app,image,tab)
+            app.may_register = lambda: App.may_register(app)
             with patch('exile_worth.app.capture_game',return_value=frame):
                 App.live_loop(app,'A')
             messages = list(app.messages.queue)
@@ -82,6 +83,7 @@ class LiveLoopTests(unittest.TestCase):
             app = SimpleNamespace(stop_event=LimitedLoop(5),messages=queue.Queue(),scanner=scanner,
                                   profiles=profiles,layout_override=None)
             app.resolve_layout = lambda image,tab: App.resolve_layout(app,image,tab)
+            app.may_register = lambda: App.may_register(app)
             with patch('exile_worth.app.capture_game',return_value=frame):
                 App.live_loop(app,'A')
             messages = list(app.messages.queue)
@@ -102,6 +104,7 @@ class LiveLoopTests(unittest.TestCase):
             app = SimpleNamespace(stop_event=LimitedLoop(13), messages=queue.Queue(), scanner=scanner,
                                   profiles=profiles, layout_override=None, active_layout_id='currency')
             app.resolve_layout = lambda frame,tab: App.resolve_layout(app,frame,tab)
+            app.may_register = lambda: App.may_register(app)
             ticks = itertools.count()
             frames = [currency]*5+[expedition]*7
             with (patch('exile_worth.app.capture_game',side_effect=frames),

@@ -57,6 +57,10 @@ class CatalogueParser(HTMLParser):
 SOURCES = {
     'Expedition': ('https://poe2db.tw/us/Economy_Expedition', 30, 'verisium'),
     'Breach': ('https://poe2db.tw/us/Economy_Breach', 25, 'breach-splinter'),
+    'Abyss': ('https://poe2db.tw/us/Economy_Abyss', 20, 'ancient-rib'),
+    'Delirium': ('https://poe2db.tw/us/Economy_Delirium', 25, 'ancient-diluted-liquid-greed'),
+    'Essences': ('https://poe2db.tw/us/Economy_Essences', 45, 'essence-of-battle'),
+    'Ritual': ('https://poe2db.tw/us/Economy_Ritual', 25, 'omen-of-amelioration'),
 }
 
 

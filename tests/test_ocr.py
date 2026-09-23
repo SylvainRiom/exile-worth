@@ -93,3 +93,9 @@ class AbbreviatedCounterTests(unittest.TestCase):
         reader.read(counter())
         reader.read(counter())
         self.assertFalse(reader.last_approximate)
+
+    def test_a_mark_read_as_noise_does_not_refuse_a_clear_count(self):
+        """`6M` at 0.38 on the full cell was artwork; both crops read 6."""
+        reader = scripted_reader(('6M', .38), ('6', .99), ('6', .99))
+        self.assertEqual(reader.read(counter())[0], 6)
+        self.assertFalse(reader.last_approximate)

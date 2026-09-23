@@ -46,5 +46,53 @@
     "image": "https://cdn.poe2db.tw/image/Art/2DArt/UIImages/InGame/MTX/BreachTabIcon.webp",
     "source": "https://poe2db.tw/us/Stash",
     "verified": "2026-09-23"
+  },
+  "abyss": {
+    "name": "Abyss Stash Tab",
+    "stash_id": "AbyssStash",
+    "asset": "AbyssTabIcon",
+    "size": [
+      27,
+      27
+    ],
+    "image": "https://cdn.poe2db.tw/image/Art/2DArt/UIImages/InGame/MTX/AbyssTabIcon.webp",
+    "source": "https://poe2db.tw/us/Stash",
+    "verified": "2026-09-23"
+  },
+  "delirium": {
+    "name": "Delirium Stash Tab",
+    "stash_id": "DeliriumStash",
+    "asset": "DeliriumTabIcon",
+    "size": [
+      27,
+      27
+    ],
+    "image": "https://cdn.poe2db.tw/image/Art/2DArt/UIImages/InGame/MTX/DeliriumTabIcon.webp",
+    "source": "https://poe2db.tw/us/Stash",
+    "verified": "2026-09-23"
+  },
+  "essences": {
+    "name": "Essence Stash Tab",
+    "stash_id": "EssenceStash",
+    "asset": "EssenceTabIcon",
+    "size": [
+      27,
+      27
+    ],
+    "image": "https://cdn.poe2db.tw/image/Art/2DArt/UIImages/InGame/MTX/EssenceTabIcon.webp",
+    "source": "https://poe2db.tw/us/Stash",
+    "verified": "2026-09-23"
+  },
+  "ritual": {
+    "name": "Ritual Stash Tab",
+    "stash_id": "RitualStash",
+    "asset": "RitualTabIcon",
+    "size": [
+      27,
+      27
+    ],
+    "image": "https://cdn.poe2db.tw/image/Art/2DArt/UIImages/InGame/MTX/RitualTabIcon.webp",
+    "source": "https://poe2db.tw/us/Stash",
+    "verified": "2026-09-23"
   }
 }

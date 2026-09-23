@@ -175,7 +175,10 @@ No screenshot or inventory ever leaves the machine.
   does not destroy identical votes.
 - A revisit **replaces** the quantities per cell, it does not add to them.
 - A tab is registered automatically once its structure is known and its active
-  title readable. A unique active label in the same league with the same structure
+  title readable. "Known" means confirmed by the **borders, the view selector or
+  the user** (`may_register`, from `Scanner.last_layout_basis`): the icon
+  fallback may show a preview but never registers, since it once saved the
+  user's Ritual tab as Runes from 5 matches against 3. A unique active label in the same league with the same structure
   keeps its UUID even when its position changes.
 - The selected tab is found at y=121, where lit tabs reach the bar's lower edge.
   Coloured tabs are all lit there, so `pick_selected_run` chooses the one whose
@@ -185,18 +188,36 @@ No screenshot or inventory ever leaves the machine.
   rightmost lit tab is kept, as before.
 - The side menu's row confirms the title. Its small tab icon may be read as a
   letter (`B BREACH`); `without_menu_icon` drops one leading character only when
-  the rest is exactly the tab's title.
+  the rest is exactly the tab's title. A lit row (dark text on bright green)
+  can defeat OCR: a second, `high_contrast` read may only **confirm** the tab's
+  title, never replace it. OCR sometimes reads a word's start twice (`De` over
+  `Delirium`); `read_tab_text` drops that overlapping echo.
 
 ### Recognition
 
 - Currencies: 37 fixed cells (`L…`, `C…`). The central weapon slot and the free
   bottom grid are excluded. Expedition: 32 areas `E…`. Runes: one profile over five
   view geometries with separate cell namespaces, so a hidden view keeps its stock.
+  For a tab of a view family, `resolve_layout` returns what the borders detect,
+  even in another family: an unrecognised view stays unrecognised, and a profile
+  saved with the wrong type is corrected by `Profiles.observe`, keeping its UUID,
+  only while it holds no stock; with stock, a separate profile is created.
   Breach works the same way: its Catalysts view (`breach`, 29 cells `B…`: two
   small and one large at the top, then normal and refined catalysts on rows of 6
   and 7) is measured. Its Wombgifts view is **deliberately not supported** (user
   decision, 23 September 2026: tedious, little value): it shows as an
   unrecognised type and synchronises nothing. Do not add it as a to-do.
+- Four single-view tabs measured on real captures: Abyss (21 cells `AB…`),
+  Delirium (32 `DE…`), Essences (87 `ES…`) and Ritual (33 `RI…`, one wide).
+- **Dedicated cells.** These tabs accept one item per cell. `SLOT_ITEMS` names it
+  for Delirium and Essences (the game's order: each Essences row is one essence
+  in Lesser/normal/Greater/Perfect columns; Delirium mirrors normal and Ancient
+  emotions). When near-identical artwork leaves the matcher ambiguous
+  (`IconMatch.contenders`, every item within the margin), the cell's own item
+  is taken if it is among them; a clearly different match is **refused, never
+  renamed**. `SLOT_FAMILIES` does the same with a set: the Abyss diamond holds
+  Abyss bones only. Never restrict a whole tab to one poe.ninja category: the
+  Abyss tab's bottom row holds abyssal omens, which poe.ninja files as Ritual.
 - A stash type with several views is a **view family** (`VIEW_FAMILIES` in
   `layouts.py`). The first view's id is the family's id and the stored
   `layout_id` of its tabs; `has_views` replaces any check on a family name, and
@@ -220,6 +241,12 @@ No screenshot or inventory ever leaves the machine.
 - The counter crop follows white glyphs whose top is within 10 px of the cell
   top. The `5` and `1` on catalysts start at 9 px, their pale top bar or serif
   falling under the white threshold; at 8 px they were never read.
+- Counter glyphs are **pure white**: a component whose mean saturation exceeds
+  `COUNTER_SATURATION_MAX` (6) is artwork. Digits measure 0.0–0.1, essence
+  crystals and Ritual emblems 12.9 and more; without it essence counters read
+  `444` for 44 and `27` for 2.
+- A K/M or decimal mark counts as evidence only at `MARK_CONFIDENCE_MIN` (0.5) or
+  above: `6M` at 0.38 on an omen was artwork, genuine marks read 0.70–0.80.
 - Five families share one asset across normal/Greater/Perfect: Transmutation,
   Augmentation, Regal, Exalted, Chaos. The family is recognised visually, the tier
   from its column. This is not OCR of the II/III marks.
@@ -303,8 +330,8 @@ Reference documentation: https://poe.ninja/docs/api
 
 - Leagues: `/poe2/api/economy/leagues`. Prices:
   `/poe2/api/economy/exchange/current/overview?league=…&type=Currency`, and the
-  same path with `type=Expedition`, `Verisium`, `Breach`, `Runes`, `SoulCores`,
-  `Idols`.
+  same path with `type=Expedition`, `Verisium`, `Breach`, `Abyss`, `Delirium`,
+  `Essences`, `Ritual`, `Runes`, `SoulCores`, `Idols`.
   An Expedition tab needs two of them: `Expedition` holds the sagas, fluxes and
   logbooks, `Verisium` the alloys, crests, Verisium and Starlit Ores.
 - Metadata: **top-level `items`** holds the full catalogue; `core.items` only the
@@ -317,8 +344,10 @@ Reference documentation: https://poe.ninja/docs/api
   rates, and converts when the primary currencies differ.
 - A known item can be unpriced or ambiguous. Several Thaumaturgic Flux tiers share
   one image: do not invent their tier or price.
-- `exile_worth/item_catalog.json` keeps 75 visual references verified on PoE2DB,
-  Expedition and Breach — names, IDs, image URLs, source, **no price**. It stays
+- `exile_worth/item_catalog.json` keeps 214 visual references verified on
+  PoE2DB — Expedition, Breach, Abyss, Delirium, Essences, Ritual — names, IDs,
+  image URLs, source, **no price**. PoE2DB lists fewer essences (56) than
+  poe.ninja (76); recognition uses the market's full list. It stays
   usable when the price endpoints fail. `tools/update_item_catalog.py`
   regenerates it from the categories in its `SOURCES`; a reference the source
   stops listing is kept, so an item still in a stash stays identifiable.
@@ -336,14 +365,14 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  174 tests, OK
+python -m unittest discover -s tests   ->  182 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
-python -m tests.margins                ->  46 decisions, none FAILS, 5 TIGHT
+python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
 ```
 
-The five TIGHT decisions are expected: the icon score and icon margin of the
-Expedition and of the Breach captures, and the Runes border separation (see
-"Known fragilities").
+The twelve TIGHT decisions are expected: icon scores and icon margins of the
+real captures (Expedition, Breach, Abyss, Delirium, Essences, Ritual) and the
+Runes border separation (see "Known fragilities").
 `tests/test_margins.py` already fails if any of them erodes, so a green suite
 means the headroom is intact — you do not need to read the table to know that.
 
@@ -369,7 +398,8 @@ why it was refused.
 against its threshold, recorded in `tests/margin_baseline.json`.
 `tests/test_margins.py` fails on shrinking headroom, a **relaxed threshold** or a
 changed count. It covers the Expedition stash, the five Runes views and their
-selector, the Breach Catalysts view and its tab colour, and the `$$` tab
+selector, the Breach Catalysts view and its tab colour, Abyss, Delirium,
+Essences and Ritual, and the `$$` tab
 selection and label.
 
 The two `dollar_tab.symbol_*` scores are near-tautological: the templates in
@@ -410,6 +440,17 @@ in the baseline and compared separately, and why that test must not be removed.
   (`B02`) is slightly brighter than the emptiness filter allows (3.7 % of bright
   pixels against 2 %) and shows as an unrecognised item, never named nor counted.
   Several Runes ghosts sit at 2.3–2.7 % for the same reason.
+- **Icon margins are thin on the new tabs**: Delirium clears the 0.015 margin by
+  0.0009 (DE04), Essences by 0.004, Ritual by 0.005, Abyss by 0.007. On
+  dedicated cells a margin that fails falls back on the cell's item, so Delirium
+  and Essences keep their answer; Ritual and Abyss have no such fallback.
+- **Ritual emblems** sit over the first cell of some groups. The colour filter
+  removes them from most counters, but `RI25` stays unreadable.
+- **Bright ghosts** (Abyss `AB01`, `AB05`, `AB09`; Delirium `DE13`, `DE23`) fail
+  the emptiness filter and show as unrecognised, never named nor counted.
+- **Essences against Currencies is unverified on a real Currency capture**: on
+  the Essences capture the Currency grid scores 0.486 (0.51 behind), but no real
+  Currency capture exists to measure the reverse.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
   scales are unverified, and a non-16:9 capture is refused outright.
 - **Renamed or moved tabs**: re-association is handled for a unique label with the
@@ -422,9 +463,11 @@ in the baseline and compared separately, and why that test must not be removed.
 
 1. Breach: a capture of the Catalysts view holding refined catalysts.
 2. The emptiness filter's bright-pixel fraction (2 %) leaves some real ghosts
-   (Breach `B02`, several Runes cells) flagged as unrecognised. Loosening it needs
+   (Breach `B02`, Abyss `AB01`/`AB05`/`AB09`, Delirium `DE13`/`DE23`, several
+   Runes cells) flagged as unrecognised. Loosening it needs
    a margin measured against ground truth, as it decides what clears a stock.
-3. In time: other resolutions and scales, other stash types, persisting
+3. A real Currency capture, to measure Essences against Currencies both ways.
+4. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

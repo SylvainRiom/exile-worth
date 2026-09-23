@@ -93,6 +93,9 @@ class IconMatch:
     candidate: str | None = None
     margin: float = 0
     alternatives: tuple[str, ...] = ()
+    # Every item scoring within `margin` of the best, above the threshold,
+    # whatever its family. Only a dedicated cell's expected item may pick one.
+    contenders: tuple[str, ...] = ()
 
 
 class IconMatcher:
@@ -177,6 +180,9 @@ class IconMatcher:
                                      for alias in self.aliases[keys[index]])
                 if len(alternatives) < 2 or not set(alternatives) <= SAGA_FAMILY:
                     alternatives = ()
+            contenders = tuple(alias for index in order
+                               if row[index] >= max(self.threshold, best-self.margin)
+                               for alias in self.aliases[keys[index]])
             result.append(IconMatch(alternatives[0] if len(alternatives) == 1 else None,
-                                    best, candidate, gap, alternatives))
+                                    best, candidate, gap, alternatives, contenders))
         return result

@@ -881,3 +881,80 @@ not rewrite an entry to match later behaviour, add a new one.
   unrecognised type and nothing is synchronised; an uncertain detection never
   reuses the last type, so it cannot be read as Catalysts. A Breach tab expects
   the 29 Catalysts cells only, so the view's absence does not mark it partial.
+
+## Abyss, Delirium, Essences and Ritual — 23 September 2026
+
+- The user added real captures of four tabs at once. Each followed the Breach
+  method: geometry from the real capture, PoE2DB references, poe.ninja prices,
+  the in-game tab icon, recognition checked by eye, fixtures, tests, margins.
+- Geometry. A generic cell detector was tried first and rejected (192 noisy
+  rectangles on Essences, inner frames picked on Breach). What worked was the
+  Breach method automated: row bands from horizontal edges, cell edges from
+  vertical profiles, validated at 2 px against Breach's exact cells, then
+  checked by overlay. Essences was measured as a grid (two blocks of 4 columns,
+  51x50 cells at a 60.7 px pitch). Ritual's cells almost touch (57 px at a 61 px
+  pitch), so snapping caught neighbours' edges; its rows were set from the
+  measured edges, one row moved to y=400 after its counters sat 2 px low. All
+  four score 1.000 on borders with a 0 px shift; the nearest rival is Currency
+  on Essences at 0.486.
+- Recognition, first pass with the 517-item market: Abyss 14/15, Delirium 8/13,
+  Essences 18/49, Ritual 6/21 counts. Three causes.
+- Near-identical artwork. Essences differ by colour at a tier, Delirium's
+  emotions by tint; the matcher refused them with margins of 0.001–0.014. These
+  tabs have dedicated cells, so `SLOT_ITEMS` names each cell's item (the game's
+  order, confirmed by filled cells and readable ghosts) and resolves an
+  ambiguity only when that item is among the contenders. A clearly different
+  match is refused. The Abyss diamond accepts Abyss bones only
+  (`SLOT_FAMILIES`), which stopped a ghost being named Omen of Gambling. A
+  tab-wide category rule was rejected: Abyss's bottom row holds abyssal omens,
+  filed as Ritual by poe.ninja.
+- Counters. Ritual's first geometry put digits 12–15 px in, past the crop's
+  10 px. Then `6M` read at 0.38 on an omen triggered the anti-truncation rule;
+  marks now count from 0.5 (genuine ones 0.70–0.80). Then essence crystals and
+  Ritual emblems, pale but tinted, chained into the white counter mask: `22.4`,
+  `264`, `11k.`. Counter glyphs measure a mean saturation of 0.0–0.1, the
+  artwork 12.9 and more; components above 6 are dropped. Diffed over all 459
+  cells of every real capture: 10 reads changed, all checked by eye — seven
+  unreadable counts now right, and two **wrong** reads corrected (`ES27` 444 →
+  44, `ES44` 27 → 2) that nothing had flagged.
+- Tab titles. Abyss's menu row, dark text on bright green, read `SS`; a
+  high-contrast second read may now confirm the title, never replace it.
+  Delirium's title read `De Delirium`, an OCR echo, now dropped.
+- Final, checked by eye: Abyss 15/15, Delirium 13/13, Essences 49 identified and
+  48 counted (ES47 unreadable), Ritual 21 identified and 20 counted (RI25 behind
+  an emblem). No empty cell is named. Five bright ghosts stay "unrecognised".
+- End to end with the live market, the app detects the four tabs, registers
+  them automatically by title and values them.
+- Both new mechanisms were proven by injection: without the colour filter the
+  seven corrected cells fail; without dedicated cells 35 do.
+- Catalogue 75 → 214 references, none changed; prices gain four categories;
+  `test_catalog` now derives its expectations from `STASH_CATEGORIES`.
+- Margins: 28 new entries, none of the 46 existing changed; 12 TIGHT in all.
+  Icon margins are thin on these tabs (Delirium 0.0009 over the floor), which
+  dedicated cells absorb for Delirium and Essences but not for Ritual and Abyss.
+- Last validation: **180 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.
+
+## A Ritual tab saved as Runes, and why it stopped reading — 23 September 2026
+
+- User report: the Ritual card showed the Runes icon and type, and opening the
+  Ritual tab in game did nothing.
+- The session log gave the cause. At 14:33, before Ritual had a geometry, the
+  borders refused the frame (0.217) and the icon fallback named Runes from 5
+  recognised items against 3; the tab was then registered automatically as a
+  Runes tab. Once Ritual existed, identity matched the profile by its title,
+  but `resolve_layout` refuses any other family for a view-family tab, so the
+  Ritual grid was discarded and nothing synchronised.
+- Two changes. `resolve_layout` now returns the borders' confident detection
+  even in another family, so `Profiles.observe` can correct a mistaken,
+  auto-registered, still empty profile with its UUID (the existing mechanism,
+  unreachable for view families until now). And registration requires a
+  structure confirmed by borders, selector or the user (`may_register`): the
+  icon fallback counts matches, which is too weak to write a profile.
+- Replayed on a copy of the user's own `profiles.json` and inventory with the
+  real Ritual capture: "Type of Ritual corrected automatically", same UUID,
+  still eight tabs. Their data was not modified; the correction happens the
+  next time they open the tab.
+- Both tests fail on the previous code.
+- Last validation: **182 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.

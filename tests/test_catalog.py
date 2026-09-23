@@ -10,7 +10,7 @@ from exile_worth.catalog import reference_items, with_reference_items
 from exile_worth.icons import IconMatcher, fetch_icons
 from exile_worth.layouts import EXPEDITION_SLOTS
 from exile_worth.model import estimate_readings
-from exile_worth.pricing import Ninja
+from exile_worth.pricing import STASH_CATEGORIES, Ninja
 from exile_worth.vision import Profiles, Scanner
 from tests.test_icons import render
 from tools.update_item_catalog import CatalogueParser
@@ -34,8 +34,7 @@ class CatalogueTests(unittest.TestCase):
                 market = client.stash_market('A')
             self.assertIn('verisium', market['items'])
             self.assertEqual(market['prices'], {})
-            self.assertEqual(market['unavailable_categories'],
-                             ['Currency', 'Expedition', 'Verisium', 'Breach', 'Runes', 'SoulCores', 'Idols'])
+            self.assertEqual(market['unavailable_categories'], list(STASH_CATEGORIES))
 
     def test_expedition_tab_is_priced_from_both_overviews(self):
         """Alloys, crests and Verisium live in the `Verisium` overview, not `Expedition`."""
@@ -94,7 +93,8 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(market['prices']['rune'], 2)
         self.assertEqual(market['prices']['soul-core'], 2)
         self.assertEqual(market['prices']['idol'], 2)
-        self.assertEqual(market['unavailable_categories'], ['Expedition', 'Verisium', 'Breach'])
+        self.assertEqual(market['unavailable_categories'],
+                         [c for c in STASH_CATEGORIES if c not in ('Currency', *categories)])
 
     def test_scraper_excludes_navigation_prices_and_price_currencies(self):
         parser = CatalogueParser('https://poe2db.tw/us/Economy_Expedition', 'Expedition')
