@@ -16,6 +16,6 @@ PoE2DB, plus `carved-mischief.png`: a dark, sparse Ritual icon that used to matc
 the empty ghosts of refined catalysts at 0.92 and above. Tests add the Expedition
 fixture's icons so the matcher has rivals.
 
-No refined catalyst is present, and the Wombgifts view is not captured: this
-validates the normal catalysts, the splinters and the geometry, not the rest.
+No refined catalyst is present: this validates the normal catalysts, the
+splinters and the geometry. The Wombgifts view is deliberately unsupported.
 Artwork belongs to Grinding Gear Games.

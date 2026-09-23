@@ -194,7 +194,9 @@ No screenshot or inventory ever leaves the machine.
   view geometries with separate cell namespaces, so a hidden view keeps its stock.
   Breach works the same way: its Catalysts view (`breach`, 29 cells `B…`: two
   small and one large at the top, then normal and refined catalysts on rows of 6
-  and 7) is measured; its Wombgifts view is not yet.
+  and 7) is measured. Its Wombgifts view is **deliberately not supported** (user
+  decision, 23 September 2026: tedious, little value): it shows as an
+  unrecognised type and synchronises nothing. Do not add it as a to-do.
 - A stash type with several views is a **view family** (`VIEW_FAMILIES` in
   `layouts.py`). The first view's id is the family's id and the stored
   `layout_id` of its tabs; `has_views` replaces any check on a family name, and
@@ -404,7 +406,7 @@ in the baseline and compared separately, and why that test must not be removed.
 - **Breach is half validated.** One real capture of the Catalysts view, holding
   12 normal catalysts and splinters: refined catalysts are drawn differently
   (tilted glyph, grey base) but none was on the capture, so their recognition is
-  unverified. The Wombgifts view has no geometry yet. The Breachlord Sac ghost
+  unverified. The Breachlord Sac ghost
   (`B02`) is slightly brighter than the emptiness filter allows (3.7 % of bright
   pixels against 2 %) and shows as an unrecognised item, never named nor counted.
   Several Runes ghosts sit at 2.3–2.7 % for the same reason.
@@ -418,8 +420,7 @@ in the baseline and compared separately, and why that test must not be removed.
 
 ## Resumption points
 
-1. Breach: capture the Wombgifts view and a Catalysts view holding refined
-   catalysts.
+1. Breach: a capture of the Catalysts view holding refined catalysts.
 2. The emptiness filter's bright-pixel fraction (2 %) leaves some real ghosts
    (Breach `B02`, several Runes cells) flagged as unrecognised. Loosening it needs
    a margin measured against ground truth, as it decides what clears a stock.

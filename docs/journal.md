@@ -872,3 +872,12 @@ not rewrite an entry to match later behaviour, add a new one.
   Expedition's.
 - Last validation: **174 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` at 46 decisions, no FAILS, 5 TIGHT.
+
+## Wombgifts will not be supported — 23 September 2026
+
+- User decision: the Breach tab's Wombgifts view is too tedious to support for
+  the little value it holds. It stays out of scope, not pending.
+- Behaviour when it is shown: the grid is not recognised, so the frame is an
+  unrecognised type and nothing is synchronised; an uncertain detection never
+  reuses the last type, so it cannot be read as Catalysts. A Breach tab expects
+  the 29 Catalysts cells only, so the view's absence does not mark it partial.
