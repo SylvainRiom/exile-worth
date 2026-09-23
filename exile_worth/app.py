@@ -84,6 +84,8 @@ class App(tk.Tk):
         self.last_readings = []
         self.provisional_readings = []
         self.last_tab = None
+        # True when the last scan was a live one synchronised into `last_tab`.
+        self.last_scan_synced = False
         self.active_layout_id = None
         self.selected_tab_id = None
         self.tab_frames = {}
@@ -394,6 +396,7 @@ class App(tk.Tk):
 
     def league_changed(self, *_):
         self.last_tab = None
+        self.last_scan_synced = False
         self.selected_tab_id = None
         self.last_readings = []
         self.provisional_readings = []
@@ -440,6 +443,7 @@ class App(tk.Tk):
         self.frame = normalize(image)
         self.active_layout_id = None
         self.last_tab = None
+        self.last_scan_synced = False
         self.selected_tab_id = None
         self.last_readings = []
         self.reading_league = None
@@ -635,8 +639,23 @@ class App(tk.Tk):
                 return layout_for_tab(tab)
         return LAYOUTS.get(self.active_layout_id, UNKNOWN_LAYOUT)
 
+    def live_tab_id(self):
+        """The registered tab the live loop is synchronising right now, if any.
+
+        Its card replaces the preview card: the preview only exists for
+        readings that no card holds (unidentified tab, imported screenshot).
+        """
+        if (self.running and self.last_scan_synced and self.last_tab
+                and self.reading_league == self.league.get().strip()):
+            return self.last_tab['id']
+        return None
+
+    def showing_live(self):
+        """True when the detail page shows the live readings, not a stored tab."""
+        return not self.selected_tab_id or self.selected_tab_id == self.live_tab_id()
+
     def display_readings(self):
-        if not self.selected_tab_id:
+        if self.showing_live():
             return self.last_readings if self.reading_league == self.league.get().strip() else []
         league = self.league.get().strip()
         approximate = self.store.approximate_slots(league)
@@ -649,7 +668,8 @@ class App(tk.Tk):
         self.selected_tab_id = tab_id
         self.selected_slot = None
         tab = next((t for t in self.profiles.data['tabs'] if t['id']==tab_id),None)
-        self.detail_title.set(f'{tab["name"]} · {layout_name(layout_for_tab(tab).id)}'
+        self.detail_title.set(f'{tab["name"]} · {layout_name(self.display_layout().id)}'
+                              + (' · ' + t('dash.live_badge') if tab_id == self.live_tab_id() else '')
                               if tab else t('detail.live_preview'))
         self.show_readings(self.display_readings())
         self.draw()
@@ -659,23 +679,27 @@ class App(tk.Tk):
         for child in self.cards.winfo_children():
             child.destroy()
         symbol = 'div' if unit=='divine' else unit
-        def card(index,tab_id,title,subtitle,amount,detail,layout_id=None):
-            box = ttk.Frame(self.cards,padding=20,style='Card.TFrame')
+        def card(index,tab_id,title,subtitle,amount,detail,layout_id=None,live=False):
+            kind = 'Live' if live else 'Card'
+            box = ttk.Frame(self.cards,padding=20,style=f'{kind}.TFrame')
             box.grid(row=index//3,column=index%3,sticky='nsew',padx=6,pady=6)
-            header = ttk.Frame(box,style='Card.TFrame')
+            header = ttk.Frame(box,style=f'{kind}.TFrame')
             header.pack(anchor='w',pady=4)
             icon = self.tab_icon(layout_id)
-            parts = [ttk.Label(header,image=icon,style='Card.TLabel')] if icon else []
+            parts = [ttk.Label(header,image=icon,style=f'{kind}.TLabel')] if icon else []
             parts.append(ttk.Label(header,text=title,font=('Segoe UI',15,'bold'),foreground='#e7edf6',
-                                   wraplength=280 if icon else 315,style='Card.TLabel'))
+                                   wraplength=280 if icon else 315,style=f'{kind}.TLabel'))
             for part in parts:
                 part.pack(side='left',padx=(0,10) if part is not parts[-1] else 0)
                 part.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
             header.bind('<Button-1>',lambda event:self.open_stash(tab_id))
-            for text,font,colour in [(subtitle,('Segoe UI',10),'#a9b8ca'),
-                                     (amount,('Segoe UI',23,'bold'),'#83f0b6'),
-                                     (detail,('Segoe UI',10),'#a9b8ca')]:
-                label = ttk.Label(box,text=text,font=font,foreground=colour,wraplength=315,style='Card.TLabel')
+            lines = [(subtitle,('Segoe UI',10),'#a9b8ca'),
+                     (amount,('Segoe UI',23,'bold'),'#83f0b6'),
+                     (detail,('Segoe UI',10),'#a9b8ca')]
+            if live:
+                lines.insert(0,(t('dash.live_badge'),('Segoe UI',10,'bold'),'#7ee2c0'))
+            for text,font,colour in lines:
+                label = ttk.Label(box,text=text,font=font,foreground=colour,wraplength=315,style=f'{kind}.TLabel')
                 label.pack(anchor='w',pady=4)
                 label.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
             ttk.Button(box,text=t('dash.see_detail'),command=lambda:self.open_stash(tab_id)).pack(anchor='w',pady=(8,0))
@@ -687,12 +711,14 @@ class App(tk.Tk):
         layout = layout_name(self.active_layout_id or 'unknown')
         title, subtitle = ((self.last_tab['name'], t('detail.live_preview_of', layout=layout)) if self.last_tab
                            else (t('dash.preview_card'), t('dash.preview_unidentified', layout=layout)))
-        card(0,None,title,subtitle,amount,
-             t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced),self.active_layout_id)
+        live = self.live_tab_id()
+        if live is None:
+            card(0,None,title,subtitle,amount,
+                 t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced),self.active_layout_id)
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==self.league.get().strip()]
         approximate = self.store.approximate_slots(self.league.get().strip())
         empty = self.store.empty_slots(self.league.get().strip())
-        for index,tab in enumerate(tabs,1):
+        for index,tab in enumerate(tabs,0 if live else 1):
             entries = [r for r in rows if r[0]==tab['id']]
             estimate = estimate_readings([Reading(r[1],r[2],r[3]) for r in entries],prices,unit)
             amount = f'≈ {estimate.amount:,.2f} {symbol}' if estimate.amount is not None else '—'
@@ -708,8 +734,11 @@ class App(tk.Tk):
                 detail += t('dash.partial', count=unread+uncertain, unpriced=estimate.unpriced)
             if any((r[0],r[1]) in approximate for r in entries):
                 detail += t('dash.abbreviated')
-            card(index,tab['id'],tab['name'],layout_name(layout_for_tab(tab).id),amount,detail,
-                 layout_for_tab(tab).id)
+            # A Runes tab being read names the view on screen, not the family.
+            layout_id = (self.active_layout_id if tab['id'] == live and self.active_layout_id
+                         else layout_for_tab(tab).id)
+            card(index,tab['id'],tab['name'],layout_name(layout_id),amount,detail,layout_id,
+                 live=tab['id'] == live)
 
     def tab_icon(self, layout_id):
         """The in-game icon of a stash type, or '' for an unrecognised layout.
@@ -822,7 +851,7 @@ class App(tk.Tk):
     def show_readings(self, readings):
         self.read_tree.delete(*self.read_tree.get_children())
         readings = [r for r in readings if r.reason != Reason.EMPTY]
-        provisional = {r.slot:r for r in self.provisional_readings} if not self.selected_tab_id else {}
+        provisional = {r.slot:r for r in self.provisional_readings} if self.showing_live() else {}
         unit = self.unit.get()
         prices = self.market['prices'] if self.league.get().strip() == self.market_league else {}
         self.set_heading(self.read_tree, 'col.value', t('col.value_unit', unit='div' if unit == 'divine' else unit))
@@ -831,6 +860,15 @@ class App(tk.Tk):
         self.recognition_status.set(
             t('detail.recognition', identified=identified, total=len(readings), ambiguous=ambiguous)
             if readings else t('detail.recognition_none'))
+        # On the tab being synchronised, a cell that is re-confirming or unreadable
+        # right now still has its last confirmed quantity in storage. Show that
+        # quantity and its value rather than a blank, as long as the same item is
+        # recognised; the new observation stays marked provisional beside it.
+        live = self.live_tab_id() if self.showing_live() else None
+        league = self.league.get().strip()
+        confirmed = ({slot: (item, quantity) for tab, slot, item, quantity, _stamp, _uncertain
+                      in self.store.rows(league) if tab == live} if live else {})
+        abbreviated = self.store.approximate_slots(league) if live else set()
         for index,r in enumerate(readings):
             value = line_value(r.item, r.quantity, prices, unit)
             candidate = provisional.get(r.slot)
@@ -841,12 +879,20 @@ class App(tk.Tk):
             quantity_text = ('—' if shown_quantity is None else
                              ('≈ ' if shown_approximate else '')+f'{shown_quantity:,}'+
                              (t('reading.provisional') if pending else ''))
+            suffix = (t('reading.provisional_suffix') if pending else
+                      t('reading.abbreviated_suffix') if r.approximate else '')
+            known = confirmed.get(r.slot)
+            if r.quantity is None and r.item and known and known[0] == r.item:
+                stored = known[1]
+                value = line_value(r.item, stored, prices, unit)
+                quantity_text = ('≈ ' if (live, r.slot) in abbreviated else '')+f'{stored:,}'
+                if pending and (candidate.quantity != stored or candidate.approximate != ((live, r.slot) in abbreviated)):
+                    quantity_text += ' → '+('≈ ' if candidate.approximate else '')+f'{candidate.quantity:,}'+t('reading.provisional')
+                suffix = t('reading.last_confirmed_suffix')
             self.read_tree.insert('', 'end', iid=r.slot, image=self.item_icon(r.item, r.alternatives),
                                   tags=('odd' if index%2 else 'even',), values=(r.slot,self.reading_name(r),
                                   quantity_text,
-                                  '—' if value is None else f'{value:.3f}',t('reason.'+r.reason)+
-                                  (t('reading.provisional_suffix') if pending else
-                                   t('reading.abbreviated_suffix') if r.approximate else '')))
+                                  '—' if value is None else f'{value:.3f}',t('reason.'+r.reason)+suffix))
         self.apply_sort(self.read_tree)
 
     def item_name(self, item):
@@ -881,13 +927,14 @@ class App(tk.Tk):
         empty_slots = self.store.empty_slots(league)
         unread = max(0, expected-len(rows)-len(empty_slots)) if rows else estimate.unread
         partial = bool(missing or unread or uncertain)
-        self.total.set((f'≈ {amount:,.2f} {symbol}' + (' · partiel' if partial else '')) if amount is not None else '—')
+        self.total.set((f'≈ {amount:,.2f} {symbol}' + (t('dash.total_partial') if partial else '')) if amount is not None else '—')
         if rows:
             tabs = len({row[0] for row in rows})
             self.total_title.set(t('dash.tracked', tabs=tabs))
             self.total_detail.set(t('dash.tracked_detail', unread=unread, missing=missing, uncertain=uncertain))
             preview_text = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
-            self.preview_total.set(t('dash.preview_line', amount=preview_text) if readings else '')
+            self.preview_total.set(t('dash.preview_line', amount=preview_text)
+                                   if readings and self.live_tab_id() is None else '')
         else:
             self.total_title.set(t('dash.displayed_title'))
             self.total_detail.set(t('dash.displayed_detail', valued=estimate.valued, unread=unread, missing=missing)
@@ -1015,12 +1062,16 @@ class App(tk.Tk):
                     if league != self.league.get().strip():
                         continue
                     self.frame, self.last_tab, self.last_readings = scan.frame, tab, readings
+                    self.last_scan_synced = kind == 'live' and tab is not None
                     self.provisional_readings = list(scan.provisional) if kind == 'live' else []
                     self.reading_league = league
                     self.active_layout_id = scan.layout_id
                     if tab:
                         self.tab_frames[tab['id']] = scan.frame.copy()
-                    if not self.selected_tab_id:
+                    if self.showing_live() and self.selected_tab_id:
+                        self.detail_title.set(f'{tab["name"]} · {layout_name(self.display_layout().id)} · '
+                                              + t('dash.live_badge'))
+                    elif not self.selected_tab_id:
                         layout = layout_name(self.active_layout_id or 'unknown')
                         self.detail_title.set(t('detail.live_preview_tab', name=tab['name'], layout=layout) if tab
                                               else t('detail.live_preview_of', layout=layout))
@@ -1059,6 +1110,7 @@ class App(tk.Tk):
                 elif kind == 'stopped':
                     self.running = False
                     self.capture_activity = ''
+                    self.refresh_inventory()
                     self.refresh_capture_state()
                     self.league_box.configure(state='normal')
                     if self.stop_event.is_set():

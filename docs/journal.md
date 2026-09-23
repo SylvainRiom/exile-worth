@@ -633,3 +633,47 @@ not rewrite an entry to match later behaviour, add a new one.
 - Checked visually: with the name as title, the preview card and the card of
   the same registered tab look alike; they differ by subtitle and detail line.
 - Last validation: **160 tests passed**, `python -m tests.smoke_ui`.
+
+## The card being read replaces the preview card — 23 September 2026
+
+- The user found the permanent preview card odd: once a tab is recognised and
+  synchronised, it duplicates that tab's card a few seconds ahead. Agreed.
+- The preview still has three jobs no card can do: readings from an
+  unidentified tab (no anonymous inventory may be created), an imported
+  screenshot (analysis never synchronises, so a registered tab's card keeps its
+  stored values), and quantities waiting for their third matching reading.
+- Rule now: `live_tab_id()` is the registered tab the running loop last
+  synchronised (`last_scan_synced`, set only by a `live` scan with a tab). When
+  there is one, no preview card is drawn; that tab's card turns green with an
+  `● Updating live` badge, and opening it shows the live readings, provisional
+  quantities included, instead of the stored rows. Otherwise the preview card
+  returns. The user asked for the explicit "being updated" mark.
+- The header's preview line is hidden while a tab is live, for the same reason.
+- The hard-coded French ` · partiel` on the total became `dash.total_partial`.
+- Checked visually, and `tests/smoke_ui.py` walks start, live sync, detail and
+  stop.
+- Last validation: **160 tests passed**, `python -m tests.smoke_ui`.
+
+## Values vanished while a live tab re-confirmed — 23 September 2026
+
+- User report, with a screenshot of `$$` updating live: after re-reading the
+  stash, every line showed a provisional quantity and a `—` value, although the
+  quantities were known.
+- Cause: the previous change made the live tab's detail show the live readings
+  instead of the stored rows. A re-read cell is `PENDING` until three matching
+  observations, and a pending line is deliberately not valued. Before, opening
+  a registered tab showed its stored rows, values included. The database was
+  intact: `$$` held 19, 141, 36… confirmed at 09:23:57 UTC.
+- Cells re-confirm often: on every tab switch (the consensus key changes), when
+  a patch changes, and every 30 s when a cached reading expires.
+- Fix, display only: on the live tab, a pending or unreadable cell whose stored
+  row holds the same item shows that confirmed quantity and its value, marked
+  `last confirmed quantity`; a different provisional count appears as
+  `141 → 145 (provisional)`. The consensus, the total and SQLite are unchanged.
+  Unknown icons do not borrow a stored quantity.
+- Seen in the same data, not changed: `Store.sync` marks a stored row
+  `uncertain=1` when a `PENDING` reading arrives, so each re-confirmation turns
+  confirmed cells into "to check" (75 on the report) until consensus returns.
+  Pending is "in progress", not "unknown"; whether it should flag the row is a
+  decision left to the user.
+- Last validation: **161 tests passed**, `python -m tests.smoke_ui`.

@@ -172,6 +172,28 @@ def main():
                     app.capture_button.invoke()
                 assert app.running and app.capture_state.get() == '● Tracking'
                 assert app.capture_action.get() == 'Pause'
+                print('UI smoke: live card replaces the preview', flush=True)
+                live_tab = {'id':'live1','name':'Main currency','league':'Standard','layout_id':'currency'}
+                app.profiles.data['tabs'].append(live_tab)
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',7)],
+                                                     '', 'Standard', 'currency')))
+                app.drain()
+                assert app.live_tab_id() == 'live1'
+                assert len(app.cards.winfo_children()) == 1, 'No preview card while a tab is synced'
+                assert 'Main currency' in card_texts(0) and '● Updating live' in card_texts(0), card_texts(0)
+                assert str(app.cards.winfo_children()[0].cget('style')) == 'Live.TFrame'
+                app.open_stash('live1')
+                assert app.display_readings()[0].quantity == 7
+                assert app.detail_title.get().endswith('● Updating live'), app.detail_title.get()
+                # Re-confirming a stored cell keeps its confirmed quantity and value.
+                # (No price is loaded for Standard here, so only the quantity is checked.)
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',None,.99,Reason.PENDING)],
+                                                     '', 'Standard', 'currency',
+                                                     (Reading('C03','divine',9,.99,Reason.AUTO),))))
+                app.drain()
+                values = app.read_tree.item('C03')['values']
+                assert str(values[2]) == '7 → 9 (provisional)', values
+                assert 'last confirmed' in values[4], values
                 app.messages.put(('activity', ('waiting', 'Back to the game.')))
                 app.drain()
                 assert app.capture_state.get() == '● Waiting for the game'
@@ -182,6 +204,9 @@ def main():
                 app.messages.put(('stopped', None))
                 app.drain()
                 assert not app.running and app.capture_state.get() == '● Paused'
+                assert app.live_tab_id() is None
+                assert len(app.cards.winfo_children()) == 2, 'A stop brings the preview card back'
+                assert not any('● Updating live' in text for text in card_texts(1))
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
                 print('UI smoke OK: widgets, image preview, calibration, prices, league isolation')

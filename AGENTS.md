@@ -206,11 +206,18 @@ No screenshot or inventory ever leaves the machine.
 
 ### Dashboard and value
 
-- `My stash`: total and one card per registered tab; a separate preview card
-  represents the current screenshot and is not added to the saved total. The
-  preview card is titled with the name of the tab being read (`last_tab`) and
-  subtitled `Live preview · <layout>`; an unidentified tab keeps the `Live
-  preview` title and says `tab not identified`. The detail title follows.
+- `My stash`: total and one card per registered tab. While tracking
+  synchronises a registered tab (`live_tab_id()`), **that tab's card is the live
+  view**: green background, `● Updating live` badge, subtitle naming the visible
+  view, and its detail shows the live readings including provisional ones. The
+  preview card exists only for readings no card holds — an unidentified tab or
+  an imported screenshot, which is analysed but never synchronised — and it is
+  never added to the saved total. Stopping the tracking removes the live mark.
+- On the live tab, a cell that is re-confirming (`Reason.PENDING`) or whose count
+  is unreadable right now shows its **last confirmed** stored quantity and value,
+  marked `last confirmed quantity`, as long as the same item is recognised. A
+  different provisional count shows beside it as `141 → 145 (provisional)`; the
+  value stays that of the confirmed quantity until consensus.
 - `Detail & reading`: screenshot, cells, items, quantities, per-line value,
   corrections, inventory and history.
 - The reading, inventory and history tables sort on a heading click (again to
@@ -268,7 +275,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  160 tests, OK
+python -m unittest discover -s tests   ->  161 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```

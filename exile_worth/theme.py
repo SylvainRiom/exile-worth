@@ -6,6 +6,7 @@ SURFACE = '#192332'
 TEXT = '#edf3fc'
 MUTED = '#b0bfd2'
 ACCENT = '#7ee2c0'
+LIVE = '#173229'
 
 
 def apply_theme(root):
@@ -22,6 +23,9 @@ def apply_theme(root):
     style.configure('TFrame', background=BG)
     style.configure('Card.TFrame', background=SURFACE, relief='flat')
     style.configure('Card.TLabel', background=SURFACE, foreground=TEXT)
+    # The card of the tab the live loop is synchronising.
+    style.configure('Live.TFrame', background=LIVE, relief='flat')
+    style.configure('Live.TLabel', background=LIVE, foreground=TEXT)
     style.configure('TLabel', background=BG, foreground=TEXT)
     style.configure('Muted.TLabel', foreground=MUTED)
     style.configure('Status.TLabel', background=SURFACE, foreground=MUTED, padding=(16,10))

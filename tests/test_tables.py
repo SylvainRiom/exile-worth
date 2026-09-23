@@ -26,3 +26,6 @@ class SortKeyTests(unittest.TestCase):
 
     def test_numbers_before_text(self):
         self.assertLess(sort_key('999'), sort_key('abc'))
+
+    def test_a_pending_change_sorts_by_its_confirmed_quantity(self):
+        self.assertEqual(sort_key('141 → 145 (provisional)'), (0, (141.0,)))
