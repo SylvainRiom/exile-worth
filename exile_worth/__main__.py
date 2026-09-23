@@ -7,9 +7,10 @@ def main(argv=None):
         from .selftest import run
         return run(argv[1] if len(argv) > 1 else None)
 
-    from .capture import enable_dpi_awareness
+    from .capture import enable_dpi_awareness, set_app_id
 
     enable_dpi_awareness()
+    set_app_id()
 
     from .model import migrate_legacy_data
 

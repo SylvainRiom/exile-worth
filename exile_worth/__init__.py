@@ -2,4 +2,4 @@
 
 # The single source of the version: the release tag, the executable's file
 # version and the update check all read it from here.
-__version__ = '0.1.0'
+__version__ = '0.1.1'

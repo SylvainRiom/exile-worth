@@ -1012,3 +1012,17 @@ not rewrite an entry to match later behaviour, add a new one.
   SmartScreen prompt, which needs a download from the web.
 - Last validation: **209 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` at 74 decisions, no FAILS, 12 TIGHT.
+
+## Application icon — 23 September 2026
+
+- User report: a feather in the title bar (Tk's default) and a floppy disk in
+  the taskbar (PyInstaller's default); neither fits the theme.
+- Chosen by the user among three proposals: a golden orb in one cell of a 2×2
+  stash grid. Drawn by `tools/make_app_icon.py`, original, in the dashboard's
+  colours; the game's Divine Orb artwork was ruled out for a public executable.
+  Below 32 px the grid turned to noise on the rendered sheet, so those sizes
+  show the orb alone.
+- Checked by extracting the icon embedded in `ExileWorth.exe` and in the setup.
+- A Python string replacement wrote `` (BEL) into `installer.iss`'s icon path,
+  and ISCC refused it; the line was rewritten literally. Paths with ``, ``,
+  `	` in generated edits need raw strings.

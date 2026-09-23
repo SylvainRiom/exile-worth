@@ -17,6 +17,16 @@ def enable_dpi_awareness():
             pass
 
 
+def set_app_id():
+    """Group the window under its own taskbar entry, with the app's icon.
+    Run from source, Windows would otherwise show python.exe's."""
+    if sys.platform == 'win32':
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ExileWorth.App')
+        except (OSError, AttributeError):
+            pass
+
+
 def capture_game():
     if sys.platform != 'win32':
         raise RuntimeError(t('error.windows_only'))

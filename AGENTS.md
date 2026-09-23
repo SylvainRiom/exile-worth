@@ -192,6 +192,12 @@ beside it; a release lacking either asset is not offered.
   one-file was avoided because it unpacks on every start. The installer
   replaces `_internal` whole, so no stale library survives an update, and
   uninstalling leaves the user data.
+- The application icon (`assets/app.ico`, 16–256 px) is original artwork drawn by
+  `tools/make_app_icon.py`: a golden orb in one cell of a 2×2 stash grid, in the
+  dashboard's colours; below 32 px the orb alone. It is **not** the game's
+  Divine Orb, which is GGG's artwork and would ship in a public executable.
+  The exe, the installer, the window (`iconbitmap(default=…)`) and the taskbar
+  use it; `set_app_id` gives the window its own taskbar entry from source too.
 - The build is unsigned: Windows SmartScreen warns on the first install. The
   updater's own download carries no web mark, so updates do not warn.
 - Only a packaged build checks (`updater.enabled`; `EXILE_UPDATE_CHECK=1` forces
@@ -525,7 +531,7 @@ in the baseline and compared separately, and why that test must not be removed.
 4. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 5. Code signing (for example Azure Trusted Signing), to remove the SmartScreen
-   warning on first install; and an application icon for the executable.
+   warning on first install.
 
 The user may launch the application while work is in progress. Avoid leaving calls
 to missing methods between two changes; verify the whole path before announcing a

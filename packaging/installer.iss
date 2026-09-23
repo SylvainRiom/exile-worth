@@ -25,6 +25,7 @@ DefaultDirName={autopf}\ExileWorth
 DisableProgramGroupPage=yes
 DisableDirPage=auto
 UninstallDisplayIcon={app}\ExileWorth.exe
+SetupIconFile=..\exile_worth\assets\app.ico
 UninstallDisplayName=Exile Worth
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

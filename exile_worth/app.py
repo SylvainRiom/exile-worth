@@ -53,6 +53,8 @@ class UpdateFailure:
 
 # In-game stash tab icons by layout family, verified on PoE2DB; see sources.json.
 TAB_ICONS = Path(__file__).with_name('assets') / 'tab_icons'
+# The application's own icon, drawn by tools/make_app_icon.py.
+APP_ICON = Path(__file__).with_name('assets') / 'app.ico'
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,11 @@ def auto_hide(scroll, neighbour):
 class App(tk.Tk):
     def __init__(self, auto_load=True):
         super().__init__()
+        try:
+            # `default` also covers every dialog and Toplevel of the app.
+            self.iconbitmap(default=str(APP_ICON))
+        except tk.TclError:
+            pass
         setup_log()
         i18n.load_language()
         log.info('--- session start --- language=%s', i18n.language())

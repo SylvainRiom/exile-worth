@@ -47,6 +47,7 @@ exe = EXE(
     exclude_binaries=True,
     name='ExileWorth',
     console=False,
+    icon=str(PACKAGE / 'assets' / 'app.ico'),
     version=version_info,
 )
 coll = COLLECT(exe, a.binaries, a.datas, name='ExileWorth')
