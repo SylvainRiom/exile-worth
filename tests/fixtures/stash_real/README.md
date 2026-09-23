@@ -10,7 +10,7 @@ unmodified, so a test places it back at the origin. The tab bar is included
 reference artwork, cell by cell, not copied from the recogniser:
 - `read`: item and count of every cell read in full;
 - `count_unreadable`: cells whose item is right but whose count cannot be read
-  (`ES47`, `RI25` behind a Ritual emblem);
+  (`ES47`);
 - `unnamed`: bright ghosts of empty cells, which must stay unidentified.
 Every other cell is empty.
 

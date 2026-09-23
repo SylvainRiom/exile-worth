@@ -308,6 +308,14 @@ beside it; a release lacking either asset is not offered.
   `444` for 44 and `27` for 2.
 - A K/M or decimal mark counts as evidence only at `MARK_CONFIDENCE_MIN` (0.5) or
   above: `6M` at 0.38 on an omen was artwork, genuine marks read 0.70–0.80.
+- A mark (or an approximate count) read on the **full strip** counts only when
+  the strip's white pixels alone read a mark too. A real `38.3K` is white like
+  its digits; Omen of Gambling's gold bag beside `37` read `37M` at 0.58.
+- The counter strip is 18 px (`COUNTER_HEIGHT`), although glyphs reach row
+  18–19: a taller strip reaches the artwork and broke seven counts on the real
+  captures. A counter the strip **found but could not read** gets a second read
+  at 20 px (`Scanner.read_counter`); that is what reads a `4` whose foot the
+  short strip cuts (it read `1`). Never a retry for a cell with no counter.
 - Five families share one asset across normal/Greater/Perfect: Transmutation,
   Augmentation, Regal, Exalted, Chaos. The family is recognised visually, the tier
   from its column. This is not OCR of the II/III marks.
@@ -446,7 +454,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  209 tests, OK
+python -m unittest discover -s tests   ->  213 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
 ```
@@ -526,7 +534,7 @@ in the baseline and compared separately, and why that test must not be removed.
   dedicated cells a margin that fails falls back on the cell's item, so Delirium
   and Essences keep their answer; Ritual and Abyss have no such fallback.
 - **Ritual emblems** sit over the first cell of some groups. The colour filter
-  removes them from most counters, but `RI25` stays unreadable.
+  removes them from the counters; `RI25` is read through the 20 px retry.
 - **Bright ghosts** (Abyss `AB01`, `AB05`, `AB09`; Delirium `DE13`, `DE23`) fail
   the emptiness filter and show as unrecognised, never named nor counted.
 - **Essences against Currencies is unverified on a real Currency capture**: on

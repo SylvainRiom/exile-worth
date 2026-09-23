@@ -466,6 +466,8 @@ class DigitReader:
         from rapidocr_onnxruntime import RapidOCR
         self.ocr = RapidOCR(intra_op_num_threads=2, inter_op_num_threads=2)
         self.last_approximate = False
+        # The white glyph run the last read found, None when there was none.
+        self.last_bounds = None
 
     def read(self, image):
         self.last_approximate = False
@@ -474,10 +476,17 @@ class DigitReader:
         bright = image.max(axis=2).astype(np.int16)
         dark = image.min(axis=2).astype(np.int16)
         white = ((bright > 160) & (bright-dark < 60)).astype(np.uint8) * 255
-        bounds = self.counter_bounds(white, image)
+        bounds = self.last_bounds = self.counter_bounds(white, image)
         # A decimal point and a K suffix are not digit-shaped components. Check
         # the full counter first so that 24.7K cannot silently become 24 or 247.
         full = self.recognize_info(raw_image)
+        # The strip also holds artwork: Omen of Gambling's gold bag beside a
+        # `37` read `37M` at 0.58. A real mark is white like its digits, so the
+        # strip's mark only counts when its white pixels alone show one too.
+        if full.marked or full.approximate:
+            white_strip = self.recognize_info(cv2.cvtColor(white, cv2.COLOR_GRAY2BGR))
+            if not white_strip.marked:
+                full = CounterRead(None if full.approximate else full.quantity, full.confidence, False, False)
         if full.approximate and full.quantity is not None:
             return self.accept(full)
         if bounds is not None:
@@ -559,6 +568,12 @@ class DigitReader:
             return CounterRead(quantity, float(confidence), approximate, marked)
         return CounterRead(None, float(confidence), False, marked)
 
+
+# The counter strip at the top of a cell, and the taller one retried when a
+# counter was found but not read (`Scanner.read_counter`). Glyphs run from
+# row 8-9 to 18-19.
+COUNTER_HEIGHT = 18
+COUNTER_RETRY_HEIGHT = 20
 
 # The most colour a counter glyph may carry (mean max-min of its pixels).
 COUNTER_SATURATION_MAX = 6
@@ -752,6 +767,24 @@ class Scanner:
             message += ' | icons %s' % format_scores(icons)
         log.info(message)
 
+    def read_counter(self, frame, rect):
+        """A cell's stack count: (quantity, confidence, approximate).
+
+        The strip stops at row 18, where the lowest glyph rows are cut; most
+        digits survive that, but a `4` without its foot reads `1`. A taller
+        strip reaches the artwork under the digits and broke seven counts
+        that the short one read right, so it is only a second chance for a
+        counter the short strip found but could not read.
+        """
+        x, y, w, _h = rect
+        quantity, confidence = self.digits.read(crop(frame, (x, y, w, COUNTER_HEIGHT)))
+        approximate = getattr(self.digits, 'last_approximate', False)
+        if quantity is None and getattr(self.digits, 'last_bounds', None) is not None:
+            retry, retry_confidence = self.digits.read(crop(frame, (x, y, w, COUNTER_RETRY_HEIGHT)))
+            if retry is not None:
+                return retry, retry_confidence, getattr(self.digits, 'last_approximate', False)
+        return quantity, confidence, approximate
+
     def read(self, frame, layout_id='currency', slot_ids=None, cached_matches=None):
         self.last_layout_id = layout_id
         slots = self.aligned(frame, layout_id)
@@ -767,8 +800,7 @@ class Scanner:
             match = matches[slot]
             x,y,w,h = rect
             # Read the white stack count independently of icon recognition.
-            quantity, confidence = self.digits.read(crop(frame, (x,y,w,18)))
-            approximate = getattr(self.digits, 'last_approximate', False)
+            quantity, confidence, approximate = self.read_counter(frame, rect)
             ref = self.profiles.data['slots'].get(slot)
             # A dark cell with no counter is empty even when an icon matches it:
             # sparse, dark artwork (Carved Mischief) matches the ghost that views

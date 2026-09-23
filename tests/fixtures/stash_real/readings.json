@@ -392,6 +392,10 @@
     "omen-of-the-blessed",
     1
    ],
+   "RI25": [
+    "omen-of-dextral-crystallisation",
+    2
+   ],
    "RI26": [
     "omen-of-sinistral-crystallisation",
     7
@@ -413,9 +417,7 @@
     1
    ]
   },
-  "count_unreadable": {
-   "RI25": "omen-of-dextral-crystallisation"
-  },
+  "count_unreadable": {},
   "unnamed": []
  }
 }

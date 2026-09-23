@@ -38,7 +38,11 @@ class OCRIntegrationTests(unittest.TestCase):
 
 
 class ScriptedOCR:
-    """Answers each call with the next (text, confidence): full image, raw crop, clean crop."""
+    """Answers each call with the next (text, confidence).
+
+    The order is the full strip; its white pixels alone, only when the full
+    strip showed a K/M or decimal mark; then the raw crop and the clean crop.
+    """
     def __init__(self, *answers):
         self.answers = list(answers)
 
@@ -64,7 +68,7 @@ class AbbreviatedCounterTests(unittest.TestCase):
     """A K/M suffix seen once must never let a truncated number pass as exact."""
 
     def test_suffix_below_the_bar_refuses_agreeing_truncated_crops(self):
-        reader = scripted_reader(('24.7K', .80), ('247', .97), ('247', .96))
+        reader = scripted_reader(('24.7K', .80), ('24.7K', .85), ('247', .97), ('247', .96))
         quantity, _ = reader.read(counter())
         self.assertIsNone(quantity)
         self.assertFalse(reader.last_approximate)
@@ -74,12 +78,12 @@ class AbbreviatedCounterTests(unittest.TestCase):
         self.assertIsNone(reader.read(counter())[0])
 
     def test_a_crop_that_reads_the_suffix_stays_approximate(self):
-        reader = scripted_reader(('24.7K', .80), ('24.7K', .95), ('', 0.0))
+        reader = scripted_reader(('24.7K', .80), ('24.7K', .85), ('24.7K', .95), ('', 0.0))
         self.assertEqual(reader.read(counter())[0], 24_700)
         self.assertTrue(reader.last_approximate)
 
     def test_full_read_above_the_bar_is_approximate(self):
-        reader = scripted_reader(('24.7K', .95))
+        reader = scripted_reader(('24.7K', .95), ('24.7K', .95))
         self.assertEqual(reader.read(counter())[0], 24_700)
         self.assertTrue(reader.last_approximate)
 
@@ -89,7 +93,7 @@ class AbbreviatedCounterTests(unittest.TestCase):
         self.assertFalse(reader.last_approximate)
 
     def test_a_previous_approximate_read_does_not_leak(self):
-        reader = scripted_reader(('24.7K', .95), ('', .1), ('247', .97), ('247', .96))
+        reader = scripted_reader(('24.7K', .95), ('24.7K', .95), ('', .1), ('247', .97), ('247', .96))
         reader.read(counter())
         reader.read(counter())
         self.assertFalse(reader.last_approximate)
@@ -99,3 +103,52 @@ class AbbreviatedCounterTests(unittest.TestCase):
         reader = scripted_reader(('6M', .38), ('6', .99), ('6', .99))
         self.assertEqual(reader.read(counter())[0], 6)
         self.assertFalse(reader.last_approximate)
+
+    def test_a_mark_drawn_by_the_artwork_does_not_refuse_the_count(self):
+        """Omen of Gambling: its gold bag beside `37` read `37M` at 0.58.
+
+        A real mark is white; the strip's white pixels alone read no mark here.
+        """
+        reader = scripted_reader(('37M', .58), ('37', .99), ('37', .99), ('37', .99))
+        self.assertEqual(reader.read(counter())[0], 37)
+        self.assertFalse(reader.last_approximate)
+
+    def test_an_approximate_full_read_needs_a_white_mark(self):
+        """A confident `37M` from artwork must not become 37 million."""
+        reader = scripted_reader(('37M', .95), ('37', .99), ('37', .99), ('37', .99))
+        self.assertEqual(reader.read(counter())[0], 37)
+        self.assertFalse(reader.last_approximate)
+
+
+class CounterRetryTests(unittest.TestCase):
+    """A counter found but not read in the 18 px strip gets a 20 px second read."""
+
+    class Digits:
+        def __init__(self, answers, bounds):
+            self.answers, self.last_bounds, self.heights = list(answers), bounds, []
+            self.last_approximate = False
+
+        def read(self, image):
+            self.heights.append(image.shape[0])
+            return self.answers.pop(0)
+
+    def scanner(self, digits):
+        import tempfile
+        from pathlib import Path
+        from exile_worth.icons import IconMatcher
+        from exile_worth.vision import Profiles, Scanner
+        return Scanner(Profiles(Path(tempfile.mkdtemp())), digits=digits, matcher=IconMatcher({}))
+
+    def test_an_unread_counter_is_read_again_taller(self):
+        digits = self.Digits([(None, .39), (4, .99)], bounds=(8, 8, 9, 10))
+        frame = np.zeros((100, 100, 3), np.uint8)
+        self.assertEqual(self.scanner(digits).read_counter(frame, (10, 10, 57, 57)), (4, .99, False))
+        self.assertEqual(digits.heights, [18, 20])
+
+    def test_a_read_counter_or_no_counter_is_not_read_again(self):
+        frame = np.zeros((100, 100, 3), np.uint8)
+        for answers, bounds in (([(12, .96)], (9, 8, 12, 10)), ([(None, 0.0)], None)):
+            with self.subTest(bounds=bounds):
+                digits = self.Digits(answers, bounds)
+                self.scanner(digits).read_counter(frame, (10, 10, 57, 57))
+                self.assertEqual(digits.heights, [18])

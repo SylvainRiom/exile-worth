@@ -1054,3 +1054,29 @@ not rewrite an entry to match later behaviour, add a new one.
   screenshots of the real window with sample data.
 - Released as 0.2.0.
 - Last validation: **209 tests passed**, `python -m tests.smoke_ui`.
+
+## Omen counters on a tester's capture — 23 September 2026
+
+- Report from a tester through Save the image: on his Ritual tab, Omen of
+  Gambling, Dextral and Sinistral Crystallisation had no quantity. The capture
+  stays local (`data/diagnostics/bug/`), not in the public repository.
+- Gambling `37`: both crops read `37` at 0.999, but the full strip read `37M`
+  at 0.58 from the gold bag beside the digits, above `MARK_CONFIDENCE_MIN`, and
+  the anti-truncation rule refused the count. Raising the threshold again was
+  rejected (genuine marks start at 0.70). A mark on the full strip now needs
+  the strip's white pixels to read one as well: real marks are white.
+- Crystallisation `4` and `4`: glyphs run from row 8–9 to 18–19, and the 18 px
+  strip cut their last rows; a `4` without its foot read `1` below the bar. A
+  per-pixel tint filter, tried first on the idea that the stem had merged with
+  the artwork, changed nothing and was removed. A 20 px strip for every cell
+  read them but broke seven others (22 px: thirteen), by reaching the artwork.
+  The 20 px strip is now only a second read for a counter found but unread.
+- Diffed over all 492 cells of every real capture plus the tester's: six
+  changes, all unreadable before and all checked by eye — Gambling 37, both
+  Crystallisations 4, `R39` 4 and `K10` 2 on the Runes captures, and `RI25` 2
+  on the reference Ritual capture, a known fragility now read. No count lost.
+- The user noted that most stacks stay far below abbreviation (100, 5,000 at
+  most); K/M support stays for the few that do, such as the Verisium `38.3K`.
+- Released as 0.2.1.
+- Last validation: **213 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` with no FAILS and the same 12 TIGHT.
