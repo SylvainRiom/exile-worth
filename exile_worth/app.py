@@ -9,7 +9,7 @@ import time
 import tkinter as tk
 import webbrowser
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
@@ -27,7 +27,7 @@ from .icons import IconMatcher, fetch_icons
 from .vision import Profiles, Scanner, normalize
 from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_slot_count,
                       has_views, layout_family, layout_for_tab, layout_name, aligned_slots)
-from .history_ui import HistoryView
+from .history_ui import HistoryView, LineChart
 from .theme import apply_theme
 from .tables import sorted_rows
 
@@ -55,6 +55,8 @@ class UpdateFailure:
 TAB_ICONS = Path(__file__).with_name('assets') / 'tab_icons'
 # The application's own icon, drawn by tools/make_app_icon.py.
 APP_ICON = Path(__file__).with_name('assets') / 'app.ico'
+# The stash chart's periods, in seconds; None keeps the whole league.
+PERIODS = {'day': 86400, 'week': 7*86400, 'league': None}
 
 
 @dataclass(frozen=True)
@@ -144,7 +146,19 @@ class App(tk.Tk):
         # None means automatic detection; otherwise a layout id, never its label.
         self.layout_override = None
         self.layout_choice.trace_add('write', self.layout_changed)
-        self.detail_title = tk.StringVar(value=t('detail.default_title'))
+        # The stash page shows either the whole stash or one entry of its
+        # list: a registered tab, or the live preview (selected_tab_id None).
+        self.show_all = True
+        self.capture_open = False
+        self.chart_period = 'week'
+        self._valuations = []
+        self.view_title = tk.StringVar(value=t('side.all'))
+        self.view_subtitle = tk.StringVar()
+        self.view_value = tk.StringVar(value='—')
+        self.view_detail = tk.StringVar()
+        self.view_note = tk.StringVar()
+        self.chart_title = tk.StringVar(value=t('chart.title_all'))
+        self.chart_delta = tk.StringVar()
         self.reading_league = None
         self.league = tk.StringVar(value='Forbidden Rites')
         self.unit = tk.StringVar(value='divine')
@@ -237,110 +251,121 @@ class App(tk.Tk):
         ttk.Label(self, textvariable=self.status, wraplength=1240, style='Status.TLabel').pack(fill='x')
         self.stash_pages = ttk.Notebook(self)
         self.stash_pages.pack(fill='both', expand=True, padx=16, pady=(4,12))
-        dashboard = ttk.Frame(self.stash_pages, padding=16)
-        self.detail_page = ttk.Frame(self.stash_pages)
+        dashboard = self.dashboard = ttk.Frame(self.stash_pages, padding=(16,14))
         self.stash_pages.add(dashboard, text=t('page.stash'))
-        self.stash_pages.add(self.detail_page, text=t('page.detail'))
         self.valuation_view = HistoryView(self.stash_pages, self.mark_session)
         self.stash_pages.add(self.valuation_view, text=t('page.history'))
         self.page_keys = [(self.stash_pages, dashboard, 'page.stash'),
-                          (self.stash_pages, self.detail_page, 'page.detail'),
                           (self.stash_pages, self.valuation_view, 'page.history')]
-        ttk.Label(dashboard, textvariable=self.total_title, font=('Segoe UI',14)).pack(anchor='w')
-        ttk.Label(dashboard, textvariable=self.total, font=('Segoe UI',30,'bold')).pack(anchor='w', pady=5)
-        ttk.Label(dashboard, textvariable=self.total_detail, foreground='#a9b8ca', wraplength=1080).pack(anchor='w')
-        self.tr(ttk.Label(dashboard, text='', foreground='#a9b8ca'), 'dash.cards_hint').pack(anchor='w', pady=(4,16))
-        cards_box = ttk.Frame(dashboard)
-        cards_box.pack(fill='x')
-        self.cards_canvas = tk.Canvas(cards_box,bg='#10151e',highlightthickness=0)
-        cards_scroll = ttk.Scrollbar(cards_box,orient='vertical',command=self.cards_canvas.yview)
+        # One page: the stash list on the left, what the chosen entry holds on
+        # the right. "Whole stash" shows the total and every item; a tab shows
+        # its own cells, their corrections and its screenshot.
+        side = ttk.Frame(dashboard, width=300)
+        side.pack(side='left', fill='y')
+        side.pack_propagate(False)
+        self.cards_canvas = tk.Canvas(side, bg='#10151e', highlightthickness=0)
+        cards_scroll = ttk.Scrollbar(side, orient='vertical', command=self.cards_canvas.yview)
         self.cards_canvas.configure(yscrollcommand=auto_hide(cards_scroll, self.cards_canvas))
-        self.cards_canvas.pack(side='left',fill='both',expand=True)
+        self.cards_canvas.pack(side='left', fill='both', expand=True)
         self.cards = ttk.Frame(self.cards_canvas)
-        cards_window = self.cards_canvas.create_window((0,0),window=self.cards,anchor='nw')
-        def cards_changed(event):
-            # The cards take their own height, up to four rows; beyond that
-            # they scroll, so the item table below always keeps its room.
-            self.cards_canvas.configure(scrollregion=self.cards_canvas.bbox('all'),
-                                        height=min(self.cards.winfo_reqheight(), 4*68))
-        self.cards.bind('<Configure>',cards_changed)
-        def resized(event):
-            self.cards_canvas.itemconfigure(cards_window,width=event.width)
-            self.place_cards(event.width)
-        self.cards_canvas.bind('<Configure>',resized)
-        self._card_boxes, self._card_columns = [], 0
-        # The wheel scrolls the dashboard wherever the pointer is over it,
-        # cards included; `all` bindings run after a widget's own ones.
+        self.cards.columnconfigure(0, weight=1)
+        cards_window = self.cards_canvas.create_window((0,0), window=self.cards, anchor='nw')
+        self.cards.bind('<Configure>', lambda event: self.cards_canvas.configure(
+            scrollregion=self.cards_canvas.bbox('all')))
+        self.cards_canvas.bind('<Configure>', lambda event: self.cards_canvas.itemconfigure(
+            cards_window, width=event.width))
+        self._card_boxes = []
+        # The wheel scrolls the list wherever the pointer is over it; `all`
+        # bindings run after a widget's own ones.
         self.bind_all('<MouseWheel>', self.wheel_cards, add='+')
-        # Every item of the stash in one table, most valuable first, so that
-        # what is expensive shows at a glance under the cards.
-        self.tr(ttk.Label(dashboard, text='', foreground='#a9b8ca'), 'dash.items_title').pack(anchor='w', pady=(14,6))
-        self.items_tree = self.make_tree(dashboard, ('col.quantity','col.unit_price','col.value','col.share','col.tabs'),
+        main = ttk.Frame(dashboard, padding=(18,0,0,0))
+        main.pack(side='left', fill='both', expand=True)
+        head = ttk.Frame(main)
+        head.pack(fill='x')
+        names = ttk.Frame(head)
+        names.pack(side='left', anchor='sw')
+        ttk.Label(names, textvariable=self.view_title, font=('Segoe UI',16,'bold')).pack(anchor='w')
+        self.view_subtitle_label = ttk.Label(names, textvariable=self.view_subtitle, foreground='#a9b8ca')
+        self.view_subtitle_label.pack(anchor='w')
+        amounts = ttk.Frame(head)
+        amounts.pack(side='right', anchor='se')
+        ttk.Label(amounts, textvariable=self.view_value, font=('Segoe UI',24,'bold'),
+                  foreground='#83f0b6').pack(anchor='e')
+        ttk.Label(amounts, textvariable=self.view_detail, foreground='#a9b8ca',
+                  wraplength=560, justify='right').pack(anchor='e')
+        ttk.Label(main, textvariable=self.view_note, foreground='#a9b8ca').pack(anchor='w')
+        # The value of the chosen entry over time, from the stored valuations.
+        chart_bar = ttk.Frame(main)
+        chart_bar.pack(fill='x', pady=(10,4))
+        ttk.Label(chart_bar, textvariable=self.chart_title, foreground='#a9b8ca').pack(side='left')
+        self.chart_delta_label = ttk.Label(chart_bar, textvariable=self.chart_delta, font=('Segoe UI',10,'bold'))
+        self.chart_delta_label.pack(side='left', padx=10)
+        self.period_buttons = {}
+        for key in reversed(PERIODS):
+            button = self.tr(ttk.Button(chart_bar, text='', style='Period.TButton',
+                                        command=lambda key=key: self.set_period(key)), 'chart.period_'+key)
+            button.pack(side='right', padx=(4,0))
+            self.period_buttons[key] = button
+        chart = tk.Canvas(main, height=130, background='#17202d', highlightthickness=0)
+        chart.pack(fill='x')
+        self.stash_chart = LineChart(chart, 130, 'chart.empty', self.chart_time)
+        body = ttk.Frame(main)
+        body.pack(fill='both', expand=True, pady=(12,0))
+        # Whole stash: every item in one table, most valuable first.
+        self.all_view = ttk.Frame(body)
+        self.tr(ttk.Label(self.all_view, text='', foreground='#a9b8ca'), 'dash.items_title').pack(anchor='w', pady=(0,6))
+        self.items_tree = self.make_tree(self.all_view, ('col.quantity','col.unit_price','col.value','col.share','col.tabs'),
                                          (90, 100, 110, 70, 260), item_column=280)
         self._sort[self.items_tree] = ('col.value', True)
         for name in self.headings(self.items_tree):
             self.set_heading(self.items_tree, name)
-        body = ttk.Frame(self.detail_page, padding=(16, 0))
-        body.pack(fill='both', expand=True)
-        left = ttk.Frame(body)
-        left.pack(side='left', fill='y')
-        self.canvas = tk.Canvas(left, width=440, height=522, bg='#080c12', highlightthickness=0)
-        self.canvas.pack(fill='both', expand=True)
-        self.preview_scale = 440/645
-        self.canvas.bind('<Configure>', lambda event: self.draw())
-        self.canvas.create_text(258, 260, text=t('detail.canvas_empty'),
-                                fill='#a9b8ca', font=('Segoe UI', 14), justify='center')
-        self.canvas.bind('<ButtonPress-1>', self.mouse_down)
-        self.canvas.bind('<B1-Motion>', self.mouse_drag)
-        self.canvas.bind('<ButtonRelease-1>', self.mouse_up)
-        right = ttk.Frame(body, padding=(14, 0, 0, 0))
-        right.pack(side='left', fill='both', expand=True)
-        ttk.Label(right,textvariable=self.detail_title,font=('Segoe UI',14,'bold')).pack(anchor='w')
-        ttk.Label(right, textvariable=self.total_title, foreground='#a9b8ca').pack(anchor='w')
-        ttk.Label(right, textvariable=self.total, font=('Segoe UI', 24, 'bold')).pack(anchor='w')
-        ttk.Label(right, textvariable=self.total_detail,
-                  wraplength=540, foreground='#a9b8ca').pack(anchor='w')
-        ttk.Label(right, textvariable=self.preview_total, wraplength=540).pack(anchor='w', pady=(4, 10))
-        notebook = ttk.Notebook(right)
-        notebook.pack(fill='both', expand=True)
-        detection = ttk.Frame(notebook)
-        inventory = ttk.Frame(notebook)
-        history = ttk.Frame(notebook)
-        corrections = ttk.Frame(notebook, padding=14)
-        notebook.add(detection, text=t('tab.detection'))
-        notebook.add(inventory, text=t('tab.inventory'))
-        notebook.add(history, text=t('tab.history'))
-        notebook.add(corrections, text=t('tab.corrections'))
-        self.page_keys += [(notebook, detection, 'tab.detection'), (notebook, inventory, 'tab.inventory'),
-                           (notebook, history, 'tab.history'), (notebook, corrections, 'tab.corrections')]
-        ttk.Label(detection, textvariable=self.recognition_status, style='Muted.TLabel',
-                  wraplength=650, padding=(10,10)).pack(fill='x')
+        # One tab: its cells, a panel explaining and correcting the chosen
+        # line, and the screenshot on demand.
+        self.tab_view = ttk.Frame(body)
+        ttk.Label(self.tab_view, textvariable=self.recognition_status, style='Muted.TLabel',
+                  wraplength=900).pack(fill='x', pady=(0,6))
+        columns = ttk.Frame(self.tab_view)
+        columns.pack(fill='both', expand=True)
+        right = ttk.Frame(columns, width=340)
+        right.pack(side='right', fill='y', padx=(14,0))
+        right.pack_propagate(False)
+        table = ttk.Frame(columns)
+        table.pack(side='left', fill='both', expand=True)
         # Cell ids (L11, E22…) stay internal: rows are keyed by them, never shown.
         # No state column: a normal line carries no mark, a line being confirmed
         # is grey, one that needs attention is amber with a ⚠, and the selected
-        # line's explanation appears below the table.
-        self.read_notes = {}
-        self.read_note = tk.StringVar(value=t('note.legend'))
-        self.read_note_label = ttk.Label(detection, textvariable=self.read_note, style='Muted.TLabel',
-                                         wraplength=650, padding=(10,0,10,8))
-        self.read_note_label.pack(fill='x')
-        self.read_tree = self.make_tree(detection, ('col.quantity','col.value'),
-                                        (120, 110), item_column=300)
+        # line's explanation appears in the panel beside the table.
+        self.read_tree = self.make_tree(table, ('col.quantity','col.unit_price','col.value','col.share'),
+                                        (130, 90, 90, 70), item_column=260)
         self.read_tree.tag_configure('pending', foreground='#8a97a8')
         self.read_tree.tag_configure('attention', foreground='#ffcf70')
         self.read_tree.bind('<<TreeviewSelect>>', self.select_tree)
-        ttk.Label(corrections, textvariable=self.slot_status, wraplength=530).pack(fill='x', pady=5)
-        self.item_box = ttk.Combobox(corrections, textvariable=self.item_choice, state='readonly')
+        panel = ttk.Frame(right, style='Panel.TFrame', padding=14)
+        panel.pack(fill='x')
+        self.read_notes = {}
+        self.read_note = tk.StringVar(value=t('note.legend'))
+        self.read_note_label = ttk.Label(panel, textvariable=self.read_note, style='Panel.TLabel', wraplength=300)
+        self.read_note_label.pack(fill='x')
+        # The correction controls show once a line or a cell is chosen.
+        self.fix_controls = ttk.Frame(panel, style='Panel.TFrame')
+        ttk.Label(self.fix_controls, textvariable=self.slot_status, style='Panel.TLabel',
+                  foreground='#a9b8ca', wraplength=300).pack(fill='x', pady=(10,4))
+        self.item_box = ttk.Combobox(self.fix_controls, textvariable=self.item_choice, state='readonly')
         self.item_box.pack(fill='x', pady=4)
-        row = ttk.Frame(corrections)
+        row = ttk.Frame(self.fix_controls, style='Panel.TFrame')
         row.pack(fill='x')
         self.tr(ttk.Button(row, text='', command=lambda: self.calibrate(False)), 'fix.correct_icon').pack(side='left')
         self.tr(ttk.Button(row, text='', command=lambda: self.calibrate(True)), 'fix.learn_empty').pack(side='left', padx=4)
-        self.tr(ttk.Button(corrections, text='', command=self.correct), 'fix.correct_quantity').pack(fill='x', pady=6)
-        self.tr(ttk.Label(corrections, text='', wraplength=530, foreground='#a9b8ca'), 'fix.hint').pack(fill='x', pady=6)
-        self.inventory_tree = self.make_tree(inventory, ('col.tab','col.quantity','col.last_read'),
-                                             (100, 55, 150), item_column=185)
-        self.history_tree = self.make_tree(history, ('col.date','col.tab','col.saved_cells'), (160, 150, 140))
+        self.tr(ttk.Button(self.fix_controls, text='', command=self.correct), 'fix.correct_quantity').pack(fill='x', pady=(6,0))
+        self.capture_toggle = ttk.Button(right, text=t('capture.show'), command=self.toggle_capture)
+        self.capture_toggle.pack(anchor='w', pady=(12,6))
+        # Packed only while the screenshot is shown (`toggle_capture`).
+        self.canvas = tk.Canvas(right, width=320, height=380, bg='#080c12', highlightthickness=0)
+        self.preview_scale = 320/645
+        self.canvas.bind('<Configure>', lambda event: self.draw())
+        self.canvas.bind('<ButtonPress-1>', self.mouse_down)
+        self.canvas.bind('<B1-Motion>', self.mouse_drag)
+        self.canvas.bind('<ButtonRelease-1>', self.mouse_up)
         self.tr(ttk.Label(self, text='', foreground='#a9b8ca', padding=12), 'app.footer').pack(anchor='w')
 
     def layout_values(self):
@@ -368,10 +393,7 @@ class App(tk.Tk):
         self.layout_box.configure(values=self.layout_values())
         self.layout_choice.set(layout_name(self.layout_override) if self.layout_override else t('layout.auto'))
         self.valuation_view.retranslate()
-        if self.selected_tab_id is None and self.frame is None:
-            self.canvas.delete('all')
-            self.canvas.create_text(258, 260, text=t('detail.canvas_empty'),
-                                    fill='#a9b8ca', font=('Segoe UI', 14), justify='center')
+        self.capture_toggle.configure(text=t('capture.hide' if self.capture_open else 'capture.show'))
         key, fields = self._update_text
         self.show_update_text(key, **fields)
         self.refresh_capture_state()
@@ -502,6 +524,7 @@ class App(tk.Tk):
         self.last_tab = None
         self.last_scan_synced = False
         self.selected_tab_id = None
+        self.show_all = True
         self.last_readings = []
         self.provisional_readings = []
         self.reading_league = None
@@ -548,7 +571,9 @@ class App(tk.Tk):
         self.active_layout_id = None
         self.last_tab = None
         self.last_scan_synced = False
+        # A new screenshot is shown at once: its reading, its corrections.
         self.selected_tab_id = None
+        self.show_all = False
         self.last_readings = []
         self.reading_league = None
         self.show_readings([])
@@ -558,11 +583,15 @@ class App(tk.Tk):
         self.after_idle(self.analyze)
 
     def draw(self):
+        # The screenshot is folded away by default; nothing to draw then.
+        if not self.capture_open:
+            return
         frame = self.tab_frames.get(self.selected_tab_id) if self.selected_tab_id else self.frame
         if frame is None:
             self.canvas.delete('all')
-            self.canvas.create_text(258,260,text=t('detail.canvas_no_image'),
-                                    fill='#a9b8ca',font=('Segoe UI',13),justify='center')
+            self.canvas.create_text(max(self.canvas.winfo_width(), 2)//2, max(self.canvas.winfo_height(), 2)//2,
+                                    text=t('detail.canvas_no_image'), fill='#a9b8ca',
+                                    font=('Segoe UI',12), justify='center')
             return
         self.preview_scale = min(max(self.canvas.winfo_width(), 2)/645, max(self.canvas.winfo_height(), 2)/765)
         preview = cv2.cvtColor(frame[:765, :645], cv2.COLOR_BGR2RGB)
@@ -633,12 +662,40 @@ class App(tk.Tk):
     def select_slot(self, slot):
         self.selected_slot = slot
         entry = self.profiles.data['slots'].get(slot, {})
-        detected = next((r.item for r in self.last_readings if r.slot == slot and r.item), entry.get('item'))
-        self.slot_status.set(t('fix.slot_selected', name=self.item_name(detected)))
+        # The line shown, which is a stored cell when a saved tab is open.
+        detected = next((r.item for r in self.display_readings() if r.slot == slot and r.item), entry.get('item'))
+        # Corrections apply to the screenshot being read, never to a stored tab.
+        self.slot_status.set(t('fix.slot_selected', name=self.item_name(detected)) if self.showing_live()
+                             else t('fix.need_preview'))
         for label, item in getattr(self, 'choices', {}).items():
             if item == detected:
                 self.item_choice.set(label)
+        self.show_fix(True)
+        # A cell clicked on the screenshot selects its line too.
+        if self.read_tree.exists(slot) and self.read_tree.selection() != (slot,):
+            self.read_tree.selection_set(slot)
         self.draw()
+
+    def show_fix(self, shown):
+        """The correction controls, beside the table once a line is chosen."""
+        if shown and not self.fix_controls.winfo_manager():
+            self.fix_controls.pack(fill='x')
+        elif not shown and self.fix_controls.winfo_manager():
+            self.fix_controls.pack_forget()
+
+    def toggle_capture(self):
+        """Show or fold the screenshot with its cells; folded by default."""
+        self.capture_open = not self.capture_open
+        self.capture_toggle.configure(text=t('capture.hide' if self.capture_open else 'capture.show'))
+        if self.capture_open:
+            self.canvas.pack(fill='both', expand=True)
+            self.draw()
+        else:
+            self.canvas.pack_forget()
+
+    def set_period(self, key):
+        self.chart_period = key
+        self.refresh_chart()
 
     def calibrate(self, empty):
         if self.selected_tab_id:
@@ -787,18 +844,32 @@ class App(tk.Tk):
                 if tab == self.selected_tab_id]
 
     def open_stash(self, tab_id):
+        """Show one entry of the stash list: a registered tab, or the live preview (None)."""
+        self.show_all = False
         self.selected_tab_id = tab_id
         self.selected_slot = None
-        tab = next((t for t in self.profiles.data['tabs'] if t['id']==tab_id),None)
-        self.detail_title.set(f'{tab["name"]} · {layout_name(self.display_layout().id)}'
-                              + (' · ' + t('dash.live_badge') if tab_id == self.live_tab_id() else '')
-                              if tab else t('detail.live_preview'))
-        self.show_readings(self.display_readings())
+        self.stash_pages.select(self.dashboard)
+        self.refresh_inventory()
         self.draw()
-        self.stash_pages.select(self.detail_page)
+
+    def select_all(self):
+        """Show the whole stash: its total and every item."""
+        self.show_all = True
+        self.selected_slot = None
+        self.refresh_inventory()
+
+    def shown_tab_id(self):
+        """The registered tab whose contents the page shows, if any.
+
+        The live preview entry becomes the live tab once tracking synchronises
+        one: that tab's entry is then the live view.
+        """
+        if self.show_all:
+            return None
+        return self.selected_tab_id or self.live_tab_id()
 
     def wheel_cards(self, event):
-        """Scroll the cards when the pointer is over them and they overflow."""
+        """Scroll the stash list when the pointer is over it and it overflows."""
         widget = self.winfo_containing(event.x_root, event.y_root)
         if widget is None or not str(widget).startswith(str(self.cards_canvas)):
             return
@@ -806,32 +877,45 @@ class App(tk.Tk):
             return
         self.cards_canvas.yview_scroll(-1 if event.delta > 0 else 1, 'units')
 
-    def place_cards(self, width=None):
-        """As many card columns as the width allows, so the stash fits at a glance."""
-        width = width or self.cards_canvas.winfo_width()
-        columns = max(1, min(6, width // 290))
-        if columns != self._card_columns:
-            for column in range(max(columns, self._card_columns)):
-                self.cards.columnconfigure(column, weight=1 if column < columns else 0,
-                                           uniform='cards' if column < columns else '')
-            self._card_columns = columns
-        for index, box in enumerate(self._card_boxes):
-            box.grid(row=index//columns, column=index%columns, sticky='nsew', padx=4, pady=4)
-
     @staticmethod
     def card_time(stamp):
         """A stored UTC stamp as local time; the date only when it is not today."""
         moment = datetime.fromisoformat(stamp).astimezone()
         return moment.strftime('%H:%M' if moment.date() == datetime.now().date() else '%d/%m %H:%M')
 
-    def refresh_cards(self, rows, prices, unit):
+    def tab_summary(self, tab, rows, prices, unit):
+        """A registered tab's stored cells, their estimate and what is missing."""
+        league = self.league.get().strip()
+        entries = [r for r in rows if r[0] == tab['id']]
+        estimate = estimate_readings([Reading(r[1], r[2], r[3]) for r in entries], prices, unit)
+        # Read and known to be empty is not unread: without this a fully
+        # scanned tab would claim to be partial forever.
+        confirmed_empty = sum(1 for tab_id, _slot in self.store.empty_slots(league) if tab_id == tab['id'])
+        unread = max(0, expected_slot_count(tab)-len(entries)-confirmed_empty)
+        uncertain = sum(bool(r[5]) for r in entries)
+        missing = []
+        if unread or uncertain:
+            missing.append(t('dash.card_to_check', count=unread+uncertain))
+        if estimate.unpriced:
+            missing.append(t('dash.card_unpriced', count=estimate.unpriced))
+        approximate = self.store.approximate_slots(league)
+        if any((r[0], r[1]) in approximate for r in entries):
+            missing.append(t('dash.card_abbreviated'))
+        return entries, estimate, missing
+
+    def refresh_cards(self, rows, prices, unit, total):
+        """The stash list: the whole stash, one line per tab, then the preview.
+
+        `total` is the whole stash's amount text and what it misses.
+        """
         for child in self.cards.winfo_children():
             child.destroy()
         self._card_boxes = []
         symbol = 'div' if unit=='divine' else unit
-        def card(tab_id,title,amount,facts,layout_id=None,live=False):
+        shown = self.shown_tab_id()
+        def card(action,title,amount,facts,layout_id=None,live=False,selected=False):
             """Two lines: icon, name and value; then the type and what is missing."""
-            kind = 'Live' if live else 'Card'
+            kind = ('LiveSelected' if selected else 'Live') if live else ('Selected' if selected else 'Card')
             box = ttk.Frame(self.cards,padding=(12,8),style=f'{kind}.TFrame',cursor='hand2')
             box.columnconfigure(1,weight=1)
             icon = self.tab_icon(layout_id)
@@ -842,7 +926,7 @@ class App(tk.Tk):
             widgets.append(ttk.Label(box,text=title,font=('Segoe UI',11,'bold'),foreground='#e7edf6',
                                      style=f'{kind}.TLabel'))
             widgets[-1].grid(row=0,column=1,sticky='w')
-            widgets.append(ttk.Label(box,text=amount,font=('Segoe UI',12,'bold'),foreground='#83f0b6',
+            widgets.append(ttk.Label(box,text=amount,font=('Segoe UI',11,'bold'),foreground='#83f0b6',
                                      style=f'{kind}.TLabel'))
             widgets[-1].grid(row=0,column=2,sticky='e',padx=(8,0))
             if live:
@@ -850,52 +934,151 @@ class App(tk.Tk):
             widgets.append(ttk.Label(box,text=' · '.join(facts),font=('Segoe UI',9),wraplength=250,
                                      foreground='#7ee2c0' if live else '#a9b8ca',style=f'{kind}.TLabel'))
             widgets[-1].grid(row=1,column=1,columnspan=2,sticky='w')
+            # Rebuilding the list destroys the clicked widget: run it after
+            # the click's own bindings have finished.
             for widget in widgets:
-                widget.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
+                widget.bind('<Button-1>',lambda event: self.after_idle(action))
+            box.grid(row=len(self._card_boxes),column=0,sticky='ew',pady=2)
             self._card_boxes.append(box)
-        preview_readings = self.last_readings if self.reading_league==self.league.get().strip() else []
-        preview = estimate_readings(preview_readings,prices,unit)
-        amount = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
-        # The preview names the tab being read, so the user can tell which card
-        # the live readings are feeding; an unidentified tab says so.
-        layout = layout_name(self.active_layout_id or 'unknown')
-        title, subtitle = ((self.last_tab['name'], t('detail.live_preview_of', layout=layout)) if self.last_tab
-                           else (t('dash.preview_card'), t('dash.preview_unidentified', layout=layout)))
+        league = self.league.get().strip()
+        tabs = [t for t in self.profiles.data['tabs'] if t['league']==league]
+        amount, missing = total
+        card(self.select_all, t('side.all'), amount, [t('side.all_facts', tabs=len(tabs))] + missing,
+             selected=self.show_all)
         live = self.live_tab_id()
-        # Nothing read yet (at start-up, after a league change): no preview card.
-        if live is None and preview_readings:
-            facts = [subtitle, t('dash.card_screenshot')]
-            if preview.unread:
-                facts.append(t('dash.card_to_check', count=preview.unread))
-            if preview.unpriced:
-                facts.append(t('dash.card_unpriced', count=preview.unpriced))
-            card(None,title,amount,facts,self.active_layout_id)
-        tabs = [t for t in self.profiles.data['tabs'] if t['league']==self.league.get().strip()]
-        approximate = self.store.approximate_slots(self.league.get().strip())
-        empty = self.store.empty_slots(self.league.get().strip())
         for tab in tabs:
-            entries = [r for r in rows if r[0]==tab['id']]
-            estimate = estimate_readings([Reading(r[1],r[2],r[3]) for r in entries],prices,unit)
+            entries, estimate, missing = self.tab_summary(tab, rows, prices, unit)
             amount = f'≈ {estimate.amount:,.2f} {symbol}' if estimate.amount is not None else '—'
-            expected_slots = expected_slot_count(tab)
-            # Read and known to be empty is not unread: without this the card of a
-            # fully scanned tab would claim to be partial forever.
-            confirmed_empty = sum(1 for tab_id,_slot in empty if tab_id == tab['id'])
-            unread = max(0, expected_slots-len(entries)-confirmed_empty)
-            uncertain = sum(bool(r[5]) for r in entries)
             # A Runes tab being read names the view on screen, not the family.
             layout_id = (self.active_layout_id if tab['id'] == live and self.active_layout_id
                          else layout_for_tab(tab).id)
             facts = [layout_name(layout_id),
                      self.card_time(max(r[4] for r in entries)) if entries else t('dash.card_never')]
-            if unread or uncertain:
-                facts.append(t('dash.card_to_check', count=unread+uncertain))
-            if estimate.unpriced:
-                facts.append(t('dash.card_unpriced', count=estimate.unpriced))
-            if any((r[0],r[1]) in approximate for r in entries):
-                facts.append(t('dash.card_abbreviated'))
-            card(tab['id'],tab['name'],amount,facts,layout_id,live=tab['id'] == live)
-        self.place_cards()
+            card(lambda tab_id=tab['id']: self.open_stash(tab_id), tab['name'], amount, facts + missing,
+                 layout_id, live=tab['id'] == live, selected=tab['id'] == shown)
+        # The preview holds readings no tab holds: an unidentified tab or an
+        # imported screenshot. It is never added to the total, and there is
+        # none before anything is read (start-up, league change).
+        preview_readings = self.last_readings if self.reading_league==league else []
+        if live is None and preview_readings:
+            preview = estimate_readings(preview_readings,prices,unit)
+            amount = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
+            title, subtitle = self.preview_names()
+            facts = [subtitle, t('dash.card_screenshot')]
+            if preview.unread:
+                facts.append(t('dash.card_to_check', count=preview.unread))
+            if preview.unpriced:
+                facts.append(t('dash.card_unpriced', count=preview.unpriced))
+            card(lambda: self.open_stash(None), title, amount, facts, self.active_layout_id,
+                 selected=not self.show_all and shown is None)
+
+    def preview_names(self):
+        """The preview's title and subtitle.
+
+        It names the tab being read, so the user can tell which tab the live
+        readings are feeding; an unidentified tab says so.
+        """
+        layout = layout_name(self.active_layout_id or 'unknown')
+        return ((self.last_tab['name'], t('detail.live_preview_of', layout=layout)) if self.last_tab
+                else (t('dash.preview_card'), t('dash.preview_unidentified', layout=layout)))
+
+    def refresh_view(self, rows, prices, unit):
+        """The header and body of the chosen entry: whole stash, a tab, or the preview."""
+        symbol = 'div' if unit == 'divine' else unit
+        wanted, other = (self.all_view, self.tab_view) if self.show_all else (self.tab_view, self.all_view)
+        if other.winfo_manager():
+            other.pack_forget()
+        if not wanted.winfo_manager():
+            wanted.pack(fill='both', expand=True)
+        live = self.live_tab_id()
+        shown = self.shown_tab_id()
+        tab = next((p for p in self.profiles.data['tabs'] if p['id'] == shown), None)
+        subtitle_colour = '#a9b8ca'
+        if self.show_all:
+            self.view_title.set(t('side.all'))
+            self.view_subtitle.set(self.total_title.get())
+            self.view_value.set(self.total.get())
+            self.view_detail.set(self.total_detail.get())
+            self.view_note.set(self.preview_total.get())
+        elif tab:
+            entries, estimate, missing = self.tab_summary(tab, rows, prices, unit)
+            stash = estimate_readings([Reading(r[1], r[2], r[3]) for r in rows], prices, unit).amount
+            self.view_title.set(tab['name'])
+            when = (t('dash.live_badge') if shown == live else
+                    t('view.read_at', time=self.card_time(max(r[4] for r in entries))) if entries
+                    else t('dash.card_never'))
+            self.view_subtitle.set(f'{layout_name(self.display_layout().id)} · {when}')
+            if shown == live:
+                subtitle_colour = '#7ee2c0'
+            self.view_value.set(f'≈ {estimate.amount:,.2f} {symbol}' if estimate.amount is not None else '—')
+            share = ([t('view.share', share=f'{100*estimate.amount/stash:.0f} %')]
+                     if estimate.amount is not None and stash else [])
+            self.view_detail.set(' · '.join(share + missing))
+            self.view_note.set('')
+        else:
+            league = self.league.get().strip()
+            readings = self.last_readings if self.reading_league == league else []
+            preview = estimate_readings(readings, prices, unit)
+            title, subtitle = self.preview_names()
+            self.view_title.set(title)
+            self.view_subtitle.set(subtitle)
+            self.view_value.set(f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—')
+            missing = []
+            if preview.unread:
+                missing.append(t('dash.card_to_check', count=preview.unread))
+            if preview.unpriced:
+                missing.append(t('dash.card_unpriced', count=preview.unpriced))
+            self.view_detail.set(' · '.join(missing))
+            self.view_note.set(t('view.preview_note') + ('' if self.last_tab else ' ' + t('dash.auto_add_hint')))
+        self.view_subtitle_label.configure(foreground=subtitle_colour)
+        self.refresh_chart()
+
+    @staticmethod
+    def chart_time(moment):
+        return moment.astimezone().strftime('%d/%m %H:%M')
+
+    def refresh_chart(self):
+        """The chosen entry's value over the chosen period, from stored valuations.
+
+        A point keeps the prices it was valued with, so the curve moves with
+        the stock and with the market alike; the history page separates them.
+        """
+        unit = self.unit.get()
+        symbol = 'div' if unit == 'divine' else unit
+        for key, button in self.period_buttons.items():
+            button.configure(style='PeriodOn.TButton' if key == self.chart_period else 'Period.TButton')
+        shown = self.shown_tab_id()
+        self.chart_title.set(t('chart.title_all' if self.show_all else 'chart.title_tab'))
+        self.chart_delta.set('')
+        if not self.show_all and shown is None:
+            self.stash_chart.empty_key = 'chart.none_preview'
+            self.stash_chart.show([], [], symbol)
+            return
+        self.stash_chart.empty_key = 'chart.empty'
+        span = PERIODS[self.chart_period]
+        now = datetime.now(timezone.utc)
+        times, values = [], []
+        for point in self._valuations:
+            moment = datetime.fromisoformat(point['time'])
+            if span and (now-moment).total_seconds() > span:
+                continue
+            amount = (point['amount'] if self.show_all
+                      else point.get('tabs', {}).get(shown, {}).get('amount'))
+            # Stored amounts are in divines, at the point's own rates.
+            divine, rate = point['prices'].get('divine'), point['prices'].get(unit)
+            times.append(moment)
+            values.append(amount*divine/rate if amount is not None and divine and rate else None)
+        valid = [v for v in values if v is not None]
+        if len(valid) < 2:
+            self.stash_chart.show([], [], symbol)
+            return
+        self.stash_chart.show(times, values, symbol)
+        change = valid[-1]-valid[0]
+        text = f"{'+' if change >= 0 else '−'}{abs(change):,.2f} {symbol}"
+        if valid[0] > 0:
+            text += f" ({'+' if change >= 0 else '−'}{100*abs(change)/valid[0]:.0f} %)"
+        self.chart_delta.set(text)
+        self.chart_delta_label.configure(foreground='#83f0b6' if change >= 0 else '#ff9c8a')
 
     def refresh_items(self, rows, approximate, prices, unit):
         """One line per item across every tab: quantity, unit price, value, share.
@@ -1042,7 +1225,9 @@ class App(tk.Tk):
         provisional = {r.slot:r for r in self.provisional_readings} if self.showing_live() else {}
         unit = self.unit.get()
         prices = self.market['prices'] if self.league.get().strip() == self.market_league else {}
-        self.set_heading(self.read_tree, 'col.value', t('col.value_unit', unit='div' if unit == 'divine' else unit))
+        symbol = 'div' if unit == 'divine' else unit
+        self.set_heading(self.read_tree, 'col.unit_price', t('col.unit_price', unit=symbol))
+        self.set_heading(self.read_tree, 'col.value', t('col.value_unit', unit=symbol))
         identified = sum(bool(r.item) for r in readings)
         ambiguous = sum(bool(r.alternatives) and not r.item for r in readings)
         self.recognition_status.set(
@@ -1057,6 +1242,7 @@ class App(tk.Tk):
         confirmed = ({slot: (item, quantity) for tab, slot, item, quantity, _stamp, _uncertain
                       in self.store.rows(league) if tab == live} if live else {})
         abbreviated = self.store.approximate_slots(league) if live else set()
+        lines = []
         for index,r in enumerate(readings):
             value = line_value(r.item, r.quantity, prices, unit)
             candidate = provisional.get(r.slot)
@@ -1087,11 +1273,18 @@ class App(tk.Tk):
             if shown_approximate or (fallback and (live, r.slot) in abbreviated):
                 notes.append(t('note.abbreviated'))
             self.read_notes[r.slot] = ' '.join(notes)
+            lines.append((r, index, attention, waiting, quantity_text, value))
+        # A line's share of what this tab's valued lines add up to.
+        total = sum(line[5] for line in lines if line[5] is not None)
+        for r, index, attention, waiting, quantity_text, value in lines:
+            each = line_value(r.item, 1, prices, unit)
             self.read_tree.insert('', 'end', iid=r.slot, image=self.item_icon(r.item, r.alternatives),
                                   text=' '+self.reading_name(r)+('  ⚠' if attention else ''),
                                   tags=(('attention',) if attention else ('pending',) if waiting else ())
                                        + ('odd' if index%2 else 'even',),
-                                  values=(quantity_text, '—' if value is None else f'{value:.3f}'))
+                                  values=(quantity_text, '—' if each is None else f'{each:,.3f}',
+                                          '—' if value is None else f'{value:.3f}',
+                                          '—' if value is None or not total else f'{100*value/total:.1f} %'))
         self.apply_sort(self.read_tree)
         # The table is rebuilt on every live reading; keep the chosen line.
         if self.selected_slot and self.read_tree.exists(self.selected_slot):
@@ -1105,6 +1298,8 @@ class App(tk.Tk):
         attention = slot is not None and 'attention' in self.read_tree.item(slot, 'tags')
         self.read_note.set(self.read_notes.get(slot, '') if slot else t('note.legend'))
         self.read_note_label.configure(foreground='#ffcf70' if attention else '#b0bfd2')
+        # A cell chosen on the screenshot keeps its controls without a line.
+        self.show_fix(bool(slot or self.selected_slot))
 
     def item_name(self, item):
         return self.market['items'].get(item, {}).get('name', item or t('item.unknown'))
@@ -1155,30 +1350,27 @@ class App(tk.Tk):
         if (approximate_slots if rows else any(r.approximate for r in readings)):
             self.total_detail.set(self.total_detail.get()+t('dash.abbreviated_suffix'))
         self.show_readings(self.display_readings())
-        self.refresh_cards(rows,prices,unit)
         self.refresh_items(rows if rows else [(None, r.slot, r.item, r.quantity, '', 0) for r in readings
                                               if r.item and r.quantity is not None],
                            approximate_slots if rows else {(None, r.slot) for r in readings if r.approximate},
                            prices, unit)
-        self.inventory_tree.delete(*self.inventory_tree.get_children())
-        names = {t['id']:t['name'] for t in self.profiles.data['tabs']}
-        for tab,slot,item,quantity,stamp,stale in rows:
-            self.inventory_tree.insert('', 'end', image=self.item_icon(item), text=' '+self.item_name(item),
-                                       values=(names.get(tab,tab),
-                                       f'≈ {quantity:,}' if (tab,slot) in approximate_slots else quantity,
-                                       stamp[11:19]+' UTC'+(' · '+t('reason.to_check') if stale else '')))
-        self.history_tree.delete(*self.history_tree.get_children())
-        for stamp,tab,snapshot in self.store.history(league):
-            self.history_tree.insert('', 'end', values=(stamp,names.get(tab,tab),len(json.loads(snapshot))))
-        self.apply_sort(self.inventory_tree)
-        self.apply_sort(self.history_tree)
         self.record_valuation()
+        names = {t['id']:t['name'] for t in self.profiles.data['tabs']}
         latest = self.store.db.execute('SELECT MAX(id) FROM valuations WHERE league=?', (league,)).fetchone()[0]
         history_key = (league, latest, tuple(names.items()))
         if getattr(self, '_history_key', None) != history_key:
             self._history_key = history_key
-            self.valuation_view.refresh(self.store.valuations(league), names, self.store.active_session(league),
+            self._valuations = self.store.valuations(league)
+            self.valuation_view.refresh(self._valuations, names, self.store.active_session(league),
                                         self.store.last_completed_session(league))
+        overview = []
+        if unread or uncertain:
+            overview.append(t('dash.card_to_check', count=unread+uncertain))
+        if missing:
+            overview.append(t('dash.card_unpriced', count=missing))
+        self.refresh_cards(rows, prices, unit,
+                           (f'≈ {amount:,.2f} {symbol}' if amount is not None else '—', overview))
+        self.refresh_view(rows, prices, unit)
         if self.market_league == league:
             stamp = datetime.fromtimestamp(self.market['fetched']).strftime('%d/%m %H:%M')
             age = t('status.prices_expired') if time.time()-self.market['fetched'] > 7200 or self.market['stale'] else ''
@@ -1294,13 +1486,7 @@ class App(tk.Tk):
                     self.active_layout_id = scan.layout_id
                     if tab:
                         self.tab_frames[tab['id']] = scan.frame.copy()
-                    if self.showing_live() and self.selected_tab_id:
-                        self.detail_title.set(f'{tab["name"]} · {layout_name(self.display_layout().id)} · '
-                                              + t('dash.live_badge'))
-                    elif not self.selected_tab_id:
-                        layout = layout_name(self.active_layout_id or 'unknown')
-                        self.detail_title.set(t('detail.live_preview_tab', name=tab['name'], layout=layout) if tab
-                                              else t('detail.live_preview_of', layout=layout))
+                    # The header follows through refresh_inventory below.
                     self.show_readings(self.display_readings())
                     self.draw()
                     if kind == 'live' and tab:

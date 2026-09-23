@@ -8,6 +8,8 @@ MUTED = '#b0bfd2'
 ACCENT = '#7ee2c0'
 LIVE = '#173229'
 UPDATE = '#1d3350'
+SELECTED = '#2a3b54'
+LIVE_SELECTED = '#1f4a38'
 
 
 def apply_theme(root):
@@ -27,6 +29,16 @@ def apply_theme(root):
     # The card of the tab the live loop is synchronising.
     style.configure('Live.TFrame', background=LIVE, relief='flat')
     style.configure('Live.TLabel', background=LIVE, foreground=TEXT)
+    # The entry of the stash list whose contents are shown on the right.
+    style.configure('Selected.TFrame', background=SELECTED, relief='flat')
+    style.configure('Selected.TLabel', background=SELECTED, foreground=TEXT)
+    style.configure('LiveSelected.TFrame', background=LIVE_SELECTED, relief='flat')
+    style.configure('LiveSelected.TLabel', background=LIVE_SELECTED, foreground=TEXT)
+    # A side panel, and the chart's period buttons (the chosen one is lit).
+    style.configure('Panel.TFrame', background=SURFACE)
+    style.configure('Panel.TLabel', background=SURFACE, foreground=TEXT)
+    style.configure('Period.TButton', background=BG, foreground=MUTED, padding=(10,4))
+    style.configure('PeriodOn.TButton', background='#2a3b54', foreground=TEXT, padding=(10,4))
     style.configure('TLabel', background=BG, foreground=TEXT)
     style.configure('TCheckbutton', background=BG, foreground=TEXT, indicatorbackground=SURFACE,
                     indicatorforeground=ACCENT, focusthickness=0)

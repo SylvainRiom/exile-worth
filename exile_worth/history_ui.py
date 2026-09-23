@@ -25,6 +25,74 @@ def quality(point, prices=None):
         (t('history.quality_stale') if point['stale'] else '')
 
 
+class LineChart:
+    """A value over time on a Tk canvas, with a readout under the pointer.
+
+    The history page and the stash page's small chart share it. A `None` value
+    breaks the line: the point had no price basis.
+    """
+    def __init__(self, canvas, height, empty_key, stamp_text, on_click=None):
+        self.canvas, self.height, self.empty_key = canvas, height, empty_key
+        self.stamp_text, self.on_click = stamp_text, on_click
+        self.times, self.values, self.unit, self.points = [], [], 'div', []
+        canvas.bind('<Configure>', lambda event: self.draw())
+        canvas.bind('<Motion>', self.hover)
+        canvas.bind('<Leave>', lambda event: canvas.delete('hover'))
+
+    def show(self, times, values, unit):
+        self.times, self.values, self.unit = list(times), list(values), unit
+        self.draw()
+
+    def draw(self):
+        canvas = self.canvas
+        canvas.delete('all')
+        self.points = []
+        valid = [v for v in self.values if v is not None]
+        if not valid:
+            canvas.create_text(20, self.height//2, anchor='w', fill='#a9b8ca', text=t(self.empty_key))
+            return
+        width, height = max(canvas.winfo_width(), 300), self.height
+        low, high = min(valid), max(valid)
+        span = high-low or max(abs(high)*.1, 1)
+        stamps = [moment.timestamp() for moment in self.times]
+        duration = stamps[-1]-stamps[0]
+        previous = None
+        for index, value in enumerate(self.values):
+            if value is None:
+                previous = None
+                continue
+            x = 85+(width-115)*((stamps[index]-stamps[0])/duration if duration else index/max(len(self.values)-1, 1))
+            y = height-28-(height-46)*(value-low)/span
+            if previous:
+                canvas.create_line(*previous, x, y, fill='#83f0b6', width=2)
+            dot = canvas.create_oval(x-3, y-3, x+3, y+3, fill='#83f0b6', outline='')
+            if self.on_click:
+                canvas.tag_bind(dot, '<Button-1>', lambda event, i=index: self.on_click(i))
+            self.points.append((x, y, index))
+            previous = (x, y)
+        for y, label in [(12, f'{high:,.2f} {self.unit}'), (height-28, f'{low:,.2f} {self.unit}')]:
+            canvas.create_text(5, y, anchor='w', fill='#a9b8ca', text=label)
+        canvas.create_text(85, height-9, anchor='w', fill='#a9b8ca', text=self.stamp_text(self.times[0]))
+        canvas.create_text(width-12, height-9, anchor='e', fill='#a9b8ca', text=self.stamp_text(self.times[-1]))
+
+    def hover(self, event):
+        """A dashed guide on the nearest point, with its value and time."""
+        canvas = self.canvas
+        canvas.delete('hover')
+        if not self.points:
+            return
+        x, y, index = min(self.points, key=lambda point: abs(point[0]-event.x))
+        canvas.create_line(x, 6, x, self.height-28, fill='#a9b8ca', dash=(3, 3), tags='hover')
+        canvas.create_oval(x-5, y-5, x+5, y+5, fill='#83f0b6', outline='#17202d', width=2, tags='hover')
+        text = f'≈ {self.values[index]:,.2f} {self.unit} · {self.stamp_text(self.times[index])}'
+        right = x > max(canvas.winfo_width(), 300)-260
+        label = canvas.create_text(x-10 if right else x+10, 14, anchor='ne' if right else 'nw',
+                                   fill='#edf3fc', text=text, tags='hover')
+        box = canvas.bbox(label)
+        canvas.tag_lower(canvas.create_rectangle(box[0]-6, box[1]-4, box[2]+6, box[3]+4,
+                                                 fill='#25344a', outline='', tags='hover'), label)
+
+
 class HistoryView(ttk.Frame):
     def __init__(self, parent, mark_session):
         super().__init__(parent, padding=16)
@@ -51,7 +119,8 @@ class HistoryView(ttk.Frame):
         ttk.Label(self, textvariable=self.summary, wraplength=1100).pack(anchor='w')
         self.chart = tk.Canvas(self, height=210, background='#17202d', highlightthickness=0)
         self.chart.pack(fill='x', pady=10)
-        self.chart.bind('<Configure>', lambda event: self.draw())
+        self.line = LineChart(self.chart, 210, 'history.chart_empty', self.local_time,
+                              on_click=lambda index: self.choose(self.points[index]['id']))
         self.mode.trace_add('write', self.mode_changed)
         self.tree = ttk.Treeview(self, columns=('date', 'reason', 'value', 'quality'), show='headings', height=7)
         self.columns = [('date','history.col_date',170), ('reason','history.col_event',140),
@@ -98,7 +167,9 @@ class HistoryView(ttk.Frame):
 
     @staticmethod
     def local_time(stamp):
-        return datetime.fromisoformat(stamp).astimezone().strftime('%d/%m/%Y %H:%M:%S')
+        """A stored UTC stamp (ISO text or datetime) in local time."""
+        moment = datetime.fromisoformat(stamp) if isinstance(stamp, str) else stamp
+        return moment.astimezone().strftime('%d/%m/%Y %H:%M:%S')
 
     def values(self):
         if not self.points:
@@ -125,34 +196,7 @@ class HistoryView(ttk.Frame):
         self.draw()
 
     def draw(self):
-        canvas = self.chart
-        canvas.delete('all')
-        values = self.values()
-        valid = [v for v in values if v is not None]
-        if not valid:
-            canvas.create_text(20, 70, anchor='w', fill='#a9b8ca', text=t('history.chart_empty'))
-            return
-        width, height = max(canvas.winfo_width(), 300), 210
-        low, high = min(valid), max(valid)
-        span = high-low or max(abs(high)*.1, 1)
-        stamps = [datetime.fromisoformat(p['time']).timestamp() for p in self.points]
-        duration = stamps[-1]-stamps[0]
-        previous = None
-        for index, value in enumerate(values):
-            if value is None:
-                previous = None
-                continue
-            x = 85+(width-115)*((stamps[index]-stamps[0])/duration if duration else index/max(len(values)-1, 1))
-            y = height-40-(height-65)*(value-low)/span
-            if previous:
-                canvas.create_line(*previous, x, y, fill='#83f0b6', width=2)
-            dot = canvas.create_oval(x-4,y-4,x+4,y+4,fill='#83f0b6',outline='')
-            canvas.tag_bind(dot, '<Button-1>', lambda event, i=self.points[index]['id']: self.choose(i))
-            previous = (x,y)
-        for y, label in [(18, f'{high:,.2f} div'), (height-40, f'{low:,.2f} div')]:
-            canvas.create_text(5,y,anchor='w',fill='#a9b8ca',text=label)
-        canvas.create_text(85,height-12,anchor='w',fill='#a9b8ca',text=self.local_time(self.points[0]['time']))
-        canvas.create_text(width-12,height-12,anchor='e',fill='#a9b8ca',text=self.local_time(self.points[-1]['time']))
+        self.line.show([datetime.fromisoformat(p['time']) for p in self.points], self.values(), 'div')
 
     def choose(self, identity):
         self.tree.selection_set(str(identity))

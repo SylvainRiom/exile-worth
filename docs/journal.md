@@ -1026,3 +1026,31 @@ not rewrite an entry to match later behaviour, add a new one.
 - A Python string replacement wrote `` (BEL) into `installer.iss`'s icon path,
   and ISCC refused it; the line was rewritten literally. Paths with ``, ``,
   `	` in generated edits need raw strings.
+
+## Stash page: list and contents — 23 September 2026
+
+- User report: the `Detail & reading` page added little. Its header repeated
+  the global total and never showed the open tab's own value; its `Inventory`
+  sub-tab listed every cell of every tab, a less readable copy of the
+  dashboard's item table; its `History` sub-tab showed only date, tab and cell
+  count beside a real history page; the screenshot took a third of the screen
+  for a diagnostic use; corrections sat in a fourth sub-tab, far from the line.
+- Compared on mockups: a per-tab detail view reached from the cards, then the
+  user's own proposal, chosen: the stash list on the left, the chosen entry on
+  the right, `Whole stash` first. This reverses the earlier "one card per tab,
+  not a side list" choice; the user asked for a small value chart as well.
+- `Detail & reading` is gone. A tab shows its value and share of the stash, its
+  cells with unit price and share, the selected line's note and corrections in
+  a side panel, and its screenshot folded. The chart reads the valuations that
+  were already stored per tab (`tabs[id].amount`), so no new data is recorded.
+- Kept on purpose: the selection does not follow the live tab by itself, the
+  preview is never counted in the total, and corrections still apply only to
+  the screenshot being read.
+- Found while checking a rendered capture: the correction panel named the item
+  from `last_readings`, so on a stored tab it said "Unrecognised item" for a
+  known one; it now reads the displayed line, and says that a stored tab cannot
+  be corrected.
+- Not validated with a live game session: checked with the UI smoke test and
+  screenshots of the real window with sample data.
+- Released as 0.2.0.
+- Last validation: **209 tests passed**, `python -m tests.smoke_ui`.

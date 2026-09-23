@@ -21,8 +21,11 @@ entry there says which measured failure produced it.
 - Automatic recognition of icons and of the white numbers in the top-left corner.
   The user refused a mandatory cell-by-cell calibration: manual corrections must
   remain a fallback.
-- **Presentation chosen explicitly: a dashboard with one card per tab**, not a
-  side list. Global total on top, detail reachable by clicking.
+- **Presentation chosen explicitly (23 September 2026): the stash list on the
+  left, the chosen entry on the right**, with `Whole stash` first: its total
+  and every item, a small value chart, and each tab's own value and cells one
+  click away. No separate detail page. This replaced the earlier choice of one
+  card per tab with a detail page, which the user found redundant.
 - **The project is English-first** (code, docs, commits, interface). The interface
   ships English and French; the language is selected in the toolbar.
 - **Commits carry no AI attribution.** No `Co-Authored-By` trailer, no generated-by
@@ -67,13 +70,14 @@ holds the version ranges.
 
 | File | Responsibility |
 | --- | --- |
-| `exile_worth/app.py` | Interface, dashboard, cards, preview/detail, workers and capture loop |
+| `exile_worth/app.py` | Interface, stash list and contents, chart, corrections, workers and capture loop |
 | `exile_worth/capture.py` | Capture of the foreground game client area, DPI handling |
 | `exile_worth/layouts.py` | Stash geometry, edge maps, alignment, expected cell counts |
 | `exile_worth/vision.py` | Saved profiles, tab identification, structure choice, OCR, consensus |
 | `exile_worth/icons.py` | CDN image cache, icon comparison across sizes/offsets |
 | `exile_worth/pricing.py` | Leagues, Currency/Expedition catalogues, price merge and cache |
 | `exile_worth/model.py` | Readings, SQLite, history, valuation computations, stable keys |
+| `exile_worth/history_ui.py` | History page, and `LineChart` shared with the stash chart |
 | `exile_worth/i18n.py` | Language selection and the English/French catalogues |
 | `exile_worth/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
 | `exile_worth/tables.py` | Sort order of displayed table cells |
@@ -318,35 +322,51 @@ beside it; a release lacking either asset is not offered.
   registered before the 14 px correction. Do not remove that compatibility, and do
   not rewrite existing inventories to fix a geometry.
 
-### Dashboard and value
+### Stash page and value
 
-- `My stash`: total and one card per registered tab. While tracking
-  synchronises a registered tab (`live_tab_id()`), **that tab's card is the live
-  view**: green background, `● Updating live` badge, subtitle naming the visible
-  view, and its detail shows the live readings including provisional ones. The
-  preview card exists only for readings no card holds — an unidentified tab or
-  an imported screenshot, which is analysed but never synchronised — and it is
-  never added to the saved total. With nothing read yet (start-up, league
-  change) there is no preview card at all. Stopping the tracking removes the
-  live mark.
-- Cards are compact so the whole stash is visible at a glance: two lines (icon,
-  name, value; then type, last read time in local time, what is missing), and
-  as many columns as the width allows (`place_cards`, one per 290 px, at most
-  six). The whole card opens the detail. The mouse wheel scrolls the cards
-  wherever the pointer is over them (`wheel_cards`, bound on `all`).
-- Under the cards, `My stash` lists **every item of the stash in one table**
-  (`refresh_items`): one line per item across all tabs, with total quantity,
-  unit price, value, share of the valued total and the tabs holding it,
-  most valuable first. It reads the same source as the total (stored rows, or
-  the preview readings when no tab is stored). An unpriced item stays listed
-  with `—`, never a zero. The cards take at most four rows so the table keeps
-  its room.
-- Scrollbars (cards and tables) appear only when there is something to scroll
+- `My stash` is one page: **the stash list on the left, the chosen entry's
+  contents on the right**. There is no separate detail page. The list starts
+  with `Whole stash`, selected at start-up and after a league change, then one
+  line per registered tab, then the preview. Clicking a line shows it
+  (`select_all`, `open_stash`); clicks run through `after_idle` because the
+  list is rebuilt and the clicked widget destroyed.
+- `Whole stash` shows the total with what it misses, then **every item of the
+  stash in one table** (`refresh_items`): one line per item across all tabs,
+  with total quantity, unit price, value, share of the valued total and the
+  tabs holding it, most valuable first. It reads the same source as the total
+  (stored rows, or the preview readings when no tab is stored). An unpriced
+  item stays listed with `—`, never a zero.
+- A tab shows **only its own value and cells**: name, type, last read time or
+  the live badge, its value and its share of the stash, then the reading table
+  (quantity, unit price, value, share of the tab). Beside the table, a panel
+  explains the selected line and holds the corrections, which appear once a
+  line or a cell is chosen (`show_fix`). The screenshot with its cells is
+  folded under that panel (`toggle_capture`) and drawn only while shown.
+- While tracking synchronises a registered tab (`live_tab_id()`), **that tab's
+  line is the live view**: green background, `● Live`, and its contents show
+  the live readings including provisional ones. The selection never jumps to
+  it by itself; the preview entry, if chosen, becomes the live tab
+  (`shown_tab_id`). The preview line exists only for readings no tab holds —
+  an unidentified tab or an imported screenshot, which is analysed but never
+  synchronised — and it is never added to the saved total. With nothing read
+  yet there is no preview line. A new screenshot selects the preview.
+- A **small chart** between the header and the table draws the chosen entry's
+  value over 24 h, 7 days (default) or the league, from the stored valuations
+  (`refresh_chart`): the stash total, or the tab's `tabs[id].amount`. Each
+  point keeps its own prices, converted to the selected currency with that
+  point's rates, so the curve moves with the stock and with the market; the
+  history page separates the two. The preview has no chart. `LineChart` in
+  `history_ui.py` draws it and the history page's chart, with a readout under
+  the pointer.
+- List lines are compact: two lines (icon, name, value; then type, last read
+  time in local time, what is missing). The mouse wheel scrolls the list
+  wherever the pointer is over it (`wheel_cards`, bound on `all`).
+- Scrollbars (list and tables) appear only when there is something to scroll
   (`auto_hide` as the `yscrollcommand`).
 - The reading table has **no state column**. A normal line carries no mark; a
   line being confirmed (`PENDING`) is grey; one needing attention (unreadable
   count, unknown or hidden icon, uncertain tier, to check) is amber with a ⚠
-  after its name. Selecting a line shows its explanation above the table
+  after its name. Selecting a line shows its explanation in the panel
   (`note.*` keys, player wording); the selection survives the live refreshes.
   `Reason` keys still drive the logic; only their display changed.
 - On the live tab, a cell that is re-confirming (`Reason.PENDING`) or whose count
@@ -354,25 +374,25 @@ beside it; a release lacking either asset is not offered.
   explained as such in its note, as long as the same item is recognised. A
   different provisional count shows beside it as `141 → 145 (provisional)`; the
   value stays that of the confirmed quantity until consensus.
-- `Detail & reading`: screenshot, cells, items, quantities, per-line value,
-  corrections, inventory and history.
-- The reading, inventory and history tables sort on a heading click (again to
-  reverse, arrow on the active column). The tables are rebuilt on every live
-  reading, so the order is a state `apply_sort` reapplies after each refresh,
-  never a one-off move. Numbers sort by value (`≈ 24,700`, `12 (provisional)`),
-  text in natural order (C2 before C10), and `—` stays last in both directions.
+- Corrections apply to the screenshot being read (the preview or the live tab),
+  never to a stored tab; the panel says so on a stored tab.
+- The item and reading tables sort on a heading click (again to reverse, arrow
+  on the active column). The tables are rebuilt on every live reading, so the
+  order is a state `apply_sort` reapplies after each refresh, never a one-off
+  move. Numbers sort by value (`≈ 24,700`, `12 (provisional)`), text in natural
+  order (C2 before C10), and `—` stays last in both directions.
 - **Cell ids (`L11`, `E22`, `R05`…) are never shown to the user**: they key the
   reading rows (`iid`) and the corrections, and stay in the CSV export. The
   correction panel names the selected item instead.
-- The reading and inventory tables show the item artwork and name together in
+- The item and reading tables show the item artwork and name together in
   the tree column (`#0`, sortable like the others),
   from `icon_images` (the images `fetch_icons` returned with the last prices).
   An unknown item shows none; an unresolved family whose candidates share one
   image (Flux tiers) shows that image without naming a tier. Thumbnails are
   `PhotoImage`s built on the Tk thread and kept in `_thumbs`.
-- Each card shows the in-game icon of its stash type before its title, keyed by
-  layout family (the five Runes views share the Augment tab icon); the preview
-  card follows the detected layout and shows none when it is unrecognised. The
+- Each tab line shows the in-game icon of its stash type before its title, keyed
+  by layout family (the five Runes views share the Augment tab icon); the preview
+  follows the detected layout and shows none when it is unrecognised. The
   icons are 27 px PNGs **shipped with the project**, verified on PoE2DB, not
   fetched at runtime: PoE2DB's CDN refuses requests without its own referer, and
   its host is not in `ICON_HOSTS`. A new stash family needs its icon added there;

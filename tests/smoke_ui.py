@@ -31,14 +31,20 @@ def main():
             app.withdraw()
             try:
                 app.update_idletasks()
-                assert not app.cards.winfo_children(), 'No preview card before anything is read'
+                # Only the whole stash before anything is read: no preview entry.
+                assert len(app.cards.winfo_children()) == 1, 'No preview card before anything is read'
+                assert app.all_view.winfo_manager() and not app.tab_view.winfo_manager()
+                assert app.view_title.get() == 'Whole stash'
                 from tkinter import ttk
                 style = ttk.Style(app)
                 assert style.lookup('TCombobox','fieldbackground',('readonly',)) == '#192332'
                 assert style.lookup('TCombobox','foreground',('readonly',)) == '#edf3fc'
                 assert style.lookup('TNotebook.Tab','foreground',('selected',)) == '#7ee2c0'
                 app.set_frame(np.zeros((1080,1920,3),np.uint8))
+                assert app.tab_view.winfo_manager(), 'A new screenshot shows its reading'
+                assert not app.fix_controls.winfo_manager(), 'No correction before a line is chosen'
                 app.select_slot('L11')
+                assert app.fix_controls.winfo_manager()
                 market = dict(items={'exalted':{'name':'Exalted Orb'},'divine':{'name':'Divine Orb'}},
                               prices={'exalted':.01,'divine':1},primary='divine',
                               fetched=time.time(),stale=False)
@@ -99,9 +105,10 @@ def main():
                         if widget.winfo_class() == 'TLabel' and widget.cget('text'):
                             found.append(str(widget.cget('text')))
                     return ' | '.join(found)
-                assert 'Currencies · tab not identified' in card_texts(0), card_texts(0)
+                assert 'Whole stash' in card_texts(0), card_texts(0)
+                assert 'Currencies · tab not identified' in card_texts(-1), card_texts(-1)
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
-                assert app.read_tree.item('C03')['values'][1] == '254.000'
+                assert [str(v) for v in app.read_tree.item('C03')['values'][1:]] == ['1.000', '254.000', '100.0 %']
                 from exile_worth.model import Reading
                 # A single live observation appears in the table, but cannot
                 # become a saved quantity or a valued line before consensus.
@@ -109,7 +116,7 @@ def main():
                 app.provisional_readings = [Reading('C03','divine',37,.99,Reason.AUTO)]
                 app.show_readings([pending, Reading('C04',None,None,0,Reason.EMPTY)])
                 assert '37 (provisional)' in str(app.read_tree.item('C03')['values'][0])
-                assert app.read_tree.item('C03')['values'][1] == '—'
+                assert app.read_tree.item('C03')['values'][2] == '—'
                 assert not app.read_tree.exists('C04')
                 assert app.store.rows('Forbidden Rites') == []
                 app.provisional_readings = []
@@ -121,10 +128,10 @@ def main():
                 assert app.read_tree.item('C03')['image'], 'Known item must show its artwork'
                 assert not app.read_tree.item('C01')['image'], 'Unknown item must not borrow an icon'
                 # No state column: an unknown item is marked, a normal line is not.
-                assert app.read_tree['columns'] == ('col.quantity', 'col.value')
+                assert app.read_tree['columns'] == ('col.quantity', 'col.unit_price', 'col.value', 'col.share')
                 assert app.read_tree.item('C01')['text'].endswith('⚠')
                 assert 'attention' in app.read_tree.item('C01')['tags']
-                assert 'Corrections' in app.read_notes['C01']
+                assert 'panel' in app.read_notes['C01']
                 assert not app.read_tree.item('C03')['text'].endswith('⚠')
                 assert 'attention' not in app.read_tree.item('C03')['tags']
                 app.sort_by(app.read_tree, 'col.quantity')
@@ -188,6 +195,31 @@ def main():
                 app.valuation_view.choose(app.store.valuations('Forbidden Rites')[-1]['id'])
                 app.valuation_view.select()
                 assert 'tab2' in app.valuation_view.details.get()
+                print('UI smoke: stash list, chart and screenshot', flush=True)
+                # Valuations: 12 (10 + 2), then 13 once tab2 holds 3.
+                app.profiles.data['tabs'] = [{'id':name,'name':name,'league':'Forbidden Rites','layout_id':'currency'}
+                                             for name in ('tab1', 'tab2')]
+                app.select_all()
+                assert app.all_view.winfo_manager() and not app.tab_view.winfo_manager()
+                assert app.view_title.get() == 'Whole stash' and '12' not in app.view_note.get()
+                assert app.chart_delta.get() == '+1.00 div (+8 %)', app.chart_delta.get()
+                assert app.stash_chart.points, 'The chart draws the stored valuations'
+                app.set_period('day')
+                assert str(app.period_buttons['day'].cget('style')) == 'PeriodOn.TButton'
+                assert str(app.period_buttons['week'].cget('style')) == 'Period.TButton'
+                app.open_stash('tab2')
+                assert app.tab_view.winfo_manager() and not app.all_view.winfo_manager()
+                assert app.chart_delta.get() == '+1.00 div (+50 %)', app.chart_delta.get()
+                assert app.view_value.get() == '≈ 3.00 div', app.view_value.get()
+                assert '23 % of the stash' in app.view_detail.get(), app.view_detail.get()
+                assert not app.canvas.winfo_manager(), 'The screenshot is folded by default'
+                app.toggle_capture()
+                assert app.canvas.winfo_manager() and app.capture_toggle.cget('text') == '▾ Hide the screenshot'
+                app.toggle_capture()
+                assert not app.canvas.winfo_manager()
+                app.open_stash(None)
+                assert app.stash_chart.empty_key == 'chart.none_preview' and not app.stash_chart.points
+                app.profiles.data['tabs'] = []
                 # Selecting an old card must not redirect incoming live observations.
                 app.open_stash('tab1')
                 from exile_worth.app import ScanResult
@@ -196,8 +228,8 @@ def main():
                 app.drain()
                 assert app.selected_tab_id == 'tab1'
                 # The preview card names the tab the live readings come from.
-                assert 'Second' in card_texts(0), card_texts(0)
-                assert 'Live preview · Currencies' in card_texts(0), card_texts(0)
+                assert 'Second' in card_texts(-1), card_texts(-1)
+                assert 'Live preview · Currencies' in card_texts(-1), card_texts(-1)
                 assert app.display_readings()[0].quantity == 10
                 assert next(r for r in app.store.rows('Forbidden Rites') if r[0]=='tab2')[3] == 2
                 app.unit.set('exalted')
@@ -219,12 +251,14 @@ def main():
                                                      '', 'Standard', 'currency')))
                 app.drain()
                 assert app.live_tab_id() == 'live1'
-                assert len(app.cards.winfo_children()) == 1, 'No preview card while a tab is synced'
-                assert 'Main currency' in card_texts(0) and '● Live' in card_texts(0), card_texts(0)
-                assert str(app.cards.winfo_children()[0].cget('style')) == 'Live.TFrame'
+                assert len(app.cards.winfo_children()) == 2, 'No preview card while a tab is synced'
+                assert 'Main currency' in card_texts(1) and '● Live' in card_texts(1), card_texts(1)
+                assert str(app.cards.winfo_children()[1].cget('style')) == 'Live.TFrame'
                 app.open_stash('live1')
+                assert str(app.cards.winfo_children()[1].cget('style')) == 'LiveSelected.TFrame'
                 assert app.display_readings()[0].quantity == 7
-                assert app.detail_title.get().endswith('● Updating live'), app.detail_title.get()
+                assert app.view_title.get() == 'Main currency', app.view_title.get()
+                assert app.view_subtitle.get().endswith('● Updating live'), app.view_subtitle.get()
                 # Re-confirming a stored cell keeps its confirmed quantity and value.
                 # (No price is loaded for Standard here, so only the quantity is checked.)
                 app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',None,.99,Reason.PENDING)],
@@ -246,12 +280,9 @@ def main():
                 app.drain()
                 assert not app.running and app.capture_state.get() == '● Paused'
                 assert app.live_tab_id() is None
-                assert len(app.cards.winfo_children()) == 2, 'A stop brings the preview card back'
+                assert len(app.cards.winfo_children()) == 3, 'A stop brings the preview card back'
                 assert '● Live' not in card_texts(1)
-                app.place_cards(1200)
-                assert app._card_columns == 4 and app.cards.winfo_children()[1].grid_info()['column'] == 1
-                app.place_cards(500)
-                assert app._card_columns == 1 and app.cards.winfo_children()[1].grid_info()['row'] == 1
+                assert 'Main currency' in card_texts(-1), card_texts(-1)
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
                 check_update_banner(app, path)
