@@ -26,6 +26,24 @@
     "name": "ancient_augments_real.border_score",
     "threshold": 0.55
   },
+  "ancient_augments_real.selector_lead": {
+    "detail": "over kalguuran (28.3)",
+    "direction": "min",
+    "headroom": 20.0208,
+    "kind": "margin",
+    "measured": 40.0208,
+    "name": "ancient_augments_real.selector_lead",
+    "threshold": 20.0
+  },
+  "ancient_augments_real.selector_lit": {
+    "detail": "ancient_augments underline",
+    "direction": "min",
+    "headroom": 23.3507,
+    "kind": "margin",
+    "measured": 68.3507,
+    "name": "ancient_augments_real.selector_lit",
+    "threshold": 45.0
+  },
   "dollar_tab.arrow_rows": {
     "detail": "widest warm row beside the menu",
     "direction": "min",
@@ -161,6 +179,24 @@
     "name": "idols_real.border_score",
     "threshold": 0.55
   },
+  "idols_real.selector_lead": {
+    "detail": "over kalguuran (28.3)",
+    "direction": "min",
+    "headroom": 21.3299,
+    "kind": "margin",
+    "measured": 41.3299,
+    "name": "idols_real.selector_lead",
+    "threshold": 20.0
+  },
+  "idols_real.selector_lit": {
+    "detail": "idols underline",
+    "direction": "min",
+    "headroom": 24.6597,
+    "kind": "margin",
+    "measured": 69.6597,
+    "name": "idols_real.selector_lit",
+    "threshold": 45.0
+  },
   "kalguuran_real.alignment_shift": {
     "detail": "dx=0 dy=3, refused beyond +/-20",
     "direction": "max",
@@ -187,6 +223,24 @@
     "measured": 0.9667,
     "name": "kalguuran_real.border_score",
     "threshold": 0.55
+  },
+  "kalguuran_real.selector_lead": {
+    "detail": "over soul_cores (28.1)",
+    "direction": "min",
+    "headroom": 24.8611,
+    "kind": "margin",
+    "measured": 44.8611,
+    "name": "kalguuran_real.selector_lead",
+    "threshold": 20.0
+  },
+  "kalguuran_real.selector_lit": {
+    "detail": "kalguuran underline",
+    "direction": "min",
+    "headroom": 27.941,
+    "kind": "margin",
+    "measured": 72.941,
+    "name": "kalguuran_real.selector_lit",
+    "threshold": 45.0
   },
   "runes_real.alignment_shift": {
     "detail": "dx=0 dy=3, refused beyond +/-20",
@@ -215,6 +269,24 @@
     "name": "runes_real.border_score",
     "threshold": 0.55
   },
+  "runes_real.selector_lead": {
+    "detail": "over kalguuran (28.3)",
+    "direction": "min",
+    "headroom": 21.9583,
+    "kind": "margin",
+    "measured": 41.9583,
+    "name": "runes_real.selector_lead",
+    "threshold": 20.0
+  },
+  "runes_real.selector_lit": {
+    "detail": "runes underline",
+    "direction": "min",
+    "headroom": 25.2882,
+    "kind": "margin",
+    "measured": 70.2882,
+    "name": "runes_real.selector_lit",
+    "threshold": 45.0
+  },
   "soul_cores_real.alignment_shift": {
     "detail": "dx=3 dy=3, refused beyond +/-20",
     "direction": "max",
@@ -241,5 +313,23 @@
     "measured": 1.0,
     "name": "soul_cores_real.border_score",
     "threshold": 0.55
+  },
+  "soul_cores_real.selector_lead": {
+    "detail": "over kalguuran (28.3)",
+    "direction": "min",
+    "headroom": 21.9236,
+    "kind": "margin",
+    "measured": 41.9236,
+    "name": "soul_cores_real.selector_lead",
+    "threshold": 20.0
+  },
+  "soul_cores_real.selector_lit": {
+    "detail": "soul_cores underline",
+    "direction": "min",
+    "headroom": 25.2535,
+    "kind": "margin",
+    "measured": 70.2535,
+    "name": "soul_cores_real.selector_lit",
+    "threshold": 45.0
   }
 }

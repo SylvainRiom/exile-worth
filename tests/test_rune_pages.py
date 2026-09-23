@@ -7,10 +7,12 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from exile_worth.layouts import LAYOUTS, RUNE_PAGES, aligned_slots, layout_family
+from exile_worth.layouts import (LAYOUTS, RUNE_PAGES, SELECTOR_UNDERLINE, SELECTOR_X,
+                                 aligned_slots, layout_family)
 from exile_worth.app import App
 from exile_worth.model import Reading, Reason, Store
-from exile_worth.vision import Consensus, Profiles, Scanner
+from exile_worth.vision import (Consensus, Profiles, Scanner, SELECTOR_LEAD_MIN,
+                                SELECTOR_LIT_MIN, lit_rune_view)
 
 
 FIXTURES = Path(__file__).parent / 'fixtures' / 'runes_real'
@@ -19,13 +21,6 @@ FIXTURES = Path(__file__).parent / 'fixtures' / 'runes_real'
 # 22 September 2026 at 1920x1080. `runes.png` is the earlier 21 September
 # capture, kept because the crop is pixel-identical.
 REAL_VIEWS = ('runes', 'kalguuran', 'soul_cores', 'idols', 'ancient_augments')
-
-# The view selector sits above the grid: five buttons of 64 px pitch, the
-# visible one lit by an amber glow. Measured on the five captures.
-SELECTOR_BAND = (130, 190)
-SELECTOR_X = (175, 239, 303, 367, 431)
-SELECTOR_WIDTH = 64
-
 
 def real_view(name):
     """A real capture placed back at the client origin it was cut from."""
@@ -36,12 +31,16 @@ def real_view(name):
     return frame
 
 
-def selector_warmth(frame):
-    """Amber excess per selector button; the visible view is the warmest."""
-    top, bottom = SELECTOR_BAND
-    band = frame[top:bottom].astype(np.int16)
-    warm = band[:, :, 2] - band[:, :, 0]
-    return [float(warm[:, x:x+SELECTOR_WIDTH].mean()) for x in SELECTOR_X]
+def set_underline(frame, view, source):
+    """Copy one button's underline strip from another button: lit or unlit."""
+    top, bottom = SELECTOR_UNDERLINE
+    index, origin = list(RUNE_PAGES).index(view), list(RUNE_PAGES).index(source)
+    x, from_x = SELECTOR_X[index], SELECTOR_X[origin]
+    frame[top:bottom, x:x+64] = frame[top:bottom, from_x:from_x+64].copy()
+
+
+def borders_only_scanner(directory):
+    return Scanner(Profiles(Path(directory)))
 
 
 def bordered_page(page):
@@ -90,21 +89,50 @@ class RunePageTests(unittest.TestCase):
                 self.assertLessEqual(max(abs(dx), abs(dy)), 3)
 
     def test_view_selector_lights_the_visible_view(self):
-        """The lit button names the visible view without reading the grid.
-
-        Recorded as an observation, not as a decision: nothing in `vision.py`
-        consults the selector yet. It is measured here so that it cannot rot
-        unnoticed before that choice is made.
-        """
-        for index, view in enumerate(REAL_VIEWS):
+        """The lit underline names the visible view without reading the grid."""
+        for view in REAL_VIEWS:
             with self.subTest(view=view):
-                warmth = selector_warmth(real_view(view))
-                lit = warmth[index]
-                others = warmth[:index] + warmth[index+1:]
-                self.assertEqual(max(warmth), lit)
-                # The conch button reads warm even unlit, so the decision has
-                # to be a comparison between buttons, never a fixed threshold.
-                self.assertGreater(lit - max(others), 3.0)
+                lit, values = lit_rune_view(real_view(view))
+                self.assertEqual(lit, view)
+                others = [value for key, value in values.items() if key != view]
+                self.assertGreaterEqual(values[view], SELECTOR_LIT_MIN)
+                self.assertGreaterEqual(values[view] - max(others), SELECTOR_LEAD_MIN)
+
+    def test_selector_keeps_runes_when_an_overlay_hides_part_of_the_grid(self):
+        """A 120 px overlay is enough to erase the 0.03 border headroom.
+
+        Borders alone see runes 0.943 against kalguuran 0.850 and refuse; the
+        lit underline still names the view.
+        """
+        frame = real_view('runes')
+        frame[190:310, 20:140] = 30
+        unlit = frame.copy()
+        set_underline(unlit, 'runes', 'kalguuran')
+        with tempfile.TemporaryDirectory() as directory:
+            scanner = borders_only_scanner(directory)
+            self.assertIsNone(scanner.detect_layout(unlit, borders_only=True))
+            self.assertEqual(scanner.detect_layout(frame, borders_only=True), 'runes')
+
+    def test_selector_contradicting_a_clearly_better_grid_is_refused(self):
+        frame = real_view('runes')
+        set_underline(frame, 'kalguuran', 'runes')
+        set_underline(frame, 'runes', 'idols')
+        self.assertEqual(lit_rune_view(frame)[0], 'kalguuran')
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertIsNone(borders_only_scanner(directory).detect_layout(frame, borders_only=True))
+
+    def test_two_lit_buttons_fall_back_to_the_borders(self):
+        frame = real_view('runes')
+        set_underline(frame, 'idols', 'runes')
+        self.assertIsNone(lit_rune_view(frame)[0])
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertEqual(borders_only_scanner(directory).detect_layout(frame, borders_only=True), 'runes')
+
+    def test_selector_is_dark_on_other_stashes(self):
+        from tests.margins import dollar_frame, expedition_frame
+        for name, frame in (('expedition', expedition_frame()), ('dollar', dollar_frame())):
+            with self.subTest(stash=name):
+                self.assertIsNone(lit_rune_view(frame)[0])
 
     def test_five_grids_detected_without_reusing_other_layouts(self):
         with tempfile.TemporaryDirectory() as directory:

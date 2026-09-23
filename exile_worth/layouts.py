@@ -97,6 +97,26 @@ LAYOUTS.update({key: Layout(key, name, slots) for key, (name, slots) in RUNE_PAG
 ALL_SLOTS = {slot:rect for layout in LAYOUTS.values() for slot,rect in layout.slots.items()}
 UNKNOWN_LAYOUT = Layout('unknown', 'Unrecognised type', {})
 
+# The Runes tab's view selector: five buttons above the grid, in RUNE_PAGES
+# order, 64 px apart. The visible view carries an amber underline along the
+# bottom of its button; hovering lights one far less sharply. Only that strip
+# is measured, so the golden conch artwork above it does not count. Measured
+# on the five real 1920x1080 captures: lit 68 to 73, unlit 27 to 28.
+SELECTOR_X = (175, 239, 303, 367, 431)
+SELECTOR_UNDERLINE = (176, 182)
+SELECTOR_INSET = 8
+
+
+def selector_underlines(frame):
+    """Amber excess (red minus blue) of each view button's underline, by view."""
+    import numpy as np
+
+    top, bottom = SELECTOR_UNDERLINE
+    band = frame[top:bottom].astype(np.int16)
+    warm = band[:, :, 2] - band[:, :, 0]
+    return {view: float(warm[:, x+SELECTOR_INSET:x+64-SELECTOR_INSET].mean())
+            for view, x in zip(RUNE_PAGES, SELECTOR_X)}
+
 
 def layout_name(layout_id):
     """Display name for a layout. `Layout.name` stays the English fallback."""

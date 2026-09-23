@@ -22,8 +22,9 @@ import numpy as np
 from exile_worth.icons import IconMatcher
 from exile_worth.layouts import LAYOUTS, aligned_slots
 from exile_worth.model import Reason
-from exile_worth.vision import (Profiles, Scanner, crop, known_symbol,
-                                selected_tab_rect, symbol_reference)
+from exile_worth.vision import (SELECTOR_LEAD_MIN, SELECTOR_LIT_MIN, Profiles, Scanner, crop,
+                                known_symbol, lit_rune_view, selected_tab_rect,
+                                symbol_reference)
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 BASELINE = Path(__file__).parent / 'margin_baseline.json'
@@ -141,6 +142,18 @@ def alignment_margins(frame, layout_id, label):
                       f'dx={dx} dy={dy}, refused beyond +/-20', direction='max')]
 
 
+def selector_margins(frame, view, label):
+    """The lit underline of the view selector, which decides between Runes views."""
+    lit, values = lit_rune_view(frame)
+    assert lit == view, f'{label}: selector lit {lit!r}, expected {view!r}'
+    runner = max((value, key) for key, value in values.items() if key != view)
+    return [
+        Margin.of(f'{label}.selector_lit', values[view], SELECTOR_LIT_MIN, f'{view} underline'),
+        Margin.of(f'{label}.selector_lead', values[view] - runner[0], SELECTOR_LEAD_MIN,
+                  f'over {runner[1]} ({runner[0]:.1f})'),
+    ]
+
+
 # Thresholds from `selected_tab_rect`, `active_tab` and `known_symbol`.
 TAB_RUN_MIN = 32
 ARROW_ROWS_MIN = 2
@@ -230,6 +243,7 @@ def measure():
         frame = load_frame(FIXTURES / 'runes_real' / f'{view}.png')
         results += layout_margins(frame, view, label)
         results += alignment_margins(frame, view, label)
+        results += selector_margins(frame, view, label)
 
     results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results

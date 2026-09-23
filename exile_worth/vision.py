@@ -18,8 +18,8 @@ from .diagnostics import ChangeGate, format_scores, log
 from .model import DATA, Reading, Reason
 from .i18n import t
 from .icons import IconMatcher, SAGA_FAMILY
-from .layouts import (ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, layout_for_tab, aligned_slots,
-                      edge_maps, LEGACY_EXPEDITION_SLOTS, layout_family)
+from .layouts import (ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, RUNE_PAGES, layout_for_tab, aligned_slots,
+                      edge_maps, LEGACY_EXPEDITION_SLOTS, layout_family, selector_underlines)
 
 # Inner rectangles, measured on the user's 1920x1080 currency tab.
 SLOTS = CURRENCY_SLOTS  # Compatibility for existing profiles and callers.
@@ -315,6 +315,22 @@ class Profiles:
                  format_scores(ranked) or 'none')
 
 
+# A view button is lit when its underline clears the floor and leads every
+# other button. Real captures: lit >= 68.4, lead >= 40. Hover lights less, and
+# two lit buttons fail the lead, which falls back to the borders.
+SELECTOR_LIT_MIN = 45
+SELECTOR_LEAD_MIN = 20
+
+
+def lit_rune_view(frame):
+    """The Runes view whose selector button is lit, or None; with the values."""
+    values = selector_underlines(frame)
+    (view, lit), (_, second) = sorted(values.items(), key=lambda item: item[1], reverse=True)[:2]
+    if lit >= SELECTOR_LIT_MIN and lit - second >= SELECTOR_LEAD_MIN:
+        return view, values
+    return None, values
+
+
 class DigitReader:
     def __init__(self):
         from rapidocr_onnxruntime import RapidOCR
@@ -432,6 +448,7 @@ class Scanner:
         # Why the last decision went the way it did, for the session log.
         self.last_layout_scores = []
         self.last_layout_verdict = ''
+        self.last_selector = {}
         self.gate = ChangeGate()
         # Alignment is fitted per frame and per layout; detection and reading ask
         # for the same one on the same frame. Keeping the frame object (never its
@@ -524,6 +541,25 @@ class Scanner:
         structures.sort(reverse=True)
         self.last_layout_scores = structures
         best, runner = structures[0], structures[1]
+        # Runes and Kalguuran share most of their borders (0.03 of headroom on
+        # a Runes capture), while the lit selector button names the view by a
+        # lead of 40. On a frame structured as a Runes stash, the selector
+        # decides; its grid must still hold, and it must not contradict a
+        # clearly better rune grid.
+        view, underlines = lit_rune_view(frame)
+        self.last_selector = underlines
+        if view is not None and best[1] in RUNE_PAGES:
+            scores = {layout_id: score for score, layout_id in structures}
+            foreign = max(score for score, layout_id in structures if layout_id not in RUNE_PAGES)
+            lit = (f'selector lit {view} ({underlines[view]:.1f}, '
+                   f'next {sorted(underlines.values())[-2]:.1f})')
+            if scores[view] >= .55 and scores[view]-foreign >= .12 and best[0]-scores[view] < .12:
+                self.record_layout(f'{lit}; accepted {view} (grid {scores[view]:.3f} >= .55, '
+                                   f'{scores[view]-foreign:.3f} over other stashes >= .12)', structures)
+                return view
+            self.record_layout(f'{lit}; rejected: grid {scores[view]:.3f}, best {best[1]} '
+                               f'{best[0]:.3f}, other stashes {foreign:.3f}', structures)
+            return None
         if best[0] >= .55 and best[0]-runner[0] >= .12:
             self.record_layout(f'borders accepted {best[1]} '
                                f'(score {best[0]:.3f} >= .55, margin {best[0]-runner[0]:.3f} >= .12)',
