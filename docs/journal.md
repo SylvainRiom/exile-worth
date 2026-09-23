@@ -600,3 +600,36 @@ not rewrite an entry to match later behaviour, add a new one.
 - Noticed, not fixed: the total appends a hard-coded French ` · partiel` even in
   the English interface.
 - Last validation: **159 tests passed**, `python -m tests.smoke_ui`.
+
+## In-game stash tab icons on the cards — 23 September 2026
+
+- The user asked for icons on the stash cards too, and preferred the game's own
+  tab icons over the most valuable item's artwork, which would change over time.
+- PoE2DB's Stash page lists the in-game tab icons under
+  `Art/2DArt/UIImages/InGame/MTX/`: `CurrencyTabIcon` (CurrencyStash),
+  `ExpeditionTabIcon` (ExpeditionStash) and `SocketableTabIcon` (SocketableStash,
+  the Augment Stash Tab that holds the five Runes views). The same paths return
+  404 on `web.poecdn.com`, and the official shop page renders its images in
+  JavaScript, so PoE2DB is the only verified source.
+- `cdn.poe2db.tw` answers 403 without a PoE2DB referer. The three icons were
+  therefore downloaded once, converted to PNG (27 x 27, RGBA) and shipped in
+  `exile_worth/assets/tab_icons/` with their names, identifiers, URLs and source
+  in `sources.json`. Nothing is fetched at runtime, and no tool spoofs the
+  referer.
+- The Augment icon is an empty socket ring: faithful to the game, plainer than
+  the other two.
+- Checked visually on the dashboard with Currency, Idols and Expedition cards.
+- Last validation: **160 tests passed**, `python -m tests.smoke_ui`.
+
+## The preview card names the tab being read — 23 September 2026
+
+- User request: the live preview should say which tab it is reading. The app
+  already knew it (`last_tab`, set from each `ScanResult`); only the card and
+  the detail title ignored it and showed the layout alone.
+- Identified tab: the card takes the tab's name as its title and
+  `Live preview · <layout>` as its subtitle; for a Runes tab the layout is the
+  visible view. Unidentified: `Live preview`, subtitled `<layout> · tab not
+  identified`, so the absence of a name is explicit rather than silent.
+- Checked visually: with the name as title, the preview card and the card of
+  the same registered tab look alike; they differ by subtitle and detail line.
+- Last validation: **160 tests passed**, `python -m tests.smoke_ui`.

@@ -9,6 +9,7 @@ import time
 import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import cv2
@@ -28,6 +29,9 @@ from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_s
 from .history_ui import HistoryView
 from .theme import apply_theme
 from .tables import sorted_rows
+
+# In-game stash tab icons by layout family, verified on PoE2DB; see sources.json.
+TAB_ICONS = Path(__file__).with_name('assets') / 'tab_icons'
 
 
 @dataclass(frozen=True)
@@ -88,6 +92,7 @@ class App(tk.Tk):
         # or Tk would drop them.
         self.icon_images = {}
         self._thumbs = {}
+        self._tab_icons = {}
         self.language_choice = tk.StringVar(value=i18n.language_name())
         self.layout_choice = tk.StringVar(value=t('layout.auto'))
         # None means automatic detection; otherwise a layout id, never its label.
@@ -654,11 +659,20 @@ class App(tk.Tk):
         for child in self.cards.winfo_children():
             child.destroy()
         symbol = 'div' if unit=='divine' else unit
-        def card(index,tab_id,title,subtitle,amount,detail):
+        def card(index,tab_id,title,subtitle,amount,detail,layout_id=None):
             box = ttk.Frame(self.cards,padding=20,style='Card.TFrame')
             box.grid(row=index//3,column=index%3,sticky='nsew',padx=6,pady=6)
-            for text,font,colour in [(title,('Segoe UI',15,'bold'),'#e7edf6'),
-                                     (subtitle,('Segoe UI',10),'#a9b8ca'),
+            header = ttk.Frame(box,style='Card.TFrame')
+            header.pack(anchor='w',pady=4)
+            icon = self.tab_icon(layout_id)
+            parts = [ttk.Label(header,image=icon,style='Card.TLabel')] if icon else []
+            parts.append(ttk.Label(header,text=title,font=('Segoe UI',15,'bold'),foreground='#e7edf6',
+                                   wraplength=280 if icon else 315,style='Card.TLabel'))
+            for part in parts:
+                part.pack(side='left',padx=(0,10) if part is not parts[-1] else 0)
+                part.bind('<Button-1>',lambda event,selected=tab_id:self.open_stash(selected))
+            header.bind('<Button-1>',lambda event:self.open_stash(tab_id))
+            for text,font,colour in [(subtitle,('Segoe UI',10),'#a9b8ca'),
                                      (amount,('Segoe UI',23,'bold'),'#83f0b6'),
                                      (detail,('Segoe UI',10),'#a9b8ca')]:
                 label = ttk.Label(box,text=text,font=font,foreground=colour,wraplength=315,style='Card.TLabel')
@@ -668,8 +682,13 @@ class App(tk.Tk):
             box.bind('<Button-1>',lambda event:self.open_stash(tab_id))
         preview = estimate_readings(self.last_readings if self.reading_league==self.league.get().strip() else [],prices,unit)
         amount = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
-        card(0,None,t('dash.preview_card'),layout_name(self.active_layout_id or 'unknown'),amount,
-             t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced))
+        # The preview names the tab being read, so the user can tell which card
+        # the live readings are feeding; an unidentified tab says so.
+        layout = layout_name(self.active_layout_id or 'unknown')
+        title, subtitle = ((self.last_tab['name'], t('detail.live_preview_of', layout=layout)) if self.last_tab
+                           else (t('dash.preview_card'), t('dash.preview_unidentified', layout=layout)))
+        card(0,None,title,subtitle,amount,
+             t('dash.preview_detail', unread=preview.unread, unpriced=preview.unpriced),self.active_layout_id)
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==self.league.get().strip()]
         approximate = self.store.approximate_slots(self.league.get().strip())
         empty = self.store.empty_slots(self.league.get().strip())
@@ -689,7 +708,20 @@ class App(tk.Tk):
                 detail += t('dash.partial', count=unread+uncertain, unpriced=estimate.unpriced)
             if any((r[0],r[1]) in approximate for r in entries):
                 detail += t('dash.abbreviated')
-            card(index,tab['id'],tab['name'],layout_name(layout_for_tab(tab).id),amount,detail)
+            card(index,tab['id'],tab['name'],layout_name(layout_for_tab(tab).id),amount,detail,
+                 layout_for_tab(tab).id)
+
+    def tab_icon(self, layout_id):
+        """The in-game icon of a stash type, or '' for an unrecognised layout.
+
+        Keyed by family, so the five Runes views share the Augment tab icon.
+        """
+        family = layout_family(layout_id) if layout_id else None
+        if family not in self._tab_icons:
+            file = TAB_ICONS / f'{family}.png'
+            self._tab_icons[family] = (ImageTk.PhotoImage(Image.open(file), master=self)
+                                       if family and file.exists() else '')
+        return self._tab_icons[family]
 
     def refresh_capture_state(self):
         if self.running and self.stop_event.is_set():
@@ -989,7 +1021,9 @@ class App(tk.Tk):
                     if tab:
                         self.tab_frames[tab['id']] = scan.frame.copy()
                     if not self.selected_tab_id:
-                        self.detail_title.set(t('detail.live_preview_of', layout=layout_name(self.active_layout_id or 'unknown')))
+                        layout = layout_name(self.active_layout_id or 'unknown')
+                        self.detail_title.set(t('detail.live_preview_tab', name=tab['name'], layout=layout) if tab
+                                              else t('detail.live_preview_of', layout=layout))
                     self.show_readings(self.display_readings())
                     self.draw()
                     if kind == 'live' and tab:

@@ -78,6 +78,16 @@ def main():
                 assert reading.item == 'divine' and reading.quantity == 254
                 assert '254.00 div' in app.total.get(), app.total.get()
                 assert 'displayed tab' in app.total_title.get()
+                def card_texts(index):
+                    box = app.cards.winfo_children()[index]
+                    found, stack = [], [box]
+                    while stack:
+                        widget = stack.pop()
+                        stack.extend(widget.winfo_children())
+                        if widget.winfo_class() == 'TLabel' and widget.cget('text'):
+                            found.append(str(widget.cget('text')))
+                    return found
+                assert 'Currencies · tab not identified' in card_texts(0), card_texts(0)
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
                 assert app.read_tree.item('C03')['values'][3] == '254.000'
                 from exile_worth.model import Reading
@@ -112,6 +122,8 @@ def main():
                 app.sort_by(app.read_tree, 'col.cell')
                 assert app.read_tree.get_children() == ('C02', 'C03')
                 assert not app.read_tree.heading('col.quantity')['text'].endswith(('▲', '▼'))
+                assert app.tab_icon('currency') and app.tab_icon('ancient_augments') is app.tab_icon('runes')
+                assert app.tab_icon(None) == '' and app.tab_icon('unknown') == ''
                 app.show_readings(app.last_readings)
                 print('UI smoke: inventories and history', flush=True)
                 app.store.sync('Forbidden Rites','tab1',[Reading('C03','divine',10)])
@@ -143,6 +155,9 @@ def main():
                                                      [Reading('C03','divine',2)], '', 'Forbidden Rites', 'currency')))
                 app.drain()
                 assert app.selected_tab_id == 'tab1'
+                # The preview card names the tab the live readings come from.
+                assert 'Second' in card_texts(0), card_texts(0)
+                assert 'Live preview · Currencies' in card_texts(0), card_texts(0)
                 assert app.display_readings()[0].quantity == 10
                 assert next(r for r in app.store.rows('Forbidden Rites') if r[0]=='tab2')[3] == 2
                 app.unit.set('exalted')

@@ -71,6 +71,7 @@ holds the version ranges.
 | `exile_worth/i18n.py` | Language selection and the English/French catalogues |
 | `exile_worth/diagnostics.py` | Session log: decision verdicts, near-misses, tracebacks |
 | `exile_worth/tables.py` | Sort order of displayed table cells |
+| `exile_worth/assets/tab_icons/` | In-game stash tab icons per layout family, with `sources.json` |
 | `tests/margins.py` | Headroom of every recognition decision, against a baseline |
 | `tests/` | Storage, OCR, recognition, valuation, simulated capture and interface |
 
@@ -206,7 +207,10 @@ No screenshot or inventory ever leaves the machine.
 ### Dashboard and value
 
 - `My stash`: total and one card per registered tab; a separate preview card
-  represents the current screenshot and is not added to the saved total.
+  represents the current screenshot and is not added to the saved total. The
+  preview card is titled with the name of the tab being read (`last_tab`) and
+  subtitled `Live preview · <layout>`; an unidentified tab keeps the `Live
+  preview` title and says `tab not identified`. The detail title follows.
 - `Detail & reading`: screenshot, cells, items, quantities, per-line value,
   corrections, inventory and history.
 - The reading, inventory and history tables sort on a heading click (again to
@@ -219,6 +223,13 @@ No screenshot or inventory ever leaves the machine.
   An unknown item shows none; an unresolved family whose candidates share one
   image (Flux tiers) shows that image without naming a tier. Thumbnails are
   `PhotoImage`s built on the Tk thread and kept in `_thumbs`.
+- Each card shows the in-game icon of its stash type before its title, keyed by
+  layout family (the five Runes views share the Augment tab icon); the preview
+  card follows the detected layout and shows none when it is unrecognised. The
+  icons are 27 px PNGs **shipped with the project**, verified on PoE2DB, not
+  fetched at runtime: PoE2DB's CDN refuses requests without its own referer, and
+  its host is not in `ICON_HOSTS`. A new stash family needs its icon added there;
+  `tests/test_tab_icons.py` fails until it is.
 - Per-tab screenshots are kept **in memory** (`tab_frames`), not persisted.
 - Conversion: sum of `quantity × primaryValue`, divided by the rate of the selected
   currency. Never assume the primary currency is always divine.
@@ -257,7 +268,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  159 tests, OK
+python -m unittest discover -s tests   ->  160 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
 ```
