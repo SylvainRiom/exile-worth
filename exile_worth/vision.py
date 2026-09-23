@@ -19,7 +19,7 @@ from .model import DATA, Reading, Reason
 from .i18n import t
 from .icons import IconMatcher, SAGA_FAMILY
 from .layouts import (ALL_SLOTS, CURRENCY_SLOTS, LAYOUTS, RUNE_PAGES, layout_for_tab, aligned_slots,
-                      edge_maps, LEGACY_EXPEDITION_SLOTS, layout_family, selector_underlines)
+                      edge_maps, LEGACY_EXPEDITION_SLOTS, has_views, layout_family, selector_underlines)
 
 # Inner rectangles, measured on the user's 1920x1080 currency tab.
 SLOTS = CURRENCY_SLOTS  # Compatibility for existing profiles and callers.
@@ -130,9 +130,50 @@ def selected_tab_rect(frame):
             start = None
     if not runs:
         return None
-    # A pinned folder at the far left may be lit at the same time.
-    x1,x2 = max(runs, key=lambda run: run[0])
+    x1,x2 = pick_selected_run(frame, runs)
     return (max(40,x1-3), 97, min(594,x2+3)-max(40,x1-3), 27)
+
+
+# How close a tab's colour must be to the underline to be the selected one.
+# Measured: the selected tab 0.13 (BREACH) and 0.17 (SAGA), others 0.78 and more.
+TAB_COLOUR_MAX = .4
+
+
+def tab_colour_distances(frame, runs):
+    """Chromaticity distance between each lit tab and the line under the bar.
+
+    The line below the tab bar takes the selected tab's colour (red under
+    BREACH, purple under SAGA). None when that line is too dark to tell.
+    """
+    line = frame[124:126, 40:594].reshape(-1, 3).astype(float).mean(axis=0)
+    if line.sum() < 40:
+        return None
+    line = line / line.sum()
+    distances = []
+    for x1, x2 in runs:
+        body = np.median(frame[112:120, x1+4:x2-4].reshape(-1, 3).astype(float), axis=0)
+        distances.append(float(np.linalg.norm(body / max(body.sum(), 1) - line)))
+    return distances
+
+
+def pick_selected_run(frame, runs):
+    """The selected tab among the lit ones.
+
+    Coloured tabs are all lit at y=121, and a pinned folder may be too. The
+    selected tab reaches down into the line under the bar, and that line has its
+    colour; without a readable line, the rightmost lit tab is kept, as before.
+    """
+    distances = tab_colour_distances(frame, runs)
+    if distances is not None:
+        close = [(distance, run) for distance, run in zip(distances, runs) if distance <= TAB_COLOUR_MAX]
+        if close:
+            # Two tabs may share the selected colour; only the selected one
+            # reaches down into the line.
+            lower = frame[123, 40:594].max(axis=1) > 48
+            reaching = [(distance, run) for distance, run in close
+                        if lower[run[0]-40+4:run[1]-40-4].mean() > .8]
+            return min(reaching or close)[1]
+    return max(runs, key=lambda run: run[0])
 
 
 def active_tab(frame, ocr):
@@ -152,10 +193,26 @@ def active_tab(frame, ocr):
         peak = int(rows.argmax())+90
         menu_image = frame[max(90,peak-13):min(755,peak+13),685:854]
         selected = read_tab_text(menu_image,ocr) or known_symbol(menu_image, 'menu')
+        selected = without_menu_icon(selected, name)
         if not selected or (name and tab_key(selected) != tab_key(name)):
             return None
         name = selected
     return name, rect
+
+
+def without_menu_icon(menu_name, top_name):
+    """Drop the menu row's small tab icon when OCR read it as a letter.
+
+    The Breach icon reads as `B`, giving `B BREACH` beside a `BREACH` tab. Only
+    a single leading character goes, and only when the rest is the tab's own
+    title, so a genuinely different name still refuses the match.
+    """
+    if not menu_name or not top_name:
+        return menu_name
+    words = menu_name.split()
+    if len(words) > 1 and len(words[0]) == 1 and tab_key(' '.join(words[1:])) == tab_key(top_name):
+        return ' '.join(words[1:])
+    return menu_name
 
 
 class Profiles:
@@ -272,9 +329,9 @@ class Profiles:
                     selected = selected_tab_rect(frame)
                     if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
                         continue
-                # Rune pages have different grids. Their stable outer tab label
-                # identifies the parent; the current page is detected separately.
-                if layout_family(layout_for_tab(tab).id) == 'runes':
+                # Views of one tab have different grids. Their stable outer tab
+                # label identifies the parent; the current view is detected separately.
+                if has_views(layout_for_tab(tab).id):
                     selected = selected_tab_rect(frame)
                     if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
                         continue
@@ -382,7 +439,7 @@ class DigitReader:
         """Follow aligned white glyphs from the top-left; ignore distant highlights."""
         _, _, stats, _ = cv2.connectedComponentsWithStats(white)
         letters = sorted((tuple(map(int,s[:4])) for s in stats[1:]
-                          if 2 <= s[2] <= 15 and 6 <= s[3] <= 18 and s[1] <= 8), key=lambda s:s[0])
+                          if 2 <= s[2] <= 15 and 6 <= s[3] <= 18 and s[1] <= 10), key=lambda s:s[0])
         if not letters or letters[0][0] > 10:
             return None
         run = [letters[0]]
@@ -614,7 +671,11 @@ class Scanner:
             quantity, confidence = self.digits.read(crop(frame, (x,y,w,18)))
             approximate = getattr(self.digits, 'last_approximate', False)
             ref = self.profiles.data['slots'].get(slot)
-            if quantity is None and not match.alternatives and not ref and visually_empty(crop(frame, rect)):
+            # A dark cell with no counter is empty even when an icon matches it:
+            # sparse, dark artwork (Carved Mischief) matches the ghost that views
+            # like Breach draw in their empty cells at 0.92 and above, while no
+            # real item measured is that dark. It can never name an empty cell.
+            if quantity is None and not ref and visually_empty(crop(frame, rect)):
                 results.append(Reading(slot, None, None, 0, Reason.EMPTY))
                 continue
             item = match.item

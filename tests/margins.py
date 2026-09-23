@@ -154,6 +154,29 @@ def selector_margins(frame, view, label):
     ]
 
 
+def tab_colour_margins(frame, label):
+    """The selected tab matches the line under the bar; the others must not."""
+    from exile_worth.vision import TAB_COLOUR_MAX, tab_colour_distances
+    strip = frame[121, 40:594].astype(np.int16)
+    high, low = strip.max(axis=1), strip.min(axis=1)
+    active = (high > 48) & ((high - low > 10) | (high > 65))
+    runs, start = [], None
+    for index, value in enumerate([*active, False]):
+        if value and start is None:
+            start = index
+        elif not value and start is not None:
+            if index - start >= 32:
+                runs.append((40 + start, 40 + index))
+            start = None
+    distances = sorted(tab_colour_distances(frame, runs))
+    return [
+        Margin.of(f'{label}.tab_colour_selected', distances[0], TAB_COLOUR_MAX,
+                  f'{len(runs)} lit tabs', direction='max'),
+        Margin.of(f'{label}.tab_colour_next', distances[1], TAB_COLOUR_MAX,
+                  'nearest other lit tab'),
+    ]
+
+
 # Thresholds from `selected_tab_rect`, `active_tab` and `known_symbol`.
 TAB_RUN_MIN = 32
 ARROW_ROWS_MIN = 2
@@ -244,6 +267,14 @@ def measure():
         results += layout_margins(frame, view, label)
         results += alignment_margins(frame, view, label)
         results += selector_margins(frame, view, label)
+
+    # The Breach tab's Catalysts view, from the user's 23 September 2026 capture.
+    from tests.test_breach_real import breach_frame, icons as breach_icons
+    breach = breach_frame()
+    results += layout_margins(breach, 'breach', 'breach_real')
+    results += alignment_margins(breach, 'breach', 'breach_real')
+    results += icon_margins(breach, 'breach', breach_icons(), 'breach_real')
+    results += tab_colour_margins(breach, 'breach_real')
 
     results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results

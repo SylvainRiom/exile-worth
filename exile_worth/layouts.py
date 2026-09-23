@@ -89,11 +89,41 @@ RUNE_PAGES = {
         (672, (203, 270, 337, 404))])),
 }
 
+
+def _breach_catalysts():
+    """The Catalysts view of the Breach tab, measured on a real 1920x1080 capture.
+
+    Two small cells and one large at the top (splinters, Breachlord Sac,
+    Breachstone), then four rows of catalysts: normal ones on rows of 6 and 7,
+    refined ones below on the same pattern. Rows of 7 sit half a cell left.
+    """
+    cells = [(270, 226, 57, 57), (338, 226, 57, 57), (277, 294, 110, 109)]
+    six, seven = (135, 203, 270, 338, 405, 472), (102, 169, 237, 304, 372, 439, 507)
+    for y, xs in ((434, six), (502, seven), (590, six), (657, seven)):
+        cells += [(x, y, 57, 57) for x in xs]
+    return {f'B{index:02}': rect for index, rect in enumerate(cells, 1)}
+
+
+# Views of the Breach tab. `breach` is the family name too, as `runes` is; the
+# Wombgifts view is added once it has been measured on a real capture.
+BREACH_PAGES = {
+    'breach': ('Breach Catalysts', _breach_catalysts()),
+}
+
+# A stash type made of several views keeps one profile for all of them, with a
+# separate cell namespace per view so a hidden view keeps its stock. The first
+# view's id is also the family's id and the stored `layout_id` of its tabs.
+VIEW_FAMILIES = {
+    'runes': tuple(RUNE_PAGES),
+    'breach': tuple(BREACH_PAGES),
+}
+
 LAYOUTS = {
     'currency':Layout('currency','Currencies',CURRENCY_SLOTS),
     'expedition':Layout('expedition','Expedition',EXPEDITION_SLOTS),
 }
 LAYOUTS.update({key: Layout(key, name, slots) for key, (name, slots) in RUNE_PAGES.items()})
+LAYOUTS.update({key: Layout(key, name, slots) for key, (name, slots) in BREACH_PAGES.items()})
 ALL_SLOTS = {slot:rect for layout in LAYOUTS.values() for slot,rect in layout.slots.items()}
 UNKNOWN_LAYOUT = Layout('unknown', 'Unrecognised type', {})
 
@@ -124,7 +154,12 @@ def layout_name(layout_id):
 
 
 def layout_family(layout_id):
-    return 'runes' if layout_id in RUNE_PAGES else layout_id
+    return next((family for family, views in VIEW_FAMILIES.items() if layout_id in views), layout_id)
+
+
+def has_views(layout_id):
+    """True for a stash type made of several views (Runes, Breach)."""
+    return layout_family(layout_id) in VIEW_FAMILIES
 
 
 # Every layout's cells fit inside this window, with room for the +/-20 px
@@ -197,6 +232,6 @@ def expected_slot_count(tab):
     copies in `app.py`; the next multi-view stash would have made them diverge.
     """
     layout = layout_for_tab(tab)
-    if layout_family(layout.id) == 'runes':
-        return sum(len(LAYOUTS[key].slots) for key in RUNE_PAGES)
+    if has_views(layout.id):
+        return sum(len(LAYOUTS[key].slots) for key in VIEW_FAMILIES[layout_family(layout.id)])
     return len(layout.slots)

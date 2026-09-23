@@ -816,3 +816,59 @@ not rewrite an entry to match later behaviour, add a new one.
   `data/session.log`.
 - Last validation: **167 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` unchanged.
+
+## The Breach tab, Catalysts view — 23 September 2026
+
+- User request: support the Breach stash tab. PoE2DB confirms a PoE2 "Breach
+  Stash Tab" and its in-game icon (`BreachTabIcon`); poe.ninja has a `Breach`
+  overview of 28 items, each with its own artwork; PoE2DB lists 29, adding the
+  unpriced Breachlord Sac.
+- One real capture, Catalysts view. The tab has two views (Catalysts,
+  Wombgifts); only the first was captured. Geometry measured from its gradients:
+  two 57 px cells and one 110 px at the top, then four rows of 57 px cells at a
+  67 px pitch (6, 7, 6, 7), the rows of 7 half a cell left. 29 cells, matching
+  PoE2DB's 29 items. Borders score 1.000, 0.70 ahead of Soul Cores; alignment
+  shift 0; Breach stays below 0.28 on every other real capture.
+- "Runes" was hard-coded as the only multi-view stash in about ten places.
+  `VIEW_FAMILIES` and `has_views` replace them, so Breach is a family like Runes
+  and a future Wombgifts view only adds a geometry.
+- Real recognition: all 13 items identified at 0.95 to 0.98, verified by eye
+  against the artwork rather than trusting the output. Four counts were never
+  read, all `5` and `1`: their tops start 9 px below the cell top, one pixel
+  under the counter crop's 8 px limit, because the `5`'s bar and the `1`'s serif
+  are paler than the white threshold. Raised to 10 px; the 13 counts then read
+  at 0.997–0.999, and the Expedition real capture is unchanged. Proven by
+  injection: the old limit fails exactly those four cells.
+- With the full 355-item market, four empty refined-catalyst ghosts were named
+  "Carved Mischief", a dark and mostly transparent Ritual icon that matches dark
+  ghosts at 0.92–0.935. A cell was named although empty. Rule now: a dark cell
+  (the existing `visually_empty`) without a readable counter is empty even when
+  an icon matches. Filled cells measure 79 or more at the 95th percentile on
+  every real capture, the ghosts 64 or less. The icon was added to the fixture to
+  reproduce it; the test failed first, then passed.
+- The Breach ghost of the Breachlord Sac (`B02`) stays "unrecognised": 3.7 % of
+  its pixels exceed 85 against the filter's 2 %. Several Runes ghosts measure
+  2.3–2.7 %, which likely explains part of the Runes cells reported
+  unidentified. Not loosened: that fraction decides what clears a stock, and it
+  needs ground truth before it moves.
+- The tab was not registered. At y=121 every coloured tab is lit, and the
+  rightmost one (`-price 1`) was taken as selected. The line under the bar takes
+  the selected tab's colour: BREACH 0.134 from it, the nearest other 0.753; on
+  the Expedition capture SAGA 0.168 against 0.908. The colour now decides, with
+  "reaches the line" breaking ties; a synthetic Expedition test that only moves
+  row 121 kept passing because colour comes first.
+- Then the side menu read `B BREACH`: the menu row's small Breach icon read as a
+  letter, and the mismatch refused the title. One leading character is dropped
+  only when the rest equals the tab's own title.
+- Prices: `Breach` joins `STASH_CATEGORIES`. Catalogue: the update tool now
+  covers Expedition and Breach and keeps references the source stops listing
+  (`thaumaturgic-flux-9` had vanished from PoE2DB's Expedition page); 45 → 75
+  references, none changed. Tab icon: `BreachTabIcon`, 27 px, from PoE2DB.
+- End to end on the capture: the app detects Breach, registers "BREACH"
+  automatically, reads 13/14 occupied cells (B02 the ghost), values them from
+  the live market (≈ 5.83 div, Sibilant Catalysts half of it).
+- The margin baseline gained 9 Breach entries and changed none; two are TIGHT,
+  icon score (0.949, weakest B01) and icon margin (0.032, B09), both wider than
+  Expedition's.
+- Last validation: **174 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` at 46 decisions, no FAILS, 5 TIGHT.

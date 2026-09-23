@@ -35,7 +35,7 @@ class CatalogueTests(unittest.TestCase):
             self.assertIn('verisium', market['items'])
             self.assertEqual(market['prices'], {})
             self.assertEqual(market['unavailable_categories'],
-                             ['Currency', 'Expedition', 'Verisium', 'Runes', 'SoulCores', 'Idols'])
+                             ['Currency', 'Expedition', 'Verisium', 'Breach', 'Runes', 'SoulCores', 'Idols'])
 
     def test_expedition_tab_is_priced_from_both_overviews(self):
         """Alloys, crests and Verisium live in the `Verisium` overview, not `Expedition`."""
@@ -94,7 +94,7 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(market['prices']['rune'], 2)
         self.assertEqual(market['prices']['soul-core'], 2)
         self.assertEqual(market['prices']['idol'], 2)
-        self.assertEqual(market['unavailable_categories'], ['Expedition', 'Verisium'])
+        self.assertEqual(market['unavailable_categories'], ['Expedition', 'Verisium', 'Breach'])
 
     def test_scraper_excludes_navigation_prices_and_price_currencies(self):
         parser = CatalogueParser('https://poe2db.tw/us/Economy_Expedition', 'Expedition')

@@ -177,12 +177,28 @@ No screenshot or inventory ever leaves the machine.
 - A tab is registered automatically once its structure is known and its active
   title readable. A unique active label in the same league with the same structure
   keeps its UUID even when its position changes.
+- The selected tab is found at y=121, where lit tabs reach the bar's lower edge.
+  Coloured tabs are all lit there, so `pick_selected_run` chooses the one whose
+  colour matches the line under the bar (`TAB_COLOUR_MAX` 0.4: measured 0.13
+  selected against 0.75 for the nearest other); reaching down into that line
+  breaks a tie between two tabs of the same colour. Without a readable line, the
+  rightmost lit tab is kept, as before.
+- The side menu's row confirms the title. Its small tab icon may be read as a
+  letter (`B BREACH`); `without_menu_icon` drops one leading character only when
+  the rest is exactly the tab's title.
 
 ### Recognition
 
 - Currencies: 37 fixed cells (`L…`, `C…`). The central weapon slot and the free
   bottom grid are excluded. Expedition: 32 areas `E…`. Runes: one profile over five
   view geometries with separate cell namespaces, so a hidden view keeps its stock.
+  Breach works the same way: its Catalysts view (`breach`, 29 cells `B…`: two
+  small and one large at the top, then normal and refined catalysts on rows of 6
+  and 7) is measured; its Wombgifts view is not yet.
+- A stash type with several views is a **view family** (`VIEW_FAMILIES` in
+  `layouts.py`). The first view's id is the family's id and the stored
+  `layout_id` of its tabs; `has_views` replaces any check on a family name, and
+  `expected_slot_count` sums every view of the family.
 - `Scanner.detect_layout` compares cell borders first, then icons. On a frame
   whose best grid is a Runes view, the **view selector decides** instead: the
   button of the visible view carries an amber underline (y 176..182, 64 px pitch
@@ -195,6 +211,13 @@ No screenshot or inventory ever leaves the machine.
   then automatic detection.
 - The matcher uses the reference PNGs, their transparency, several sizes and
   offsets. The counter area is masked when identifying the icon.
+- A **dark cell with no readable counter is empty**, even when an icon matches:
+  sparse dark artwork (Carved Mischief) matches the ghosts that Breach draws in
+  empty cells at 0.92 and above. On every real capture, filled cells have a
+  95th-percentile brightness of 79 or more, empty ghosts 64 or less.
+- The counter crop follows white glyphs whose top is within 10 px of the cell
+  top. The `5` and `1` on catalysts start at 9 px, their pale top bar or serif
+  falling under the white threshold; at 8 px they were never read.
 - Five families share one asset across normal/Greater/Perfect: Transmutation,
   Augmentation, Regal, Exalted, Chaos. The family is recognised visually, the tier
   from its column. This is not OCR of the II/III marks.
@@ -278,7 +301,8 @@ Reference documentation: https://poe.ninja/docs/api
 
 - Leagues: `/poe2/api/economy/leagues`. Prices:
   `/poe2/api/economy/exchange/current/overview?league=…&type=Currency`, and the
-  same path with `type=Expedition`, `Verisium`, `Runes`, `SoulCores`, `Idols`.
+  same path with `type=Expedition`, `Verisium`, `Breach`, `Runes`, `SoulCores`,
+  `Idols`.
   An Expedition tab needs two of them: `Expedition` holds the sagas, fluxes and
   logbooks, `Verisium` the alloys, crests, Verisium and Starlit Ores.
 - Metadata: **top-level `items`** holds the full catalogue; `core.items` only the
@@ -291,9 +315,11 @@ Reference documentation: https://poe.ninja/docs/api
   rates, and converts when the primary currencies differ.
 - A known item can be unpriced or ambiguous. Several Thaumaturgic Flux tiers share
   one image: do not invent their tier or price.
-- `exile_worth/item_catalog.json` keeps 45 Expedition visual references verified on
-  PoE2DB — names, IDs, image URLs, source, **no price**. It stays usable when the
-  price endpoints fail. `tools/update_item_catalog.py` regenerates it.
+- `exile_worth/item_catalog.json` keeps 75 visual references verified on PoE2DB,
+  Expedition and Breach — names, IDs, image URLs, source, **no price**. It stays
+  usable when the price endpoints fail. `tools/update_item_catalog.py`
+  regenerates it from the categories in its `SOURCES`; a reference the source
+  stops listing is kept, so an item still in a stash stays identifiable.
 - For distribution to several users, plan for the caching backend recommended by
   poe.ninja; `EXILE_PRICE_BASE` and `EXILE_CONTACT` exist for that.
 
@@ -308,12 +334,14 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  167 tests, OK
+python -m unittest discover -s tests   ->  174 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
-python -m tests.margins                ->  37 decisions, none FAILS, 3 TIGHT
+python -m tests.margins                ->  46 decisions, none FAILS, 5 TIGHT
 ```
 
-The three TIGHT decisions are expected and listed under "Known fragilities".
+The five TIGHT decisions are expected: the icon score and icon margin of the
+Expedition and of the Breach captures, and the Runes border separation (see
+"Known fragilities").
 `tests/test_margins.py` already fails if any of them erodes, so a green suite
 means the headroom is intact — you do not need to read the table to know that.
 
@@ -339,7 +367,7 @@ why it was refused.
 against its threshold, recorded in `tests/margin_baseline.json`.
 `tests/test_margins.py` fails on shrinking headroom, a **relaxed threshold** or a
 changed count. It covers the Expedition stash, the five Runes views and their
-selector, and the `$$` tab
+selector, the Breach Catalysts view and its tab colour, and the `$$` tab
 selection and label.
 
 The two `dollar_tab.symbol_*` scores are near-tautological: the templates in
@@ -373,6 +401,13 @@ in the baseline and compared separately, and why that test must not be removed.
   only, like the grids. Hover was reported by the user as a much less sharp
   underline but has not been captured; the lead requirement is what protects
   against it.
+- **Breach is half validated.** One real capture of the Catalysts view, holding
+  12 normal catalysts and splinters: refined catalysts are drawn differently
+  (tilted glyph, grey base) but none was on the capture, so their recognition is
+  unverified. The Wombgifts view has no geometry yet. The Breachlord Sac ghost
+  (`B02`) is slightly brighter than the emptiness filter allows (3.7 % of bright
+  pixels against 2 %) and shows as an unrecognised item, never named nor counted.
+  Several Runes ghosts sit at 2.3–2.7 % for the same reason.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
   scales are unverified, and a non-16:9 capture is refused outright.
 - **Renamed or moved tabs**: re-association is handled for a unique label with the
@@ -383,7 +418,12 @@ in the baseline and compared separately, and why that test must not be removed.
 
 ## Resumption points
 
-1. In time: other resolutions and scales, other stash types, persisting
+1. Breach: capture the Wombgifts view and a Catalysts view holding refined
+   catalysts.
+2. The emptiness filter's bright-pixel fraction (2 %) leaves some real ghosts
+   (Breach `B02`, several Runes cells) flagged as unrecognised. Loosening it needs
+   a margin measured against ground truth, as it decides what clears a stock.
+3. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.
 
 The user may launch the application while work is in progress. Avoid leaving calls

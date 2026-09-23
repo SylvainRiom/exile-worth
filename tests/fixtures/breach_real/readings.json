@@ -1,0 +1,54 @@
+{
+  "B01": [
+    "breach-splinter",
+    10
+  ],
+  "B04": [
+    "flesh-catalyst",
+    6
+  ],
+  "B05": [
+    "neural-catalyst",
+    3
+  ],
+  "B06": [
+    "adaptive-catalyst",
+    5
+  ],
+  "B07": [
+    "uul-netols-catalyst",
+    2
+  ],
+  "B08": [
+    "xophs-catalyst",
+    6
+  ],
+  "B09": [
+    "tuls-catalyst",
+    1
+  ],
+  "B11": [
+    "chayulas-catalyst",
+    5
+  ],
+  "B12": [
+    "carapace-catalyst",
+    1
+  ],
+  "B13": [
+    "reaver-catalyst",
+    3
+  ],
+  "B14": [
+    "sibilant-catalyst",
+    3
+  ],
+  "B15": [
+    "skittering-catalyst",
+    2
+  ],
+  "B16": [
+    "necrotic-catalyst",
+    2
+  ]
+}

@@ -25,7 +25,7 @@ from .pricing import Ninja
 from .icons import IconMatcher, fetch_icons
 from .vision import Profiles, Scanner, normalize
 from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_slot_count,
-                      layout_family, layout_for_tab, layout_name, aligned_slots)
+                      has_views, layout_family, layout_for_tab, layout_name, aligned_slots)
 from .history_ui import HistoryView
 from .theme import apply_theme
 from .tables import sorted_rows
@@ -643,8 +643,9 @@ class App(tk.Tk):
             return self.layout_override
         if tab:
             detected = self.scanner.detect_layout(frame, borders_only=True)
-            if layout_family(layout_for_tab(tab).id) == 'runes':
-                return detected if layout_family(detected) == 'runes' else None
+            family = layout_family(layout_for_tab(tab).id)
+            if has_views(family):
+                return detected if layout_family(detected) == family else None
             return detected or layout_for_tab(tab).id
         return self.scanner.detect_layout(frame)
 
@@ -695,7 +696,7 @@ class App(tk.Tk):
             tab = next((t for t in self.profiles.data['tabs'] if t['id']==self.selected_tab_id),None)
             if tab:
                 if (self.last_tab and self.last_tab['id'] == tab['id'] and
-                        layout_family(layout_for_tab(tab).id) == 'runes'):
+                        has_views(layout_for_tab(tab).id)):
                     return LAYOUTS.get(self.active_layout_id, layout_for_tab(tab))
                 return layout_for_tab(tab)
         return LAYOUTS.get(self.active_layout_id, UNKNOWN_LAYOUT)
@@ -786,7 +787,7 @@ class App(tk.Tk):
             widgets[-1].grid(row=0,column=2,sticky='e',padx=(8,0))
             if live:
                 facts = [t('dash.card_live')] + facts
-            widgets.append(ttk.Label(box,text=' · '.join(facts),font=('Segoe UI',9),
+            widgets.append(ttk.Label(box,text=' · '.join(facts),font=('Segoe UI',9),wraplength=250,
                                      foreground='#7ee2c0' if live else '#a9b8ca',style=f'{kind}.TLabel'))
             widgets[-1].grid(row=1,column=1,columnspan=2,sticky='w')
             for widget in widgets:

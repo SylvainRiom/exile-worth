@@ -44,6 +44,87 @@
     "name": "ancient_augments_real.selector_lit",
     "threshold": 45.0
   },
+  "breach_real.alignment_shift": {
+    "detail": "dx=0 dy=0, refused beyond +/-20",
+    "direction": "max",
+    "headroom": 20.0,
+    "kind": "margin",
+    "measured": 0.0,
+    "name": "breach_real.alignment_shift",
+    "threshold": 20.0
+  },
+  "breach_real.border_margin": {
+    "detail": "breach over soul_cores (0.298)",
+    "direction": "min",
+    "headroom": 0.5821,
+    "kind": "margin",
+    "measured": 0.7021,
+    "name": "breach_real.border_margin",
+    "threshold": 0.12
+  },
+  "breach_real.border_score": {
+    "detail": "breach",
+    "direction": "min",
+    "headroom": 0.45,
+    "kind": "margin",
+    "measured": 1.0,
+    "name": "breach_real.border_score",
+    "threshold": 0.55
+  },
+  "breach_real.empty": {
+    "detail": "15 cells",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 15.0,
+    "name": "breach_real.empty",
+    "threshold": 15.0
+  },
+  "breach_real.icon_margin_min": {
+    "detail": "closest call B09",
+    "direction": "min",
+    "headroom": 0.0171,
+    "kind": "margin",
+    "measured": 0.0321,
+    "name": "breach_real.icon_margin_min",
+    "threshold": 0.015
+  },
+  "breach_real.icon_score_min": {
+    "detail": "weakest cell B01",
+    "direction": "min",
+    "headroom": 0.0287,
+    "kind": "margin",
+    "measured": 0.9487,
+    "name": "breach_real.icon_score_min",
+    "threshold": 0.92
+  },
+  "breach_real.identified": {
+    "detail": "13 by matcher + 0 by position",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 13.0,
+    "name": "breach_real.identified",
+    "threshold": 13.0
+  },
+  "breach_real.tab_colour_next": {
+    "detail": "nearest other lit tab",
+    "direction": "min",
+    "headroom": 0.3531,
+    "kind": "margin",
+    "measured": 0.7531,
+    "name": "breach_real.tab_colour_next",
+    "threshold": 0.4
+  },
+  "breach_real.tab_colour_selected": {
+    "detail": "6 lit tabs",
+    "direction": "max",
+    "headroom": 0.2661,
+    "kind": "margin",
+    "measured": 0.1339,
+    "name": "breach_real.tab_colour_selected",
+    "threshold": 0.4
+  },
   "dollar_tab.arrow_rows": {
     "detail": "widest warm row beside the menu",
     "direction": "min",

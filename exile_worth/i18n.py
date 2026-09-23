@@ -110,6 +110,7 @@ CATALOG = {
     # --- Stash layouts -----------------------------------------------------
     'layout.currency': 'Currencies',
     'layout.expedition': 'Expedition',
+    'layout.breach': 'Breach Catalysts',
     'layout.runes': 'Runes',
     'layout.kalguuran': 'Kalguuran Runes',
     'layout.soul_cores': 'Soul Cores',
@@ -329,6 +330,7 @@ CATALOG = {
     'event.session_end': 'Fin de session',
     'layout.currency': 'Currencies',
     'layout.expedition': 'Expédition',
+    'layout.breach': 'Breach : catalyseurs',
     'layout.runes': 'Runes',
     'layout.kalguuran': 'Runes kalguuran',
     'layout.soul_cores': 'Soul Cores',
