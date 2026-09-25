@@ -301,6 +301,21 @@ def main():
                 assert 'Main currency' in card_texts(-1), card_texts(-1)
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
+                print('UI smoke: problem report', flush=True)
+                import json, zipfile
+                report = path/'report.zip'
+                with (patch('exile_worth.app.simpledialog.askstring', return_value='Abyss stuck'),
+                      patch('exile_worth.app.filedialog.asksaveasfilename', return_value=str(report)),
+                      patch('exile_worth.app.reveal') as explorer):
+                    app.report_problem()
+                with zipfile.ZipFile(report) as archive:
+                    entries = set(archive.namelist())
+                    summary = json.loads(archive.read('report.json'))
+                assert {'report.json', 'inventory.csv', 'stash-current.png', 'stash-Main-currency-live1.png'} <= entries, entries
+                assert summary['note'] == 'Abyss stuck' and summary['live_tab'] is None, summary
+                assert any(tab['id'] == 'live1' for tab in summary['tabs'])
+                assert app.status.get().startswith('Report saved'), app.status.get()
+                explorer.assert_called_once_with(str(report))
                 print('UI smoke: removing a tab', flush=True)
                 app.open_stash('live1')
                 assert app.remove_button.winfo_manager(), 'A registered tab offers its removal'

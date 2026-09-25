@@ -83,6 +83,7 @@ holds the version ranges.
 | `exile_worth/tables.py` | Sort order of displayed table cells |
 | `exile_worth/settings.py` | `settings.json`: small preferences merged key by key |
 | `exile_worth/updater.py` | Release check on GitHub, verified download, installer launch |
+| `exile_worth/report.py` | "Report a problem": a local zip of the log, stash crops and context |
 | `exile_worth/selftest.py` | `--self-test`: a packaged build loads its OCR, data files and Tk |
 | `packaging/` | PyInstaller spec, Inno Setup script, `build.ps1` |
 | `.github/workflows/release.yml` | A `v*` tag builds the installer and publishes the release |
@@ -177,7 +178,8 @@ explicit revision counter (`IconMatcher.revision`). `id()` is never a cache key.
 `urlparse().hostname`, which also rejects `https://web.poecdn.com@elsewhere/`.
 Updates are pinned the same way to `UPDATE_HOSTS`, **including every redirect**
 (`PinnedRedirects`): a GitHub download link redirects to its asset storage.
-No screenshot or inventory ever leaves the machine.
+No screenshot or inventory ever leaves the machine by itself: a problem report
+is a local zip the player sends, never an upload.
 
 **Releases.** `exile_worth.__version__` is the only version number: the tag
 (`v` + it, checked by the workflow), the executable's file version and the
@@ -486,7 +488,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  216 tests, OK
+python -m unittest discover -s tests   ->  218 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```
@@ -506,13 +508,28 @@ baseline test is the real guard either way.
 
 ## Diagnosing a failure
 
+A player's problem starts with **Report a problem** (toolbar, `report.py`). It
+asks what went wrong, then writes one zip where the player chooses and shows
+it in Explorer; nothing is sent. It holds `report.json` (version, league,
+tabs without their pixel signatures, removed tabs, the live and shown tabs,
+the layout with the basis and verdict that chose it, the current readings,
+confirmed-empty cells, the price basis, the player's note), `inventory.csv`
+(the league's stored cells), `session.log` and its rotations, and
+`stash-*.png`: the screenshot being read and the last one of every tab seen
+this session, named after the tab and its id's first six characters. Images
+are cropped to `STASH_AREA` (860×765), which holds everything the recogniser
+reads and leaves out the chat and the character; the crops fit
+`tests/fixtures` as they are.
+
 Two tools exist because a screenshot alone never explained a refusal.
 
 **`session.log`** in the data folder (rotating, local). `INFO` records lifecycle events and
 every *decision change* — the live loop runs three times a second, so an
 unchanged verdict is suppressed and a line means something really changed. It
 carries the numbers behind each verdict, the near-miss on every refused cell
-(`best=… score=… margin=…`), and full tracebacks. `EXILE_LOG_LEVEL=DEBUG` adds
+(`best=… score=… margin=…`), why a live reading stays in the preview
+(`reading not attached to a tab`), the title `observe` read and how many tabs
+it matched (`tab title:`), and full tracebacks. `EXILE_LOG_LEVEL=DEBUG` adds
 per-frame metrics and per-cell detail. After a failure report, read it together
 with the PNG from **Save the image**: the PNG shows what was seen, the log says
 why it was refused.

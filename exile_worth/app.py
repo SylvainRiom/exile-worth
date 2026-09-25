@@ -20,7 +20,8 @@ from PIL import Image, ImageTk
 
 from .capture import capture_game
 from . import __version__, i18n, settings, updater
-from .diagnostics import failure, log, setup as setup_log
+from .diagnostics import ChangeGate, failure, log, setup as setup_log
+from .report import build_report, reveal, tab_summary
 from .i18n import t
 from .model import DATA, Reading, Reason, Event, Store, estimate_readings, line_value
 from .pricing import Ninja
@@ -248,6 +249,7 @@ class App(tk.Tk):
         self.capture_button.pack(side='left', padx=(0, 6))
         self.tr(ttk.Button(controls, text='', command=self.export_csv), 'bar.export_csv').pack(side='left')
         self.tr(ttk.Button(controls, text='', command=self.save_diagnostic), 'bar.save_image').pack(side='left', padx=6)
+        self.tr(ttk.Button(controls, text='', command=self.report_problem), 'bar.report').pack(side='left')
         self.layout_box = ttk.Combobox(controls, textvariable=self.layout_choice, state='readonly',
                                        width=20, values=self.layout_values())
         self.layout_box.pack(side='right')
@@ -831,6 +833,50 @@ class App(tk.Tk):
             failure('save_diagnostic', exc)
             self.status.set(t('status.save_failed', error=exc))
 
+    def report_problem(self):
+        """Write a local zip for whoever helps the player: nothing is sent."""
+        note = simpledialog.askstring(t('report.title'), t('report.prompt'), parent=self)
+        if note is None:
+            return
+        desktop = Path.home() / 'Desktop'
+        path = filedialog.asksaveasfilename(
+            parent=self, title=t('report.title'), defaultextension='.zip', filetypes=[('Zip', '*.zip')],
+            initialdir=str(desktop if desktop.exists() else Path.home()),
+            initialfile=f"exile-worth-report-{datetime.now():%Y%m%d-%H%M}.zip")
+        if not path:
+            return
+        league = self.league.get().strip()
+        names = {tab['id']: tab['name'] for tab in self.profiles.data['tabs']}
+        # The screenshot being read, then the last one of every tab seen
+        # this session: the stash the player is reporting is among them.
+        # Named after the tab and its id's start, which report.json lists.
+        frames = [('current', self.frame)] + [(f"{names.get(tab_id, 'removed')}-{tab_id[:6]}", frame)
+                                              for tab_id, frame in self.tab_frames.items()]
+        summary = dict(
+            note=note.strip(), league=league, language=i18n.language(), status=self.status.get(),
+            running=self.running, activity=self.capture_activity,
+            layout_override=self.layout_override, active_layout=self.active_layout_id,
+            layout_basis=getattr(self.scanner, 'last_layout_basis', None),
+            layout_verdict=getattr(self.scanner, 'last_layout_verdict', ''),
+            last_tab=self.last_tab['id'] if self.last_tab else None, live_tab=self.live_tab_id(),
+            shown_tab=self.shown_tab_id(),
+            tabs=[tab_summary(tab) for tab in self.profiles.data['tabs']],
+            removed=self.profiles.data.get('removed', {}),
+            readings=[vars(reading) for reading in self.last_readings],
+            empty_cells=sorted(self.store.empty_slots(league)),
+            prices=dict(league=self.market_league, primary=self.market.get('primary'),
+                        fetched=self.market.get('fetched'), stale=self.market.get('stale')))
+        # Written before the log is archived, so the report marks its own place.
+        log.info('problem report: %s | note: %s', path, note.strip() or '-')
+        try:
+            build_report(path, self.profiles.directory, summary, frames, self.store.rows(league))
+        except (OSError, ValueError, cv2.error) as exc:
+            failure('report_problem', exc)
+            self.status.set(t('report.failed', error=exc))
+            return
+        self.status.set(t('report.saved', path=path))
+        reveal(path)
+
     def display_slots(self):
         layout = self.display_layout()
         frame = self.tab_frames.get(self.selected_tab_id) if self.selected_tab_id else self.frame
@@ -1282,6 +1328,7 @@ class App(tk.Tk):
             if (state,detail) != last_activity:
                 self.messages.put(('activity', (state,detail)))
                 last_activity = (state,detail)
+        gate = ChangeGate()
         try:
             self.scanner = self.scanner or Scanner(self.profiles, matcher=self.matcher)
             self.scanner.reset_incremental()
@@ -1299,8 +1346,15 @@ class App(tk.Tk):
                 if tab and (layout_id is None or layout_family(layout_id) != layout_family(layout_for_tab(tab).id)):
                     tab = None
                 tab_ocr = getattr(getattr(self.scanner, 'digits', None), 'ocr', None)
-                if tab is None and layout_id and tab_ocr and self.may_register():
+                registrable = tab is None and layout_id and tab_ocr and self.may_register()
+                if tab is None and layout_id and tab_ocr and registrable:
                     tab, reason = self.profiles.observe(frame, league, layout_id, tab_ocr)
+                if tab is None and layout_id:
+                    basis = getattr(self.scanner, 'last_layout_basis', None)
+                    verdict = (f'{layout_id} by {basis}: {reason or "no reason"}' +
+                               ('' if registrable else ' | cannot register: layout not confirmed by borders or selector, or no title OCR'))
+                    if gate.passes('attach', verdict):
+                        log.info('reading not attached to a tab: %s', verdict)
                 if layout_id is None:
                     self.scanner.reset_incremental()
                     activity('preview', t('status.unknown_layout'))

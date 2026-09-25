@@ -88,6 +88,14 @@ CATALOG = {
     'event.session_start': 'Session start',
     'event.session_end': 'Session end',
     'event.tab_removed': 'Tab removed',
+    'bar.report': 'Report a problem',
+    'report.title': 'Report a problem',
+    'report.prompt': 'What went wrong? Which tab, what you expected (optional).\n\n'
+                     'This writes a zip on your computer, nothing is sent. It holds the '
+                     'log, the stash area of the screenshots of this session, your tabs '
+                     'and stored quantities. Send it yourself to whoever helps you.',
+    'report.saved': 'Report saved: {path}. Nothing was sent: share this file yourself.',
+    'report.failed': 'The report could not be written: {error}',
     'tab.remove': 'Remove this tab',
     'tab.remove_menu': 'Remove “{name}”…',
     'tab.remove_title': 'Remove a tab',
@@ -343,6 +351,14 @@ CATALOG = {
     'event.session_start': 'Début de session',
     'event.session_end': 'Fin de session',
     'event.tab_removed': 'Onglet supprimé',
+    'bar.report': 'Signaler un problème',
+    'report.title': 'Signaler un problème',
+    'report.prompt': 'Qu’est-ce qui ne va pas ? Quel onglet, ce que tu attendais (facultatif).\n\n'
+                     'Cela crée un zip sur ton ordinateur, rien n’est envoyé. Il contient le '
+                     'journal, la zone du coffre des captures de cette session, tes onglets '
+                     'et les quantités enregistrées. Envoie-le toi-même à qui t’aide.',
+    'report.saved': 'Rapport enregistré : {path}. Rien n’a été envoyé : partage ce fichier toi-même.',
+    'report.failed': 'Impossible d’écrire le rapport : {error}',
     'tab.remove': 'Supprimer cet onglet',
     'tab.remove_menu': 'Supprimer « {name} »…',
     'tab.remove_title': 'Supprimer un onglet',

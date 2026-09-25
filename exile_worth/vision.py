@@ -353,14 +353,17 @@ class Profiles:
         """Register a confidently selected tab once, preserving its UUID later."""
         selected = active_tab(frame, ocr)
         if not selected:
+            self.record_observe('active tab or side menu unreadable, or they disagree')
             return None, t('profile.unreadable_tab')
         name, rect = selected
         if not name:
+            self.record_observe(f'title unreadable at {rect}')
             return None, t('profile.unreadable_title')
         key = tab_key(name)
         matches = [tab for tab in self.data['tabs'] if tab['league'] == league and
                    layout_family(layout_for_tab(tab).id) == layout_family(layout_id) and
                    tab_key(tab.get('visible_name', tab['name'])) == key]
+        self.record_observe(f'title {name!r} at {rect}, {layout_id}: {len(matches)} registered match(es)')
         if len(matches) > 1:
             return None, t('profile.ambiguous_label')
         if matches:
@@ -469,6 +472,10 @@ class Profiles:
             return None, t('profile.ambiguous_identity')
         self.record_identity(f'matched {ranked[0][1]} ({ranked[0][0]:.4f})', ranked)
         return candidates[0][1], ''
+
+    def record_observe(self, verdict):
+        if self.gate.passes('observe', verdict):
+            log.info('tab title: %s', verdict)
 
     def record_identity(self, verdict, ranked):
         if not self.gate.passes('identity', verdict):

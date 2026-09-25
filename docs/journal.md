@@ -1153,3 +1153,21 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **216 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
 
+## A problem report — 25 September 2026
+
+- The tester still had a problem after 0.2.3, and every diagnosis so far had
+  come from the user's own data. The user asked for a way to collect the
+  logs and the screenshot of the stash in question from a player.
+- It stays local: AGENTS.md forbids a screenshot or an inventory leaving the
+  machine by itself, so "Report a problem" writes a zip the player sends. The
+  images are cropped to the stash and side menu, 860×765, which holds all the
+  recogniser reads and leaves out the chat; about 0.7 MB each. A report with
+  five tabs seen and the log weighed 3.6 MB on the user's data.
+- The log now says why a live reading stays in the preview and what title
+  `observe` read: the gap the tab-attachment diagnosis ran into.
+- `may_register()` is still only evaluated when no tab was found and the title
+  OCR exists; evaluating it on every frame broke two live-loop tests.
+- Released as 0.2.4.
+- Last validation: **218 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+
