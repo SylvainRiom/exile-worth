@@ -285,6 +285,25 @@ def main():
                 assert 'Main currency' in card_texts(-1), card_texts(-1)
                 assert app.capture_action.get() == 'Start'
                 assert not app.capture_button.instate(['disabled'])
+                print('UI smoke: removing a tab', flush=True)
+                app.open_stash('live1')
+                assert app.remove_button.winfo_manager(), 'A registered tab offers its removal'
+                with patch('exile_worth.app.messagebox.askyesno', return_value=False):
+                    app.remove_button.invoke()
+                assert any(tab['id'] == 'live1' for tab in app.profiles.data['tabs']), 'Cancel keeps the tab'
+                with patch('exile_worth.app.messagebox.askyesno', return_value=True) as asked:
+                    app.remove_button.invoke()
+                assert '1 stored cell' in asked.call_args[0][1], asked.call_args
+                assert not any(tab['id'] == 'live1' for tab in app.profiles.data['tabs'])
+                assert app.profiles.data['removed']['live1'] == 'Main currency'
+                assert not any(row[0] == 'live1' for row in app.store.rows('Standard'))
+                assert app.show_all and not app.remove_button.winfo_manager()
+                assert app.status.get().startswith('“Main currency” removed'), app.status.get()
+                # A scan already in flight must not write the removed tab back.
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',7)],
+                                                     '', 'Standard', 'currency')))
+                app.drain()
+                assert app.last_tab is None and not app.store.rows('Standard')
                 check_update_banner(app, path)
                 print('UI smoke OK: widgets, image preview, calibration, prices, league isolation, updates')
             finally:

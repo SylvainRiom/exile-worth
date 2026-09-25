@@ -1080,3 +1080,18 @@ not rewrite an entry to match later behaviour, add a new one.
 - Released as 0.2.1.
 - Last validation: **213 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` with no FAILS and the same 12 TIGHT.
+
+## Removing a tab — 24 September 2026
+
+- Testers report tabs that do not seem saved correctly. The user asked for a
+  way to remove a tab from the app and rescan it, useful in any case.
+- Removal drops the profile and the tab's stored cells, not its history or
+  valuations: those record what was observed, and a `TAB_REMOVED` point
+  explains the drop in the total. The removed tab's name stays in
+  `profiles.json` so old points do not show a UUID.
+- The rescan comes for free: with the profile gone, tracking registers the
+  tab again under a new UUID, and the scanner's consensus resets on the new
+  identity, so every cell needs its three matching readings again.
+- A live scan queued before the removal carries the old tab; `drain` shows it
+  as a preview instead of synchronising it, which would recreate orphan rows.
+- Last validation: **215 tests passed**, `python -m tests.smoke_ui`.

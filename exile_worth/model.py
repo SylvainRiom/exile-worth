@@ -104,6 +104,7 @@ class Event:
     REFRESH = 'refresh'
     SESSION_START = 'session_start'
     SESSION_END = 'session_end'
+    TAB_REMOVED = 'tab_removed'
 
 
 # Rows written before the language-independent keys existed. The migration is
@@ -208,6 +209,15 @@ class Store:
                 self.db.execute('INSERT INTO history(time,league,tab,snapshot) VALUES(?,?,?,?)',
                                 (stamp, league, tab, json.dumps(snapshot)))
         return changed
+
+    def forget_tab(self, league, tab):
+        """Drop a removed tab's cells, so a rescan starts from nothing.
+
+        History and valuations are a record of what was observed and stay as
+        they are: past points keep the tab's value at that time.
+        """
+        with self.db:
+            return self.db.execute('DELETE FROM slots WHERE league=? AND tab=?', (league, tab)).rowcount
 
     def rows(self, league):
         """Cells holding stock. Six fields, as every caller and snapshot expects.

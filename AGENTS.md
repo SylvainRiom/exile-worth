@@ -406,6 +406,15 @@ beside it; a release lacking either asset is not offered.
   its host is not in `ICON_HOSTS`. A new stash family needs its icon added there;
   `tests/test_tab_icons.py` fails until it is.
 - Per-tab screenshots are kept **in memory** (`tab_frames`), not persisted.
+- A registered tab can be **removed** (`remove_tab`): the button under its
+  title, or a right-click on its list line, after a confirmation. It drops the
+  profile (`Profiles.remove`, which replaces the list since the live loop
+  iterates it) and its cells (`Store.forget_tab`), and records a
+  `TAB_REMOVED` valuation. History and past valuations stay; the name is kept
+  under `removed` in `profiles.json` so they still name the tab. Nothing is
+  sent to the game: seen again, the tab registers under a new UUID and is read
+  from scratch. A scan in flight for a removed id is shown as a preview, never
+  synchronised, or it would write rows back under a dead id.
 - Conversion: sum of `quantity × primaryValue`, divided by the rate of the selected
   currency. Never assume the primary currency is always divine.
 
@@ -454,7 +463,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  213 tests, OK
+python -m unittest discover -s tests   ->  215 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
 ```

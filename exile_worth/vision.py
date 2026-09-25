@@ -315,6 +315,21 @@ class Profiles:
         self.save()
         return tab
 
+    def remove(self, tab_id):
+        """Forget a registered tab; the next time it is seen it registers anew.
+
+        The list is replaced, not mutated: the live loop iterates it on its
+        own thread. The name is kept under `removed` so past history points
+        can still name the tab.
+        """
+        tab = next((tab for tab in self.data['tabs'] if tab['id'] == tab_id), None)
+        if tab is None:
+            return None
+        self.data['tabs'] = [other for other in self.data['tabs'] if other['id'] != tab_id]
+        self.data.setdefault('removed', {})[tab_id] = tab['name']
+        self.save()
+        return tab
+
     def observe(self, frame, league, layout_id, ocr):
         """Register a confidently selected tab once, preserving its UUID later."""
         selected = active_tab(frame, ocr)

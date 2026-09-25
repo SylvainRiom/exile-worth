@@ -87,6 +87,17 @@ CATALOG = {
     'event.refresh': 'Refresh',
     'event.session_start': 'Session start',
     'event.session_end': 'Session end',
+    'event.tab_removed': 'Tab removed',
+    'tab.remove': 'Remove this tab',
+    'tab.remove_menu': 'Remove “{name}”…',
+    'tab.remove_title': 'Remove a tab',
+    'tab.remove_confirm': 'Remove “{name}” from Exile Worth?\n\n'
+                          'Its {count} stored cell(s) are deleted and stop counting in the total. '
+                          'The history keeps its past values.\n\n'
+                          'Nothing changes in the game: the next time tracking sees this tab, '
+                          'it is registered again and read from scratch.',
+    'tab.removed': '“{name}” removed. Open it in the game with tracking on to read it again.',
+    'history.removed_tab': '{name} (removed)',
     # --- Stash layouts -----------------------------------------------------
     'layout.currency': 'Currencies',
     'layout.expedition': 'Expedition',
@@ -331,6 +342,17 @@ CATALOG = {
     'event.refresh': 'Actualisation',
     'event.session_start': 'Début de session',
     'event.session_end': 'Fin de session',
+    'event.tab_removed': 'Onglet supprimé',
+    'tab.remove': 'Supprimer cet onglet',
+    'tab.remove_menu': 'Supprimer « {name} »…',
+    'tab.remove_title': 'Supprimer un onglet',
+    'tab.remove_confirm': 'Supprimer « {name} » d’Exile Worth ?\n\n'
+                          'Ses {count} case(s) enregistrée(s) sont effacées et ne comptent plus dans le total. '
+                          'L’historique garde ses valeurs passées.\n\n'
+                          'Rien ne change dans le jeu : la prochaine fois que le suivi voit cet onglet, '
+                          'il est enregistré à nouveau et relu depuis zéro.',
+    'tab.removed': '« {name} » supprimé. Ouvre-le dans le jeu avec le suivi actif pour le relire.',
+    'history.removed_tab': '{name} (supprimé)',
     'layout.currency': 'Currencies',
     'layout.expedition': 'Expédition',
     'layout.breach': 'Breach : catalyseurs',

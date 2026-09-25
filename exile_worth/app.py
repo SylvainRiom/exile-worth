@@ -287,6 +287,10 @@ class App(tk.Tk):
         ttk.Label(names, textvariable=self.view_title, font=('Segoe UI',16,'bold')).pack(anchor='w')
         self.view_subtitle_label = ttk.Label(names, textvariable=self.view_subtitle, foreground='#a9b8ca')
         self.view_subtitle_label.pack(anchor='w')
+        # Packed only while a registered tab is shown (`refresh_view`).
+        self.remove_button = self.tr(ttk.Button(names, text='', style='Period.TButton',
+                                                command=lambda: self.remove_tab(self.shown_tab_id())),
+                                     'tab.remove')
         amounts = ttk.Frame(head)
         amounts.pack(side='right', anchor='se')
         ttk.Label(amounts, textvariable=self.view_value, font=('Segoe UI',24,'bold'),
@@ -913,7 +917,7 @@ class App(tk.Tk):
         self._card_boxes = []
         symbol = 'div' if unit=='divine' else unit
         shown = self.shown_tab_id()
-        def card(action,title,amount,facts,layout_id=None,live=False,selected=False):
+        def card(action,title,amount,facts,layout_id=None,live=False,selected=False,menu=None):
             """Two lines: icon, name and value; then the type and what is missing."""
             kind = ('LiveSelected' if selected else 'Live') if live else ('Selected' if selected else 'Card')
             box = ttk.Frame(self.cards,padding=(12,8),style=f'{kind}.TFrame',cursor='hand2')
@@ -938,6 +942,8 @@ class App(tk.Tk):
             # the click's own bindings have finished.
             for widget in widgets:
                 widget.bind('<Button-1>',lambda event: self.after_idle(action))
+                if menu:
+                    widget.bind('<Button-3>',menu)
             box.grid(row=len(self._card_boxes),column=0,sticky='ew',pady=2)
             self._card_boxes.append(box)
         league = self.league.get().strip()
@@ -955,7 +961,8 @@ class App(tk.Tk):
             facts = [layout_name(layout_id),
                      self.card_time(max(r[4] for r in entries)) if entries else t('dash.card_never')]
             card(lambda tab_id=tab['id']: self.open_stash(tab_id), tab['name'], amount, facts + missing,
-                 layout_id, live=tab['id'] == live, selected=tab['id'] == shown)
+                 layout_id, live=tab['id'] == live, selected=tab['id'] == shown,
+                 menu=lambda event, tab=tab: self.tab_menu(event, tab))
         # The preview holds readings no tab holds: an unidentified tab or an
         # imported screenshot. It is never added to the total, and there is
         # none before anything is read (start-up, league change).
@@ -971,6 +978,46 @@ class App(tk.Tk):
                 facts.append(t('dash.card_unpriced', count=preview.unpriced))
             card(lambda: self.open_stash(None), title, amount, facts, self.active_layout_id,
                  selected=not self.show_all and shown is None)
+
+    def tab_menu(self, event, tab):
+        menu = tk.Menu(self, tearoff=0)
+        # Through after_idle, like a click: removing rebuilds the list.
+        menu.add_command(label=t('tab.remove_menu', name=tab['name']),
+                         command=lambda: self.after_idle(lambda: self.remove_tab(tab['id'])))
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def remove_tab(self, tab_id):
+        """Forget a registered tab and its stored cells, after confirmation.
+
+        The game is not touched: when tracking sees the tab again it registers
+        it under a new id and reads every cell from scratch. History and past
+        valuations stay; a `TAB_REMOVED` point explains the drop.
+        """
+        tab = next((p for p in self.profiles.data['tabs'] if p['id'] == tab_id), None)
+        if tab is None:
+            return
+        league = tab['league']
+        count = (sum(1 for row in self.store.rows(league) if row[0] == tab_id)
+                 + sum(1 for other, _slot in self.store.empty_slots(league) if other == tab_id))
+        if not messagebox.askyesno(t('tab.remove_title'), t('tab.remove_confirm', name=tab['name'], count=count),
+                                   icon='warning', parent=self):
+            return
+        self.profiles.remove(tab_id)
+        cells = self.store.forget_tab(league, tab_id)
+        self.tab_frames.pop(tab_id, None)
+        if self.last_tab and self.last_tab['id'] == tab_id:
+            # Its readings stay on screen as a preview until it registers again.
+            self.last_tab = None
+            self.last_scan_synced = False
+        if self.selected_tab_id == tab_id:
+            self.selected_tab_id = None
+            self.show_all = True
+        self.selected_slot = None
+        log.info('tab removed: %s (%s) league=%s cells=%d', tab['name'], tab_id, league, cells)
+        if league == self.league.get().strip():
+            self.record_valuation(Event.TAB_REMOVED, force=True)
+        self.refresh_inventory()
+        self.status.set(t('tab.removed', name=tab['name']))
 
     def preview_names(self):
         """The preview's title and subtitle.
@@ -994,6 +1041,11 @@ class App(tk.Tk):
         shown = self.shown_tab_id()
         tab = next((p for p in self.profiles.data['tabs'] if p['id'] == shown), None)
         subtitle_colour = '#a9b8ca'
+        if tab and not self.show_all:
+            if not self.remove_button.winfo_manager():
+                self.remove_button.pack(anchor='w', pady=(6,0))
+        elif self.remove_button.winfo_manager():
+            self.remove_button.pack_forget()
         if self.show_all:
             self.view_title.set(t('side.all'))
             self.view_subtitle.set(self.total_title.get())
@@ -1355,7 +1407,9 @@ class App(tk.Tk):
                            approximate_slots if rows else {(None, r.slot) for r in readings if r.approximate},
                            prices, unit)
         self.record_valuation()
-        names = {t['id']:t['name'] for t in self.profiles.data['tabs']}
+        names = {tab_id: t('history.removed_tab', name=name)
+                 for tab_id, name in self.profiles.data.get('removed', {}).items()}
+        names.update({tab['id']: tab['name'] for tab in self.profiles.data['tabs']})
         latest = self.store.db.execute('SELECT MAX(id) FROM valuations WHERE league=?', (league,)).fetchone()[0]
         history_key = (league, latest, tuple(names.items()))
         if getattr(self, '_history_key', None) != history_key:
@@ -1479,6 +1533,10 @@ class App(tk.Tk):
                     tab, readings, league = scan.tab, scan.readings, scan.league
                     if league != self.league.get().strip():
                         continue
+                    if tab and tab['id'] in self.profiles.data.get('removed', {}):
+                        # Removed while this scan was in flight: syncing it would
+                        # write rows back under an id no tab holds.
+                        tab = None
                     self.frame, self.last_tab, self.last_readings = scan.frame, tab, readings
                     self.last_scan_synced = kind == 'live' and tab is not None
                     self.provisional_readings = list(scan.provisional) if kind == 'live' else []
