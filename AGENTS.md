@@ -344,8 +344,15 @@ beside it; a release lacking either asset is not offered.
   contents on the right**. There is no separate detail page. The list starts
   with `Whole stash`, selected at start-up and after a league change, then one
   line per registered tab, then the preview. Clicking a line shows it
-  (`select_all`, `open_stash`); clicks run through `after_idle` because the
-  list is rebuilt and the clicked widget destroyed.
+  (`select_all`, `open_stash`); clicks run through `after_idle` because a
+  click may rebuild the list and destroy the clicked widget.
+- **Live refreshes never rebuild what did not change.** The live loop
+  refreshes several times a second; rebuilding the list and the tables each
+  time made them jump and scrolled the tables back to the top while no value
+  changed. `refresh_cards` leaves an unchanged list alone, updates lines in
+  place (`fill_card`) and rebuilds only when a line or an icon appears or goes.
+  `fill_tree` does the same for the item and reading tables, row by row, so
+  their scroll position and selection hold.
 - `Whole stash` shows the total with what it misses, then **every item of the
   stash in one table** (`refresh_items`): one line per item across all tabs,
   with total quantity, unit price, value, share of the valued total and the
@@ -393,9 +400,9 @@ beside it; a release lacking either asset is not offered.
 - Corrections apply to the screenshot being read (the preview or the live tab),
   never to a stored tab; the panel says so on a stored tab.
 - The item and reading tables sort on a heading click (again to reverse, arrow
-  on the active column). The tables are rebuilt on every live reading, so the
-  order is a state `apply_sort` reapplies after each refresh, never a one-off
-  move. Numbers sort by value (`≈ 24,700`, `12 (provisional)`), text in natural
+  on the active column). Rows change on every live reading, so the order is
+  a state `apply_sort` reapplies after each refresh, never a one-off move.
+  Numbers sort by value (`≈ 24,700`, `12 (provisional)`), text in natural
   order (C2 before C10), and `—` stays last in both directions.
 - **Cell ids (`L11`, `E22`, `R05`…) are never shown to the user**: they key the
   reading rows (`iid`) and the corrections, and stay in the CSV export. The

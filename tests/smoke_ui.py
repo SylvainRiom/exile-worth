@@ -259,6 +259,22 @@ def main():
                 assert app.display_readings()[0].quantity == 7
                 assert app.view_title.get() == 'Main currency', app.view_title.get()
                 assert app.view_subtitle.get().endswith('● Updating live'), app.view_subtitle.get()
+                # Live readings arrive several times a second: the list and the
+                # table are updated in place, never rebuilt, so nothing jumps.
+                boxes = app.cards.winfo_children()
+                labels = boxes[1].winfo_children()
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',7)],
+                                                     '', 'Standard', 'currency')))
+                app.drain()
+                assert app.cards.winfo_children() == boxes, 'An unchanged reading rebuilt the list'
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',8)],
+                                                     '', 'Standard', 'currency')))
+                app.drain()
+                assert app.cards.winfo_children() == boxes and boxes[1].winfo_children() == labels
+                assert str(app.read_tree.item('C03')['values'][0]) == '8', app.read_tree.item('C03')
+                app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',7)],
+                                                     '', 'Standard', 'currency')))
+                app.drain()
                 # Re-confirming a stored cell keeps its confirmed quantity and value.
                 # (No price is loaded for Standard here, so only the quantity is checked.)
                 app.messages.put(('live', ScanResult(frame, live_tab, [Reading('C03','divine',None,.99,Reason.PENDING)],

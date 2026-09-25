@@ -9,6 +9,7 @@ import time
 import tkinter as tk
 import webbrowser
 from dataclasses import dataclass
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -202,6 +203,8 @@ class App(tk.Tk):
         apply_theme(self)
         self._translatable = []
         self._trees = []
+        # What each table shows, by row id (`fill_tree`).
+        self._tree_rows = {}
         # Per table: (column, descending). Reapplied after every refresh.
         self._sort = {}
         header = ttk.Frame(self, padding=16)
@@ -275,6 +278,7 @@ class App(tk.Tk):
         self.cards_canvas.bind('<Configure>', lambda event: self.cards_canvas.itemconfigure(
             cards_window, width=event.width))
         self._card_boxes = []
+        self._card_lines = None
         # The wheel scrolls the list wherever the pointer is over it; `all`
         # bindings run after a widget's own ones.
         self.bind_all('<MouseWheel>', self.wheel_cards, add='+')
@@ -456,6 +460,28 @@ class App(tk.Tk):
     def headings(tree):
         """Every sortable column, the item (tree) column included."""
         return (['#0'] if tree.item_heading else []) + list(tree['columns'])
+
+    def fill_tree(self, tree, rows):
+        """Show `rows` ((iid, options) pairs) without rebuilding the table.
+
+        Deleting every row and inserting it again on each live reading sent
+        the table back to its top and made it flicker while nothing changed.
+        Only the rows that changed are touched; an unchanged table is left alone.
+        """
+        rows = dict(rows)
+        if self._tree_rows.get(tree) == rows:
+            return
+        shown = self._tree_rows.get(tree, {})
+        gone = [iid for iid in tree.get_children() if iid not in rows]
+        if gone:
+            tree.delete(*gone)
+        for iid, options in rows.items():
+            if not tree.exists(iid):
+                tree.insert('', 'end', iid=iid, **options)
+            elif shown.get(iid) != options:
+                tree.item(iid, **options)
+        self._tree_rows[tree] = rows
+        self.apply_sort(tree)
 
     def apply_sort(self, tree):
         """Reorder rows by the chosen column; unsorted tables keep insertion order."""
@@ -910,47 +936,21 @@ class App(tk.Tk):
     def refresh_cards(self, rows, prices, unit, total):
         """The stash list: the whole stash, one line per tab, then the preview.
 
-        `total` is the whole stash's amount text and what it misses.
+        `total` is the whole stash's amount text and what it misses. The live
+        loop refreshes several times a second: an unchanged list is left
+        alone, and a list with the same lines is updated in place. Rebuilding
+        it every time made the lines jump while their values did not change.
         """
-        for child in self.cards.winfo_children():
-            child.destroy()
-        self._card_boxes = []
         symbol = 'div' if unit=='divine' else unit
         shown = self.shown_tab_id()
-        def card(action,title,amount,facts,layout_id=None,live=False,selected=False,menu=None):
-            """Two lines: icon, name and value; then the type and what is missing."""
-            kind = ('LiveSelected' if selected else 'Live') if live else ('Selected' if selected else 'Card')
-            box = ttk.Frame(self.cards,padding=(12,8),style=f'{kind}.TFrame',cursor='hand2')
-            box.columnconfigure(1,weight=1)
-            icon = self.tab_icon(layout_id)
-            widgets = [box]
-            if icon:
-                widgets.append(ttk.Label(box,image=icon,style=f'{kind}.TLabel'))
-                widgets[-1].grid(row=0,column=0,rowspan=2,sticky='w',padx=(0,10))
-            widgets.append(ttk.Label(box,text=title,font=('Segoe UI',11,'bold'),foreground='#e7edf6',
-                                     style=f'{kind}.TLabel'))
-            widgets[-1].grid(row=0,column=1,sticky='w')
-            widgets.append(ttk.Label(box,text=amount,font=('Segoe UI',11,'bold'),foreground='#83f0b6',
-                                     style=f'{kind}.TLabel'))
-            widgets[-1].grid(row=0,column=2,sticky='e',padx=(8,0))
-            if live:
-                facts = [t('dash.card_live')] + facts
-            widgets.append(ttk.Label(box,text=' · '.join(facts),font=('Segoe UI',9),wraplength=250,
-                                     foreground='#7ee2c0' if live else '#a9b8ca',style=f'{kind}.TLabel'))
-            widgets[-1].grid(row=1,column=1,columnspan=2,sticky='w')
-            # Rebuilding the list destroys the clicked widget: run it after
-            # the click's own bindings have finished.
-            for widget in widgets:
-                widget.bind('<Button-1>',lambda event: self.after_idle(action))
-                if menu:
-                    widget.bind('<Button-3>',menu)
-            box.grid(row=len(self._card_boxes),column=0,sticky='ew',pady=2)
-            self._card_boxes.append(box)
+        # One line: (identity, title, amount, facts, layout id, live, selected).
+        # The identity ('all', a tab id, 'preview') decides its click action.
+        lines = []
         league = self.league.get().strip()
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==league]
         amount, missing = total
-        card(self.select_all, t('side.all'), amount, [t('side.all_facts', tabs=len(tabs))] + missing,
-             selected=self.show_all)
+        lines.append(('all', t('side.all'), amount, [t('side.all_facts', tabs=len(tabs))] + missing,
+                      None, False, self.show_all))
         live = self.live_tab_id()
         for tab in tabs:
             entries, estimate, missing = self.tab_summary(tab, rows, prices, unit)
@@ -960,9 +960,8 @@ class App(tk.Tk):
                          else layout_for_tab(tab).id)
             facts = [layout_name(layout_id),
                      self.card_time(max(r[4] for r in entries)) if entries else t('dash.card_never')]
-            card(lambda tab_id=tab['id']: self.open_stash(tab_id), tab['name'], amount, facts + missing,
-                 layout_id, live=tab['id'] == live, selected=tab['id'] == shown,
-                 menu=lambda event, tab=tab: self.tab_menu(event, tab))
+            lines.append((tab['id'], tab['name'], amount, facts + missing, layout_id,
+                          tab['id'] == live, tab['id'] == shown))
         # The preview holds readings no tab holds: an unidentified tab or an
         # imported screenshot. It is never added to the total, and there is
         # none before anything is read (start-up, league change).
@@ -976,10 +975,71 @@ class App(tk.Tk):
                 facts.append(t('dash.card_to_check', count=preview.unread))
             if preview.unpriced:
                 facts.append(t('dash.card_unpriced', count=preview.unpriced))
-            card(lambda: self.open_stash(None), title, amount, facts, self.active_layout_id,
-                 selected=not self.show_all and shown is None)
+            lines.append(('preview', title, amount, facts, self.active_layout_id,
+                          False, not self.show_all and shown is None))
+        lines = [(identity, title, amount, tuple(facts), layout_id, live, selected)
+                 for identity, title, amount, facts, layout_id, live, selected in lines]
+        if lines == self._card_lines:
+            return
+        # The same lines with the same icons are updated in place; any other
+        # change (a tab added or removed, an icon appearing) rebuilds the list.
+        shape = [(line[0], self.tab_icon(line[4]) is not None) for line in lines]
+        if shape != [(card.identity, card.icon is not None) for card in self._card_boxes]:
+            for child in self.cards.winfo_children():
+                child.destroy()
+            self._card_boxes = [self.make_card(identity, has_icon) for identity, has_icon in shape]
+            for row, card in enumerate(self._card_boxes):
+                card.box.grid(row=row, column=0, sticky='ew', pady=2)
+        for card, line in zip(self._card_boxes, lines):
+            self.fill_card(card, *line[1:])
+        self._card_lines = lines
 
-    def tab_menu(self, event, tab):
+    def card_action(self, identity):
+        if identity == 'all':
+            return self.select_all
+        return lambda: self.open_stash(None if identity == 'preview' else identity)
+
+    def make_card(self, identity, has_icon):
+        """One list line's widgets; `fill_card` sets their text and colours."""
+        box = ttk.Frame(self.cards,padding=(12,8),style='Card.TFrame',cursor='hand2')
+        box.columnconfigure(1,weight=1)
+        card = SimpleNamespace(identity=identity, box=box, icon=None)
+        if has_icon:
+            card.icon = ttk.Label(box,style='Card.TLabel')
+            card.icon.grid(row=0,column=0,rowspan=2,sticky='w',padx=(0,10))
+        card.title = ttk.Label(box,font=('Segoe UI',11,'bold'),foreground='#e7edf6',style='Card.TLabel')
+        card.title.grid(row=0,column=1,sticky='w')
+        card.amount = ttk.Label(box,font=('Segoe UI',11,'bold'),foreground='#83f0b6',style='Card.TLabel')
+        card.amount.grid(row=0,column=2,sticky='e',padx=(8,0))
+        card.facts = ttk.Label(box,font=('Segoe UI',9),wraplength=250,style='Card.TLabel')
+        card.facts.grid(row=1,column=1,columnspan=2,sticky='w')
+        action = self.card_action(identity)
+        for widget in [box, card.title, card.amount, card.facts] + ([card.icon] if card.icon else []):
+            # Clicking may rebuild the list and destroy the clicked widget:
+            # run it after the click's own bindings have finished.
+            widget.bind('<Button-1>',lambda event: self.after_idle(action))
+            if identity not in ('all', 'preview'):
+                widget.bind('<Button-3>',lambda event: self.tab_menu(event, identity))
+        return card
+
+    def fill_card(self, card, title, amount, facts, layout_id, live, selected):
+        """Two lines: icon, name and value; then the type and what is missing."""
+        kind = ('LiveSelected' if selected else 'Live') if live else ('Selected' if selected else 'Card')
+        if live:
+            facts = (t('dash.card_live'),) + facts
+        card.box.configure(style=f'{kind}.TFrame')
+        for label in (card.title, card.amount, card.facts):
+            label.configure(style=f'{kind}.TLabel')
+        card.title.configure(text=title)
+        card.amount.configure(text=amount)
+        card.facts.configure(text=' · '.join(facts), foreground='#7ee2c0' if live else '#a9b8ca')
+        if card.icon is not None:
+            card.icon.configure(image=self.tab_icon(layout_id), style=f'{kind}.TLabel')
+
+    def tab_menu(self, event, tab_id):
+        tab = next((p for p in self.profiles.data['tabs'] if p['id'] == tab_id), None)
+        if tab is None:
+            return
         menu = tk.Menu(self, tearoff=0)
         # Through after_idle, like a click: removing rebuilds the list.
         menu.add_command(label=t('tab.remove_menu', name=tab['name']),
@@ -1151,16 +1211,16 @@ class App(tk.Tk):
                 entry['tabs'].add(names.get(tab, tab))
         values = {item: line_value(item, entry['quantity'], prices, unit) for item, entry in items.items()}
         total = sum(value for value in values.values() if value is not None)
-        self.items_tree.delete(*self.items_tree.get_children())
+        shown = []
         for item, entry in items.items():
             value, each = values[item], line_value(item, 1, prices, unit)
-            self.items_tree.insert('', 'end', iid=item, image=self.item_icon(item), text=' '+self.item_name(item),
-                                   values=(('≈ ' if entry['approximate'] else '')+f"{entry['quantity']:,}",
-                                           '—' if each is None else f'{each:,.3f}',
-                                           '—' if value is None else f'{value:,.2f}',
-                                           '—' if value is None or not total else f'{100*value/total:.1f} %',
-                                           ', '.join(sorted(entry['tabs']))))
-        self.apply_sort(self.items_tree)
+            shown.append((item, dict(image=self.item_icon(item), text=' '+self.item_name(item),
+                                     values=(('≈ ' if entry['approximate'] else '')+f"{entry['quantity']:,}",
+                                             '—' if each is None else f'{each:,.3f}',
+                                             '—' if value is None else f'{value:,.2f}',
+                                             '—' if value is None or not total else f'{100*value/total:.1f} %',
+                                             ', '.join(sorted(entry['tabs']))))))
+        self.fill_tree(self.items_tree, shown)
 
     def tab_icon(self, layout_id):
         """The in-game icon of a stash type, or '' for an unrecognised layout.
@@ -1271,7 +1331,6 @@ class App(tk.Tk):
             self.messages.put(('stopped', None))
 
     def show_readings(self, readings):
-        self.read_tree.delete(*self.read_tree.get_children())
         self.read_notes = {}
         readings = [r for r in readings if r.reason != Reason.EMPTY]
         provisional = {r.slot:r for r in self.provisional_readings} if self.showing_live() else {}
@@ -1328,16 +1387,17 @@ class App(tk.Tk):
             lines.append((r, index, attention, waiting, quantity_text, value))
         # A line's share of what this tab's valued lines add up to.
         total = sum(line[5] for line in lines if line[5] is not None)
+        shown = []
         for r, index, attention, waiting, quantity_text, value in lines:
             each = line_value(r.item, 1, prices, unit)
-            self.read_tree.insert('', 'end', iid=r.slot, image=self.item_icon(r.item, r.alternatives),
-                                  text=' '+self.reading_name(r)+('  ⚠' if attention else ''),
-                                  tags=(('attention',) if attention else ('pending',) if waiting else ())
-                                       + ('odd' if index%2 else 'even',),
-                                  values=(quantity_text, '—' if each is None else f'{each:,.3f}',
-                                          '—' if value is None else f'{value:.3f}',
-                                          '—' if value is None or not total else f'{100*value/total:.1f} %'))
-        self.apply_sort(self.read_tree)
+            # Stripes are left to apply_sort, which follows the displayed order.
+            shown.append((r.slot, dict(image=self.item_icon(r.item, r.alternatives),
+                                       text=' '+self.reading_name(r)+('  ⚠' if attention else ''),
+                                       tags=('attention',) if attention else ('pending',) if waiting else (),
+                                       values=(quantity_text, '—' if each is None else f'{each:,.3f}',
+                                               '—' if value is None else f'{value:.3f}',
+                                               '—' if value is None or not total else f'{100*value/total:.1f} %'))))
+        self.fill_tree(self.read_tree, shown)
         # The table is rebuilt on every live reading; keep the chosen line.
         if self.selected_slot and self.read_tree.exists(self.selected_slot):
             self.read_tree.selection_set(self.selected_slot)

@@ -1120,3 +1120,14 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **216 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins` with no FAILS and the same 12 TIGHT.
 
+## Flicker in the stash list — 25 September 2026
+
+- The user: the list's lines kept jumping during tracking, even when no value
+  changed. Every live reading destroyed and recreated the whole list (about
+  forty widgets), which Tk lays out again over several redraws, and deleted
+  and reinserted every table row, which also sent the tables to their top.
+- The list now compares its lines with the last ones shown: unchanged, it is
+  left alone; the same lines are updated in place; only a line or an icon
+  appearing or going rebuilds it. The tables update changed rows only.
+- Guarded by the smoke test: an identical reading keeps the same widgets, a
+  new quantity updates the line and the row in place.
