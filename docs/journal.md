@@ -1095,3 +1095,28 @@ not rewrite an entry to match later behaviour, add a new one.
 - A live scan queued before the removal carries the old tab; `drain` shows it
   as a preview instead of synchronising it, which would recreate orphan rows.
 - Last validation: **215 tests passed**, `python -m tests.smoke_ui`.
+
+## Tabs stuck after their first sync — 25 September 2026
+
+- A tester's screenshot: his Expedition tab `33` registered, but its live
+  reading stayed in "Live preview · tab not identified" and the tab never
+  updated. The user's own data showed the same: Ritual, Delirium, Abyss and
+  BREACH each had every cell stamped at one instant and one history entry,
+  while `$$` had 27.
+- Cause: `identify` skipped an auto-registered tab selected more than 6 px
+  from its registration position. PoE 2's tab bar scrolls, so outside the
+  pinned currency tab that position rarely repeats (Delirium: 181 then 466).
+  The fallback, `observe`, needs the title read by OCR at 0.85 and a layout
+  confirmed by borders; short numeric titles (`30`–`34`) rarely pass.
+- The label is now compared at the selected tab's current rect, ±4 px. On the
+  real captures with the user's profiles: every registered tab identified,
+  Delirium at its new position at 0.969 against 0.813 for the next; the
+  removed Essences tab still matches none (0.856 < 0.96). Border anchors and
+  the 0.04 lead still separate tabs; a different label at the old spot stays
+  unidentified.
+- Released as 0.2.2, with the removal of a tab.
+- Not validated in a live session. `observe` refusals are still only shown in
+  the status bar, not logged.
+- Last validation: **216 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins` with no FAILS and the same 12 TIGHT.
+

@@ -288,6 +288,25 @@ def without_menu_icon(menu_name, top_name):
     return menu_name
 
 
+def label_score(frame, selected, tab):
+    """How closely the tab's stored label matches the frame.
+
+    With `selected`, the label is looked for where the selected tab is now,
+    a few pixels either way since that rect is padded from the lit run's
+    edges; without, at the rect the user drew when registering it.
+    """
+    label = np.array(tab['label'], np.uint8)
+    if selected is None:
+        return similarity(crop(frame, tab['rect']), label)
+    height, width = label.shape[:2]
+    return max(similarity(crop(frame, (selected[0]+dx, tab['rect'][1], width, height)), label)
+               for dx in range(-LABEL_SHIFT, LABEL_SHIFT+1))
+
+
+# How far a label is looked for around the selected tab's padded rect.
+LABEL_SHIFT = 4
+
+
 class Profiles:
     def __init__(self, directory=DATA):
         self.directory = directory
@@ -411,20 +430,19 @@ class Profiles:
 
     def identify(self, frame, league):
         candidates = []
+        selected = selected_tab_rect(frame)
         for tab in self.data['tabs']:
             if tab['league'] == league:
-                if tab.get('auto_registered'):
-                    selected = selected_tab_rect(frame)
-                    if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
-                        continue
+                # The tab bar scrolls: a tab's position depends on where the
+                # player came from (Delirium registered at x=181 was selected
+                # at x=466). Its label is compared where the selected tab is now.
+                follows = tab.get('auto_registered') or has_views(layout_for_tab(tab).id)
+                if follows and (selected is None or abs(selected[2]-tab['rect'][2]) > 6):
+                    continue
                 # Views of one tab have different grids. Their stable outer tab
                 # label identifies the parent; the current view is detected separately.
                 if has_views(layout_for_tab(tab).id):
-                    selected = selected_tab_rect(frame)
-                    if selected is None or abs(selected[0]-tab['rect'][0]) > 6:
-                        continue
-                    score = similarity(crop(frame, tab['rect']), np.array(tab['label'], np.uint8))
-                    candidates.append((score, tab))
+                    candidates.append((label_score(frame, selected, tab), tab))
                     continue
                 layout = tab.get('layout') or {slot: ref['border'] for slot,ref in self.data['slots'].items()}
                 anchors = []
@@ -437,8 +455,7 @@ class Profiles:
                     anchors.append(similarity(crop(frame, (x-3,y-3,w+6,3)), np.array(border, np.uint8)))
                 if len(anchors) < 5 or sum(s > .80 for s in anchors) / len(anchors) < .8:
                     continue
-                score = similarity(crop(frame, tab['rect']), np.array(tab['label'], np.uint8))
-                candidates.append((score, tab))
+                candidates.append((label_score(frame, selected if follows else None, tab), tab))
         candidates.sort(key=lambda pair: pair[0], reverse=True)
         ranked = [(score, tab['name']) for score, tab in candidates]
         if not candidates or candidates[0][0] < .96:

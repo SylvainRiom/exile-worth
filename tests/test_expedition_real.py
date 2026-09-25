@@ -48,6 +48,28 @@ class RealExpeditionTests(unittest.TestCase):
             self.assertIsNone(active_tab(blank,ocr))
             self.assertIsNone(profiles.observe(blank,'A','expedition',ocr)[0])
 
+    def test_tab_is_identified_after_the_tab_bar_scrolls(self):
+        """The bar scrolls: a registered tab comes back selected elsewhere.
+
+        Requiring the registration position left every tab but the pinned
+        currency one unsynchronised once reached from another side of the bar.
+        """
+        from rapidocr_onnxruntime import RapidOCR
+        stash = np.zeros((1080,1920,3),np.uint8)
+        stash[:765,:645] = cv2.imread(str(Path(__file__).parent/'fixtures/expedition_real/stash.png'))
+        scrolled = stash.copy()
+        scrolled[90:127,40:600] = np.roll(stash[90:127,40:600], -300, axis=1)
+        ocr = RapidOCR(intra_op_num_threads=2,inter_op_num_threads=2)
+        with tempfile.TemporaryDirectory() as temporary:
+            profiles = Profiles(Path(temporary))
+            tab, _ = profiles.observe(stash,'A','expedition',ocr)
+            self.assertEqual(tab['rect'][0], 497)
+            self.assertEqual(profiles.identify(scrolled,'A')[0]['id'], tab['id'])
+            # Another label at that position is still not this tab.
+            other = scrolled.copy()
+            other[97:124,200:290] = stash[97:124,100:190]
+            self.assertIsNone(profiles.identify(other,'A')[0])
+
     def test_symbol_only_currency_tab_is_registered_and_reused(self):
         from rapidocr_onnxruntime import RapidOCR
         frame = np.zeros((1080,1920,3),np.uint8)

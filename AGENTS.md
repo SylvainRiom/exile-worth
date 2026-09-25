@@ -241,6 +241,14 @@ beside it; a release lacking either asset is not offered.
   fallback may show a preview but never registers, since it once saved the
   user's Ritual tab as Runes from 5 matches against 3. A unique active label in the same league with the same structure
   keeps its UUID even when its position changes.
+- **The tab bar scrolls**: a tab's position depends on where the player came
+  from (Delirium, registered at x=181, was later selected at x=466).
+  `Profiles.identify` therefore compares an auto-registered or view-family
+  tab's stored label **where the selected tab is now** (`label_score`, ±4 px,
+  width within 6 px), never at its registration position. Requiring that
+  position left every tab but the pinned currency one synchronised once and
+  then stuck in the preview, resting on OCR of its title alone. A manually
+  drawn tab keeps its drawn rect.
 - The selected tab is found at y=121, where lit tabs reach the bar's lower edge.
   Coloured tabs are all lit there, so `pick_selected_run` chooses the one whose
   colour matches the line under the bar (`TAB_COLOUR_MAX` 0.4: measured 0.13
@@ -463,7 +471,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  215 tests, OK
+python -m unittest discover -s tests   ->  216 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
 ```
