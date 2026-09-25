@@ -27,13 +27,13 @@
     "threshold": 0.55
   },
   "abyss_real.empty": {
-    "detail": "3 cells",
+    "detail": "6 cells",
     "direction": "min",
     "headroom": 0.0,
     "kind": "count",
-    "measured": 3.0,
+    "measured": 6.0,
     "name": "abyss_real.empty",
-    "threshold": 3.0
+    "threshold": 6.0
   },
   "abyss_real.icon_margin_min": {
     "detail": "closest call AB10",
@@ -135,13 +135,13 @@
     "threshold": 0.55
   },
   "breach_real.empty": {
-    "detail": "15 cells",
+    "detail": "16 cells",
     "direction": "min",
     "headroom": 0.0,
     "kind": "count",
-    "measured": 15.0,
+    "measured": 16.0,
     "name": "breach_real.empty",
-    "threshold": 15.0
+    "threshold": 16.0
   },
   "breach_real.icon_margin_min": {
     "detail": "closest call B09",
@@ -216,13 +216,13 @@
     "threshold": 0.55
   },
   "delirium_real.empty": {
-    "detail": "17 cells",
+    "detail": "19 cells",
     "direction": "min",
     "headroom": 0.0,
     "kind": "count",
-    "measured": 17.0,
+    "measured": 19.0,
     "name": "delirium_real.empty",
-    "threshold": 17.0
+    "threshold": 19.0
   },
   "delirium_real.icon_margin_min": {
     "detail": "closest call DE04",
@@ -421,6 +421,51 @@
     "measured": 25.0,
     "name": "expedition_real.identified",
     "threshold": 25.0
+  },
+  "ghost.bright_max": {
+    "detail": "most bright pixels B02",
+    "direction": "max",
+    "headroom": 0.0051,
+    "kind": "margin",
+    "measured": 0.0369,
+    "name": "ghost.bright_max",
+    "threshold": 0.042
+  },
+  "ghost.cells": {
+    "detail": "6 ghosts, 111 filled",
+    "direction": "min",
+    "headroom": 0.0,
+    "kind": "count",
+    "measured": 6.0,
+    "name": "ghost.cells",
+    "threshold": 6.0
+  },
+  "ghost.filled_bright_min": {
+    "detail": "fewest bright pixels AB10",
+    "direction": "min",
+    "headroom": 0.0049,
+    "kind": "margin",
+    "measured": 0.0469,
+    "name": "ghost.filled_bright_min",
+    "threshold": 0.042
+  },
+  "ghost.filled_p95_min": {
+    "detail": "dimmest filled AB10",
+    "direction": "min",
+    "headroom": 6.0,
+    "kind": "margin",
+    "measured": 84.0,
+    "name": "ghost.filled_p95_min",
+    "threshold": 78.0
+  },
+  "ghost.p95_max": {
+    "detail": "brightest AB05",
+    "direction": "max",
+    "headroom": 5.0,
+    "kind": "margin",
+    "measured": 73.0,
+    "name": "ghost.p95_max",
+    "threshold": 78.0
   },
   "idols_real.alignment_shift": {
     "detail": "dx=0 dy=3, refused beyond +/-20",

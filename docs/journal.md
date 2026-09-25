@@ -1131,3 +1131,25 @@ not rewrite an entry to match later behaviour, add a new one.
   appearing or going rebuilds it. The tables update changed rows only.
 - Guarded by the smoke test: an identical reading keeps the same widgets, a
   new quantity updates the line and the row in place.
+
+## Abyss and Delirium always "to check" — 25 September 2026
+
+- After 0.2.2 the tester still had problems with Abyss and Delirium only. The
+  user's own log since 0.2.2 showed both identified (Delirium at its new
+  position, 0.9693) but ending every reading with the same unidentified cells:
+  `AB01`, `AB05`, `AB09`, `DE13`, `DE23` — the bright ghosts of empty cells
+  already listed as a fragility. Those tabs stayed partial and "to check".
+- Measured on the ground truth of every real capture: all six ghosts
+  (with Breach `B02`) show no counter at all, and none of the 111 filled cells
+  lacks one, even at a count of 1. Ghosts reach 73 at the 95th percentile and
+  3.7 % bright pixels; filled cells start at 84 and 4.7 %.
+- A cell with no counter at all is now empty below 78 and 4.2 %, the middle of
+  both gaps. A counter found but unreadable never takes that path, and three
+  matching readings are still needed before a stock is cleared.
+- The harness baseline was updated deliberately: Abyss 3 to 6 empty cells,
+  Delirium 17 to 19, Breach 15 to 16; no other count moved. `ghost.*` pins the
+  new bounds; the two bright-pixel ones are TIGHT (half a point).
+- Released as 0.2.3, with the flicker fix.
+- Last validation: **216 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+

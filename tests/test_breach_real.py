@@ -62,14 +62,12 @@ class RealBreachTests(unittest.TestCase):
             with self.subTest(slot=slot):
                 self.assertEqual((readings[slot].item, readings[slot].quantity), (item, quantity))
                 self.assertFalse(readings[slot].approximate)
-        empty = [slot for slot in LAYOUTS['breach'].slots if slot not in self.truth and slot != 'B02']
+        # B02, the Breachlord Sac ghost, is brighter than `visually_empty`
+        # allows; it shows no counter, so it is empty like the others.
+        empty = [slot for slot in LAYOUTS['breach'].slots if slot not in self.truth]
         for slot in empty:
             with self.subTest(slot=slot):
                 self.assertEqual(readings[slot].reason, Reason.EMPTY)
-        # The Breachlord Sac ghost is brighter than the emptiness filter allows:
-        # it stays unidentified, never named and never counted.
-        self.assertIsNone(readings['B02'].item)
-        self.assertIsNone(readings['B02'].quantity)
 
     def test_breach_does_not_claim_the_other_real_captures(self):
         from tests.margins import expedition_frame, load_frame

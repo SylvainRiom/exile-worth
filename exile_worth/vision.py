@@ -607,6 +607,15 @@ class DigitReader:
 COUNTER_HEIGHT = 18
 COUNTER_RETRY_HEIGHT = 20
 
+# An empty cell of a dedicated tab shows a ghost of the item it takes. Some are
+# brighter than `visually_empty` allows, and stayed "to check" forever. None
+# shows a counter, and every filled cell does, even at a count of 1. On the
+# real captures, ghosts with no counter: 95th percentile 49..73, bright pixels
+# 2.3..3.7 % (AB01, AB05, AB09, DE13, DE23, B02); filled cells: 84 and 4.7 %
+# at the least. The bounds sit in the middle of both gaps.
+GHOST_P95_MAX = 78
+GHOST_BRIGHT_MAX = .042
+
 # The most colour a counter glyph may carry (mean max-min of its pixels).
 COUNTER_SATURATION_MAX = 6
 
@@ -811,6 +820,8 @@ class Scanner:
         x, y, w, _h = rect
         quantity, confidence = self.digits.read(crop(frame, (x, y, w, COUNTER_HEIGHT)))
         approximate = getattr(self.digits, 'last_approximate', False)
+        # Whether any counter is drawn at all, read or not: a ghost has none.
+        self.last_counter_seen = quantity is not None or getattr(self.digits, 'last_bounds', None) is not None
         if quantity is None and getattr(self.digits, 'last_bounds', None) is not None:
             retry, retry_confidence = self.digits.read(crop(frame, (x, y, w, COUNTER_RETRY_HEIGHT)))
             if retry is not None:
@@ -838,7 +849,8 @@ class Scanner:
             # sparse, dark artwork (Carved Mischief) matches the ghost that views
             # like Breach draw in their empty cells at 0.92 and above, while no
             # real item measured is that dark. It can never name an empty cell.
-            if quantity is None and not ref and visually_empty(crop(frame, rect)):
+            if quantity is None and not ref and (visually_empty(crop(frame, rect)) or
+                                                 not self.last_counter_seen and ghost_like(crop(frame, rect))):
                 results.append(Reading(slot, None, None, 0, Reason.EMPTY))
                 continue
             item = dedicated_item(slot, match)
@@ -904,6 +916,14 @@ def visually_empty(cell):
         return False
     brightness = cell[18:].max(axis=2)
     return np.percentile(brightness, 95) < 65 and np.mean(brightness > 85) < .02
+
+
+def ghost_like(cell):
+    """Dim enough to be an empty cell's ghost; only for a cell showing no counter."""
+    if cell.shape[0] < 30 or cell.shape[1] < 30:
+        return False
+    brightness = cell[18:].max(axis=2)
+    return np.percentile(brightness, 95) < GHOST_P95_MAX and np.mean(brightness > 85) < GHOST_BRIGHT_MAX
 
 
 class Consensus:

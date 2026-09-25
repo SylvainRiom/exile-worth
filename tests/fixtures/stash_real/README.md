@@ -11,7 +11,8 @@ reference artwork, cell by cell, not copied from the recogniser:
 - `read`: item and count of every cell read in full;
 - `count_unreadable`: cells whose item is right but whose count cannot be read
   (`ES47`);
-- `unnamed`: bright ghosts of empty cells, which must stay unidentified.
+- `unnamed`: bright ghosts of empty cells. They show no counter and are read
+  as empty; they are listed apart because the strict filter alone misses them.
 Every other cell is empty.
 
 `icons/` holds the poe.ninja artwork of the Abyss, Delirium, Essences and Ritual

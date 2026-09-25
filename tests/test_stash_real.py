@@ -74,12 +74,11 @@ class RealStashTests(unittest.TestCase):
                 with self.subTest(tab=name, slot=slot):
                     self.assertEqual(readings[slot].item, item)
                     self.assertIsNone(readings[slot].quantity)
-            # Bright ghosts stay unidentified: never named, never counted.
+            # Bright ghosts show no counter: empty, never named nor counted.
             for slot in truth['unnamed']:
                 with self.subTest(tab=name, slot=slot):
-                    self.assertIsNone(readings[slot].item)
-                    self.assertIsNone(readings[slot].quantity)
-            known = set(truth['read']) | set(truth['count_unreadable']) | set(truth['unnamed'])
+                    self.assertEqual(readings[slot].reason, Reason.EMPTY)
+            known = set(truth['read']) | set(truth['count_unreadable'])
             for slot, reading in readings.items():
                 if slot not in known:
                     with self.subTest(tab=name, slot=slot):

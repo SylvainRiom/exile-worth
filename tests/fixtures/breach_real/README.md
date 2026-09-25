@@ -9,7 +9,8 @@ cells of the view.
 `readings.json` is the ground truth: 13 filled cells, item and count. It was
 checked by eye against the reference artwork, cell by cell, not copied from the
 recogniser's output. The other 16 cells are empty; `B02` is the Breachlord Sac
-ghost, which the emptiness filter does not yet accept as empty.
+ghost, brighter than the strict emptiness filter but read as empty because it
+shows no counter.
 
 `icons/` holds the 29 Breach reference images from web.poecdn.com, as listed by
 PoE2DB, plus `carved-mischief.png`: a dark, sparse Ritual icon that used to match

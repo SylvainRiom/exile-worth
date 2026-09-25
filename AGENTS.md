@@ -307,6 +307,14 @@ beside it; a release lacking either asset is not offered.
   sparse dark artwork (Carved Mischief) matches the ghosts that Breach draws in
   empty cells at 0.92 and above. On every real capture, filled cells have a
   95th-percentile brightness of 79 or more, empty ghosts 64 or less.
+- A cell showing **no counter at all** (`Scanner.last_counter_seen`: none read
+  and no white glyph found) is empty below `GHOST_P95_MAX` (78) and
+  `GHOST_BRIGHT_MAX` (4.2 % bright pixels), which catches the brighter ghosts
+  of dedicated tabs (`AB01`, `AB05`, `AB09`, `DE13`, `DE23`, Breach `B02`) that
+  used to stay "to check" forever. Every filled cell shows a counter, even at
+  1. Measured on the ground truth (`ghost.*` in the harness): ghosts 73 and
+  3.7 % at most, filled cells 84 and 4.7 % at least. A counter found but
+  unreadable never takes this path.
 - The counter crop follows white glyphs whose top is within 10 px of the cell
   top. The `5` and `1` on catalysts start at 9 px, their pale top bar or serif
   falling under the white threshold; at 8 px they were never read.
@@ -480,12 +488,14 @@ arrived, not that the numbers below are stale.
 ```
 python -m unittest discover -s tests   ->  216 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
-python -m tests.margins                ->  74 decisions, none FAILS, 12 TIGHT
+python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```
 
-The twelve TIGHT decisions are expected: icon scores and icon margins of the
-real captures (Expedition, Breach, Abyss, Delirium, Essences, Ritual) and the
-Runes border separation (see "Known fragilities").
+The fourteen TIGHT decisions are expected: icon scores and icon margins of the
+real captures (Expedition, Breach, Abyss, Delirium, Essences, Ritual), the
+Runes border separation, and the two bright-pixel bounds of the ghost filter
+(`ghost.bright_max`, `ghost.filled_bright_min`, half a point each side; see
+"Known fragilities").
 `tests/test_margins.py` already fails if any of them erodes, so a green suite
 means the headroom is intact — you do not need to read the table to know that.
 
@@ -549,18 +559,18 @@ in the baseline and compared separately, and why that test must not be removed.
 - **Breach is half validated.** One real capture of the Catalysts view, holding
   12 normal catalysts and splinters: refined catalysts are drawn differently
   (tilted glyph, grey base) but none was on the capture, so their recognition is
-  unverified. The Breachlord Sac ghost
-  (`B02`) is slightly brighter than the emptiness filter allows (3.7 % of bright
-  pixels against 2 %) and shows as an unrecognised item, never named nor counted.
-  Several Runes ghosts sit at 2.3–2.7 % for the same reason.
+  unverified.
 - **Icon margins are thin on the new tabs**: Delirium clears the 0.015 margin by
   0.0009 (DE04), Essences by 0.004, Ritual by 0.005, Abyss by 0.007. On
   dedicated cells a margin that fails falls back on the cell's item, so Delirium
   and Essences keep their answer; Ritual and Abyss have no such fallback.
 - **Ritual emblems** sit over the first cell of some groups. The colour filter
   removes them from the counters; `RI25` is read through the 20 px retry.
-- **Bright ghosts** (Abyss `AB01`, `AB05`, `AB09`; Delirium `DE13`, `DE23`) fail
-  the emptiness filter and show as unrecognised, never named nor counted.
+- **The ghost filter's bright-pixel bound is narrow**: 4.2 % between ghosts at
+  3.7 % (`B02`) and filled cells at 4.7 % (`AB10`). It applies only to a cell
+  showing no counter, and the 95th-percentile bound (5 and 6 of headroom) must
+  hold too. Several Runes ghosts sit at 2.3–2.7 %, but the Runes captures have
+  no ground truth, so whether they now read as empty is unmeasured.
 - **Essences against Currencies is unverified on a real Currency capture**: on
   the Essences capture the Currency grid scores 0.486 (0.51 behind), but no real
   Currency capture exists to measure the reverse.
@@ -575,10 +585,8 @@ in the baseline and compared separately, and why that test must not be removed.
 ## Resumption points
 
 1. Breach: a capture of the Catalysts view holding refined catalysts.
-2. The emptiness filter's bright-pixel fraction (2 %) leaves some real ghosts
-   (Breach `B02`, Abyss `AB01`/`AB05`/`AB09`, Delirium `DE13`/`DE23`, several
-   Runes cells) flagged as unrecognised. Loosening it needs
-   a margin measured against ground truth, as it decides what clears a stock.
+2. Ground truth for a Runes capture, to measure its ghosts against the ghost
+   filter as the dedicated tabs were.
 3. A real Currency capture, to measure Essences against Currencies both ways.
 4. In time: other resolutions and scales, other stash types, persisting
    `tab_frames`.

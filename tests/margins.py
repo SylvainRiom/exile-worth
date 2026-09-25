@@ -285,8 +285,42 @@ def measure():
         results += alignment_margins(frame, name, f'{name}_real')
         results += icon_margins(frame, name, images, f'{name}_real')
 
+    results += ghost_margins()
     results += tab_label_margins(dollar_frame(), 'dollar_tab')
     return results
+
+
+def ghost_margins():
+    """Empty cells' bright ghosts against filled cells, on the ground truth.
+
+    A cell showing no counter is empty below both bounds. The ghosts must stay
+    under them, and filled cells above, should one ever lose its counter.
+    """
+    from exile_worth.vision import GHOST_BRIGHT_MAX, GHOST_P95_MAX
+    from tests.test_breach_real import breach_frame
+    from tests.test_stash_real import ROOT, stash_frame
+    truth = json.loads((ROOT / 'readings.json').read_text('utf-8'))
+    breach = json.loads((Path(__file__).parent / 'fixtures/breach_real/readings.json').read_text('utf-8'))
+    cases = [(name, stash_frame(name), set(entry['read']) | set(entry['count_unreadable']), set(entry['unnamed']))
+             for name, entry in truth.items()]
+    cases.append(('breach', breach_frame(), set(breach), {'B02'}))
+    ghosts, filled = [], []
+    for name, frame, full, empty in cases:
+        for slot, rect in aligned_slots(frame, name).items():
+            if slot in full or slot in empty:
+                brightness = crop(frame, rect)[18:].max(axis=2)
+                measure = (float(np.percentile(brightness, 95)), float(np.mean(brightness > 85)), slot)
+                (filled if slot in full else ghosts).append(measure)
+    return [
+        Margin.of('ghost.p95_max', max(ghosts)[0], GHOST_P95_MAX, f'brightest {max(ghosts)[2]}', 'max'),
+        Margin.of('ghost.bright_max', max(ghosts, key=lambda m: m[1])[1], GHOST_BRIGHT_MAX,
+                  f'most bright pixels {max(ghosts, key=lambda m: m[1])[2]}', 'max'),
+        Margin.of('ghost.filled_p95_min', min(filled)[0], GHOST_P95_MAX, f'dimmest filled {min(filled)[2]}'),
+        Margin.of('ghost.filled_bright_min', min(filled, key=lambda m: m[1])[1], GHOST_BRIGHT_MAX,
+                  f'fewest bright pixels {min(filled, key=lambda m: m[1])[2]}'),
+        Margin.of('ghost.cells', len(ghosts), len(ghosts), f'{len(ghosts)} ghosts, {len(filled)} filled',
+                  kind='count'),
+    ]
 
 
 def report(results=None):
