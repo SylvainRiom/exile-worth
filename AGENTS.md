@@ -223,6 +223,13 @@ beside it; a release lacking either asset is not offered.
 
 ### Capture and synchronisation
 
+- **The toolbar keeps only what is used every session.** Header: the
+  tracking badge beside Start/Pause, then `⚙ Settings` (language, update
+  check). Second row: league, `↻` (reload prices) with the price time, then
+  Import, Capture, `More` (Export CSV, Save the image, Report a problem) and
+  the currency. Status messages go to a bottom bar. The stash type selector
+  sits in the tab view (`Stash type`). Menus are rebuilt by `fill_menus` on a
+  language change.
 - Import a screenshot, or capture the game after a five-second delay.
 - There is no manual "Analyse" button. The screenshot is re-read automatically
   after an import or capture, a layout choice, the arrival of the catalogue, and
@@ -375,6 +382,15 @@ beside it; a release lacking either asset is not offered.
 
 ### Stash page and value
 
+- **Style** (`theme.py`). Each colour means one thing: gold (`VALUE`) is
+  value — amounts, totals, the chart line; green (`GAIN`) is live or a rise;
+  red (`LOSS`) a fall; amber (`WARN`) something to look at. Numbers are set in
+  Bahnschrift (`NUMBERS`, equal-width digits), headings in Segoe UI Semibold,
+  each falling back to Segoe UI. Numeric table columns are right-aligned,
+  headings included. The window asks Windows for a dark title bar
+  (`dark_title_bar`). The two pages are chosen by buttons in the header; the
+  notebook draws no tabs (`Pages.TNotebook`). A tab or the whole stash shows
+  its name, its value right under it, then what it is and what it misses.
 - `My stash` is one page: **the stash list on the left, the chosen entry's
   contents on the right**. There is no separate detail page. The list starts
   with `Whole stash`, selected at start-up and after a league change, then one
@@ -413,18 +429,26 @@ beside it; a release lacking either asset is not offered.
   (`refresh_chart`): the stash total, or the tab's `tabs[id].amount`. Each
   point keeps its own prices, converted to the selected currency with that
   point's rates, so the curve moves with the stock and with the market; the
-  history page separates the two. The preview has no chart. `LineChart` in
+  history page separates the two. The change shown above the whole stash's
+  chart compares like with like (`model.stock_change`): it starts at the first
+  point that had read every tab the last point has and sums those tabs only,
+  so registering or removing a tab is not a gain or a loss (it once read
+  `+5041 %`). The preview has no chart. `LineChart` in
   `history_ui.py` draws it and the history page's chart, with a readout under
   the pointer.
-- List lines are compact: two lines (icon, name, value; then type, last read
-  time in local time, what is missing). The mouse wheel scrolls the list
+- List lines are compact: two rows (icon, name, value; then type and last read
+  time in local time), each cut with an ellipsis to the list's width
+  (`fit_text`, `SIDE_WIDTH`), never wrapped. What the estimate misses is one
+  amber `⚠ N` (to check + unpriced) at the end of the second row, its words
+  in a tooltip. The mouse wheel scrolls the list
   wherever the pointer is over it (`wheel_cards`, bound on `all`).
 - Scrollbars (list and tables) appear only when there is something to scroll
   (`auto_hide` as the `yscrollcommand`).
 - The reading table has **no state column**. A normal line carries no mark; a
   line being confirmed (`PENDING`) is grey; one needing attention (unreadable
-  count, unknown or hidden icon, uncertain tier, to check) is amber with a ⚠
-  after its name. Selecting a line shows its explanation in the panel
+  count, unknown or hidden icon, uncertain tier, to check) carries a ⚠ after
+  its name and an amber dot on its thumbnail (`warn_mark`; the dot alone when
+  no artwork is known). Colouring the whole line amber made half a tab amber. Selecting a line shows its explanation in the panel
   (`note.*` keys, player wording); the selection survives the live refreshes.
   `Reason` keys still drive the logic; only their display changed.
 - On the live tab, a cell that is re-confirming (`Reason.PENDING`) or whose count
@@ -524,7 +548,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  224 tests, OK
+python -m unittest discover -s tests   ->  225 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```

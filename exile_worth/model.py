@@ -349,6 +349,47 @@ def item_changes(start, end):
     return changes
 
 
+def point_value(point, unit='divine', tabs=None):
+    """A valuation point's amount in `unit`, at that point's own rates.
+
+    Stored amounts are in divines. With `tabs`, only those tabs are summed.
+    """
+    divine, rate = point['prices'].get('divine'), point['prices'].get(unit)
+    if tabs:
+        stored = point.get('tabs', {})
+        amount = sum(stored[tab].get('amount') or 0 for tab in tabs if tab in stored)
+    else:
+        amount = point.get('amount')
+    return amount*divine/rate if amount is not None and divine and rate else None
+
+
+def read_tabs(point):
+    """The tabs a valuation point holds stock or readings for."""
+    return {tab for tab, entry in point.get('tabs', {}).items()
+            if entry.get('observed') or entry.get('amount') is not None}
+
+
+def stock_change(points, unit='divine'):
+    """The whole stash's change over `points`, on comparable stock only.
+
+    Registering a tab raises the total without anything being gained: the
+    first point counting only the first tab made a week read +5041 %. The
+    change therefore starts at the first point that had already read every
+    tab the last point has, and sums those tabs only, so a removed tab does
+    not show as a loss either. Returns (start point, before, after) in
+    `unit`, or None when no earlier point covers the same tabs.
+    """
+    priced = [point for point in points if point_value(point, unit) is not None]
+    if len(priced) < 2:
+        return None
+    end = priced[-1]
+    wanted = read_tabs(end)
+    start = next((point for point in priced[:-1] if wanted <= read_tabs(point)), None)
+    if start is None:
+        return None
+    return start, point_value(start, unit, wanted), point_value(end, unit, wanted)
+
+
 @dataclass(frozen=True)
 class Estimate:
     amount: float | None

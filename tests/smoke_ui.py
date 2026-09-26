@@ -115,6 +115,14 @@ def main():
                     return ' | '.join(found)
                 assert 'Whole stash' in card_texts(0), card_texts(0)
                 assert 'Currencies · tab not identified' in card_texts(-1), card_texts(-1)
+                # List lines stay on two rows within the list's width, their
+                # counts in one amber mark explained under the pointer.
+                from exile_worth.app import SIDE_WIDTH
+                app.update_idletasks()
+                for box in app.cards.winfo_children():
+                    assert box.winfo_reqwidth() <= SIDE_WIDTH, [(w.winfo_class(), w.winfo_reqwidth(), w.cget('text')) for w in box.winfo_children()]
+                preview_card = app._card_boxes[-1]
+                assert preview_card.warn.cget('text').startswith('⚠ ') and 'to check' in preview_card.hint
                 assert app.store.rows('Forbidden Rites') == [], 'Preview must not save an anonymous tab'
                 assert [str(v) for v in app.read_tree.item('C03')['values'][1:]] == ['1.000', '254.000', '100.0 %']
                 from exile_worth.model import Reading
@@ -134,7 +142,9 @@ def main():
                 app.show_readings([Reading('C03','divine',254), Reading('C01',None,5,.5,Reason.UNKNOWN_ICON),
                                    Reading('C02','divine',31)])
                 assert app.read_tree.item('C03')['image'], 'Known item must show its artwork'
-                assert not app.read_tree.item('C01')['image'], 'Unknown item must not borrow an icon'
+                # An unknown item borrows no artwork: its thumbnail is the amber mark alone.
+                assert str(app.read_tree.item('C01')['image'][0]) == str(app.item_icon(None, warn=True))
+                assert app.item_icon(None) == ''
                 # No state column: an unknown item is marked, a normal line is not.
                 assert app.read_tree['columns'] == ('col.quantity', 'col.unit_price', 'col.value', 'col.share')
                 assert app.read_tree.item('C01')['text'].endswith('⚠')
@@ -408,8 +418,11 @@ def check_update_banner(app, path):
     app.drain()
     assert 'checksum' in app.update_message.get() and app.update_install.cget('text') == 'Retry'
     assert app.update_install.instate(['!disabled'])
+    assert app.more_menu.entrycget(2, 'label') == 'Report a problem'
+    assert app.settings_menu.entrycget('end', 'label') == 'Check now'
     app.language_choice.set('Français')
     assert 'somme de contrôle' in app.update_message.get(), app.update_message.get()
+    assert app.more_menu.entrycget(2, 'label') == 'Signaler un problème', 'Menus follow the language'
     app.language_choice.set('English')
     app.skip_update()
     assert not app.update_bar.winfo_manager() and stored()['update_skip'] == '9.9.9'

@@ -1249,3 +1249,46 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **224 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
 
+## A lighter toolbar, an honest chart change, list lines on one row each — 26 September 2026
+
+- From a screenshot of 0.2.4 (user question: what would you change?). The
+  user chose the three points below.
+- About 340 px of the 1080 went to the header, the banner, two rows of
+  buttons and the status band, leaving eight table rows. Language and the
+  update check went into a `⚙ Settings` menu, Export CSV / Save the image /
+  Report a problem into `More`, the Start button beside the state badge, the
+  price reload to a `↻` beside the price time, the status line into a bottom
+  bar with the footer. The unlabelled `Automatic` selector moved into the tab
+  view, labelled `Stash type`.
+- The whole stash chart read `+686.26 div (+5041 %)` over 7 days: the first
+  point in range held one tab, and the rise was tabs being registered. The
+  change now starts at the first point that had read every tab the last point
+  has and sums those tabs only (`model.stock_change`), with `since {time},
+  every tab read` when that is not the first point. On the user's data it
+  reads `+3.58 div (+1 %) since 25/09 21:27`. The curve itself is unchanged.
+- List lines wrapped to three rows or were clipped (`15 to checl`,
+  `1 unpr`). Each row now sits in its own frame, cut with an ellipsis to the
+  list's width (`fit_text`), and what the estimate misses is one amber
+  `⚠ N` whose words show under the pointer. The list is 320 px wide.
+- Last validation: **225 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+
+## Colours with one meaning each, numbers that line up — 26 September 2026
+
+- User request: improve the design. Chosen: meaningful colours, removing
+  what looked like default Tkinter, typography and numbers.
+- Green meant the Start button, every amount, the chart, the live tab and a
+  rise at once. Values are now gold, green is kept for live and rises, red
+  for falls, amber for what needs a look. Reading lines needing attention
+  are no longer amber as a whole: an amber dot on the thumbnail marks them.
+- The white Windows title bar is dark (`DwmSetWindowAttribute`, attribute 20,
+  19 on older builds); the notebook's tabs, offset and bordered, became two
+  buttons in the header; scrollbars are thin, without arrows.
+- Amounts in Bahnschrift (shipped with Windows, equal-width digits); numeric
+  columns right-aligned with their headings, which were centred over
+  left-aligned values. The total sits under the entry's name instead of at
+  the far right of the page.
+- Checked on screenshots of the running app over a copy of the user's data.
+- Released as 0.2.9, with the toolbar, chart and list changes above.
+- Last validation: **225 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.

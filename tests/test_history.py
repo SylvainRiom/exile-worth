@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from exile_worth.history_ui import fixed_value
-from exile_worth.model import Event, Reading, Store, item_changes
+from exile_worth.model import Event, Reading, Store, item_changes, stock_change
 
 
 class HistoryTests(unittest.TestCase):
@@ -33,6 +33,31 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(changes['relic'], [1, 2, 1, None], 'Unpriced stays None, never zero')
         self.assertEqual([entry[0] for entry in item_changes(start, end)], ['exalted', 'chaos', 'relic'])
         self.assertEqual(item_changes(end, end), [])
+
+    def test_stock_change_ignores_tabs_being_registered_or_removed(self):
+        def point(amount, prices=None, **tabs):
+            return dict(amount=amount, prices=prices or {'divine': 1, 'chaos': .1},
+                        tabs={tab: dict(amount=value, observed=None if value is None else 'x')
+                              for tab, value in tabs.items()})
+        # One tab, then a second one registered: the total jumps, nothing was gained.
+        points = [point(10, one=10), point(510, one=10, two=500), point(515, one=12, two=503)]
+        start, before, after = stock_change(points)
+        self.assertIs(start, points[1])
+        self.assertEqual((before, after), (510, 515))
+        # A removed tab is not a loss: only the tabs the last point read count.
+        points.append(point(12, one=12))
+        start, before, after = stock_change(points)
+        self.assertIs(start, points[0])
+        self.assertEqual((before, after), (10, 12))
+        # Registered but never read yet (the plain `D2`) does not move the start.
+        start, _before, _after = stock_change([point(10, one=10), point(10, one=10, d2=None)])
+        self.assertEqual(start['tabs'], {'one': dict(amount=10, observed='x')})
+        # Each point at its own rates, in the chosen currency.
+        self.assertEqual(stock_change([point(1, one=1), point(1, {'divine': 1, 'chaos': .05}, one=1)], 'chaos')[1:],
+                         (10, 20))
+        # Only the newest point covers every tab: no comparable change.
+        self.assertIsNone(stock_change([point(10, one=10), point(510, one=10, two=500)]))
+        self.assertIsNone(stock_change([point(10, one=10)]))
 
     def test_prices_alone_make_a_point_and_old_values_are_frozen(self):
         self.store.record_valuation('A', self.market)

@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from datetime import datetime, timezone
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import font as tkfont
 
 import cv2
 import numpy as np
@@ -23,14 +24,16 @@ from . import __version__, i18n, settings, updater
 from .diagnostics import ChangeGate, failure, log, setup as setup_log
 from .report import build_report, reveal, tab_summary
 from .i18n import t
-from .model import DATA, Reading, Reason, Event, Store, estimate_readings, line_value
+from .model import (DATA, Reading, Reason, Event, Store, estimate_readings, line_value, point_value,
+                    stock_change)
 from .pricing import Ninja
 from .icons import IconMatcher, fetch_icons
 from .vision import Profiles, Scanner, normalize
 from .layouts import (ALL_SLOTS, LAYOUTS, UNKNOWN_LAYOUT, RUNE_PAGES, expected_slot_count,
                       has_views, layout_family, layout_for_tab, layout_name, aligned_slots)
 from .history_ui import HistoryView, LineChart
-from .theme import apply_theme
+from . import theme
+from .theme import apply_theme, dark_title_bar
 from .tables import sorted_rows
 
 
@@ -92,6 +95,56 @@ def auto_hide(scroll, neighbour):
         elif not scroll.winfo_manager():
             scroll.pack(side='right', fill='y', before=neighbour)
     return update
+
+
+SIDE_WIDTH = 320
+
+
+class Tooltip:
+    """A hint under a widget while the pointer rests on it.
+
+    `text` is called on each show, so the hint follows the language and the
+    data; an empty text shows nothing.
+    """
+
+    def __init__(self, widget, text):
+        self.widget, self.text, self.window = widget, text, None
+        widget.bind('<Enter>', self.show, add='+')
+        widget.bind('<Leave>', self.hide, add='+')
+
+    def show(self, _event=None):
+        text = self.text()
+        if not text or self.window is not None:
+            return
+        self.window = tk.Toplevel(self.widget)
+        self.window.overrideredirect(True)
+        tk.Label(self.window, text=text, background='#223247', foreground='#edf3fc', justify='left',
+                 font=('Segoe UI', 9), padx=8, pady=4).pack()
+        self.window.geometry(f'+{self.widget.winfo_rootx()}+'
+                             f'{self.widget.winfo_rooty()+self.widget.winfo_height()+4}')
+
+    def hide(self, _event=None):
+        if self.window is not None:
+            self.window.destroy()
+            self.window = None
+
+
+def warn_mark(thumb):
+    """`thumb` with an amber dot in its lower right corner, ringed in the table's colour."""
+    from PIL import ImageDraw
+    thumb = thumb.copy()
+    draw = ImageDraw.Draw(thumb)
+    draw.ellipse((17, 17, 27, 27), fill=theme.WARN, outline=theme.SURFACE, width=2)
+    return thumb
+
+
+def fit_text(font, text, width):
+    """`text` cut with an ellipsis to fit `width` pixels in `font`."""
+    if font.measure(text) <= width:
+        return text
+    while text and font.measure(text + '…') > width:
+        text = text[:-1]
+    return text.rstrip(' ·') + '…'
 
 
 class App(tk.Tk):
@@ -187,6 +240,7 @@ class App(tk.Tk):
         self.update_message = tk.StringVar()
         self._update_text = ('', {})
         self.build_ui()
+        dark_title_bar(self)
         self.refresh_capture_state()
         self.refresh_inventory()
         self.league.trace_add('write', self.league_changed)
@@ -218,49 +272,60 @@ class App(tk.Tk):
         self.tr(ttk.Label(header, text='', font=('Segoe UI', 20, 'bold')), 'app.brand').pack(side='left')
         self.tr(ttk.Label(header, text='', foreground='#a9b8ca'), 'app.tagline').pack(side='left')
         ttk.Label(header, text=f'v{__version__}', style='Muted.TLabel').pack(side='left', padx=(10, 0))
+        # The two pages, chosen here like the chart's periods; the notebook
+        # below draws no tabs of its own (`Pages.TNotebook`).
+        self.page_buttons = []
+        for index, key in enumerate(('page.stash', 'page.history')):
+            button = self.tr(ttk.Button(header, text='', style='Nav.TButton',
+                                        command=lambda index=index: self.stash_pages.select(index)), key)
+            button.pack(side='left', padx=(28 if index == 0 else 4, 0))
+            self.page_buttons.append(button)
+        # Settings touched once a league (language, updates) sit in a menu;
+        # the tracking state stands beside the button that changes it.
+        self.settings_button = ttk.Menubutton(header, style='TMenubutton')
+        self.tr(self.settings_button, 'bar.settings')
+        self.settings_menu = self.make_menu(self.settings_button)
+        self.settings_button.configure(menu=self.settings_menu)
+        self.settings_button.pack(side='right', padx=(10, 0))
+        self.capture_button = ttk.Button(header, textvariable=self.capture_action,
+                                         command=self.toggle_live, width=14, style='Accent.TButton')
+        self.capture_button.pack(side='right')
         self.capture_badge = tk.Label(header, textvariable=self.capture_state,
                                       font=('Segoe UI', 11, 'bold'), padx=14, pady=7)
-        self.capture_badge.pack(side='right')
-        bar = ttk.Frame(self, padding=(16, 0, 16, 8))
+        self.capture_badge.pack(side='right', padx=(0, 6))
+        self.language_choice.trace_add('write', self.language_changed)
+        self.build_update_bar()
+        bar = ttk.Frame(self, padding=(16, 0, 16, 10))
         bar.pack(fill='x')
         self.tr(ttk.Label(bar, text=''), 'bar.league').pack(side='left', padx=(0, 6))
         self.league_box = ttk.Combobox(bar, textvariable=self.league, width=23)
         self.league_box.pack(side='left')
-        self.tr(ttk.Button(bar, text='', command=self.load_prices), 'bar.load_prices').pack(side='left', padx=6)
+        prices_button = ttk.Button(bar, text='↻', width=3, command=self.load_prices)
+        prices_button.pack(side='left', padx=(6, 0))
+        Tooltip(prices_button, lambda: t('bar.load_prices'))
         ttk.Label(bar, textvariable=self.price_status).pack(side='left', padx=6)
         ttk.Combobox(bar, textvariable=self.unit, values=['divine', 'exalted', 'chaos'],
                      state='readonly', width=9).pack(side='right')
         self.unit.trace_add('write', lambda *_: self.refresh_inventory())
-        self.language_box = ttk.Combobox(bar, textvariable=self.language_choice, state='readonly',
-                                         width=11, values=list(i18n.LANGUAGES.values()))
-        self.language_box.pack(side='right', padx=(0, 10))
-        self.tr(ttk.Label(bar, text=''), 'bar.language').pack(side='right', padx=(12, 6))
-        self.language_choice.trace_add('write', self.language_changed)
-        if self.updates_enabled:
-            self.tr(ttk.Button(bar, text='', command=lambda: self.check_updates(manual=True)),
-                    'bar.update_check').pack(side='right', padx=(6, 0))
-            self.tr(ttk.Checkbutton(bar, text='', variable=self.update_auto, command=self.update_auto_changed),
-                    'bar.update_auto').pack(side='right', padx=(12, 0))
-        self.build_update_bar()
-        controls = ttk.Frame(self, padding=(16, 0, 16, 8))
-        controls.pack(fill='x')
+        more = ttk.Menubutton(bar, style='TMenubutton')
+        self.tr(more, 'bar.more')
+        self.more_menu = self.make_menu(more)
+        more.configure(menu=self.more_menu)
+        more.pack(side='right', padx=(0, 10))
         # No manual "Analyse": every event that changes the answer (a new
         # screenshot, a layout choice, the catalogue, a correction) re-reads.
-        for key, action in [('bar.import', self.import_image), ('bar.capture', self.delayed_capture)]:
-            self.tr(ttk.Button(controls, text='', command=action), key).pack(side='left', padx=(0, 6))
-        self.capture_button = ttk.Button(controls, textvariable=self.capture_action,
-                                         command=self.toggle_live, width=18, style='Accent.TButton')
-        self.capture_button.pack(side='left', padx=(0, 6))
-        self.tr(ttk.Button(controls, text='', command=self.export_csv), 'bar.export_csv').pack(side='left')
-        self.tr(ttk.Button(controls, text='', command=self.save_diagnostic), 'bar.save_image').pack(side='left', padx=6)
-        self.tr(ttk.Button(controls, text='', command=self.report_problem), 'bar.report').pack(side='left')
-        self.layout_box = ttk.Combobox(controls, textvariable=self.layout_choice, state='readonly',
-                                       width=20, values=self.layout_values())
-        self.layout_box.pack(side='right')
-        ttk.Label(self, textvariable=self.status, wraplength=1240, style='Status.TLabel').pack(fill='x')
-        self.stash_pages = ttk.Notebook(self)
+        for key, action in [('bar.capture', self.delayed_capture), ('bar.import', self.import_image)]:
+            self.tr(ttk.Button(bar, text='', command=action), key).pack(side='right', padx=(0, 6))
+        self.fill_menus()
+        # One line at the bottom for what just happened, beside the footer.
+        footer = ttk.Frame(self, style='Status.TFrame')
+        footer.pack(side='bottom', fill='x')
+        self.tr(ttk.Label(footer, text='', style='Status.TLabel'), 'app.footer').pack(side='right')
+        ttk.Label(footer, textvariable=self.status, style='Status.TLabel').pack(side='left', fill='x')
+        self.stash_pages = ttk.Notebook(self, style='Pages.TNotebook')
         self.stash_pages.pack(fill='both', expand=True, padx=16, pady=(4,12))
-        dashboard = self.dashboard = ttk.Frame(self.stash_pages, padding=(16,14))
+        self.stash_pages.bind('<<NotebookTabChanged>>', self.page_changed)
+        dashboard = self.dashboard = ttk.Frame(self.stash_pages, padding=(0,10,0,0))
         self.stash_pages.add(dashboard, text=t('page.stash'))
         self.valuation_view = HistoryView(self.stash_pages, self.mark_session, self.item_name)
         self.stash_pages.add(self.valuation_view, text=t('page.history'))
@@ -269,7 +334,7 @@ class App(tk.Tk):
         # One page: the stash list on the left, what the chosen entry holds on
         # the right. "Whole stash" shows the total and every item; a tab shows
         # its own cells, their corrections and its screenshot.
-        side = ttk.Frame(dashboard, width=300)
+        side = ttk.Frame(dashboard, width=SIDE_WIDTH)
         side.pack(side='left', fill='y')
         side.pack_propagate(False)
         self.cards_canvas = tk.Canvas(side, bg='#10151e', highlightthickness=0)
@@ -292,7 +357,7 @@ class App(tk.Tk):
         main.pack(side='left', fill='both', expand=True)
         # Packed above the header while it is wanted (`refresh_guide`).
         self.guide = ttk.Frame(main, style='Panel.TFrame', padding=14)
-        self.tr(ttk.Label(self.guide, text='', style='Panel.TLabel', font=('Segoe UI', 11, 'bold')),
+        self.tr(ttk.Label(self.guide, text='', style='Panel.TLabel', font=(theme.HEADINGS, 11)),
                 'guide.title').pack(anchor='w')
         for key in ('guide.window', 'guide.stash', 'guide.start', 'guide.link'):
             self.tr(ttk.Label(self.guide, text='', style='Panel.TLabel', wraplength=900, justify='left'),
@@ -300,21 +365,23 @@ class App(tk.Tk):
         self.tr(ttk.Button(self.guide, text='', command=self.dismiss_guide), 'guide.close').pack(anchor='e', pady=(8, 0))
         head = self.view_head = ttk.Frame(main)
         head.pack(fill='x')
+        # The name, then its value right under it, then what it is and what
+        # the estimate misses: the eye no longer crosses the page for the total.
         names = ttk.Frame(head)
-        names.pack(side='left', anchor='sw')
-        ttk.Label(names, textvariable=self.view_title, font=('Segoe UI',16,'bold')).pack(anchor='w')
-        self.view_subtitle_label = ttk.Label(names, textvariable=self.view_subtitle, foreground='#a9b8ca')
-        self.view_subtitle_label.pack(anchor='w')
+        names.pack(fill='x')
+        ttk.Label(names, textvariable=self.view_title, font=(theme.HEADINGS,16)).pack(side='left')
         # Packed only while a registered tab is shown (`refresh_view`).
         self.remove_button = self.tr(ttk.Button(names, text='', style='Period.TButton',
                                                 command=lambda: self.remove_tab(self.shown_tab_id())),
                                      'tab.remove')
-        amounts = ttk.Frame(head)
-        amounts.pack(side='right', anchor='se')
-        ttk.Label(amounts, textvariable=self.view_value, font=('Segoe UI',24,'bold'),
-                  foreground='#83f0b6').pack(anchor='e')
-        ttk.Label(amounts, textvariable=self.view_detail, foreground='#a9b8ca',
-                  wraplength=560, justify='right').pack(anchor='e')
+        ttk.Label(head, textvariable=self.view_value, font=(theme.NUMBERS,26,'bold'),
+                  foreground=theme.VALUE).pack(anchor='w')
+        facts = ttk.Frame(head)
+        facts.pack(fill='x')
+        self.view_subtitle_label = ttk.Label(facts, textvariable=self.view_subtitle, foreground=theme.SUBTLE)
+        self.view_subtitle_label.pack(side='left')
+        ttk.Label(facts, textvariable=self.view_detail, foreground=theme.SUBTLE,
+                  wraplength=900, justify='left').pack(side='left', padx=(16,0))
         self.view_note_label = ttk.Label(main, textvariable=self.view_note, foreground='#a9b8ca')
         self.view_note_label.pack(anchor='w')
         # Shown under the note while a reading is attached to no tab
@@ -335,7 +402,7 @@ class App(tk.Tk):
         chart_bar = ttk.Frame(main)
         chart_bar.pack(fill='x', pady=(10,4))
         ttk.Label(chart_bar, textvariable=self.chart_title, foreground='#a9b8ca').pack(side='left')
-        self.chart_delta_label = ttk.Label(chart_bar, textvariable=self.chart_delta, font=('Segoe UI',10,'bold'))
+        self.chart_delta_label = ttk.Label(chart_bar, textvariable=self.chart_delta, font=(theme.NUMBERS,11,'bold'))
         self.chart_delta_label.pack(side='left', padx=10)
         self.period_buttons = {}
         for key in reversed(PERIODS):
@@ -359,8 +426,15 @@ class App(tk.Tk):
         # One tab: its cells, a panel explaining and correcting the chosen
         # line, and the screenshot on demand.
         self.tab_view = ttk.Frame(body)
-        ttk.Label(self.tab_view, textvariable=self.recognition_status, style='Muted.TLabel',
-                  wraplength=900).pack(fill='x', pady=(0,6))
+        # The stash type belongs to the reading shown here, not to the toolbar.
+        recognition = ttk.Frame(self.tab_view)
+        recognition.pack(fill='x', pady=(0,6))
+        self.layout_box = ttk.Combobox(recognition, textvariable=self.layout_choice, state='readonly',
+                                       width=20, values=self.layout_values())
+        self.layout_box.pack(side='right')
+        self.tr(ttk.Label(recognition, text='', style='Muted.TLabel'), 'layout.label').pack(side='right', padx=(12,6))
+        ttk.Label(recognition, textvariable=self.recognition_status, style='Muted.TLabel',
+                  wraplength=760).pack(side='left', fill='x', expand=True)
         columns = ttk.Frame(self.tab_view)
         columns.pack(fill='both', expand=True)
         right = ttk.Frame(columns, width=340)
@@ -375,7 +449,9 @@ class App(tk.Tk):
         self.read_tree = self.make_tree(table, ('col.quantity','col.unit_price','col.value','col.share'),
                                         (130, 90, 90, 70), item_column=260)
         self.read_tree.tag_configure('pending', foreground='#8a97a8')
-        self.read_tree.tag_configure('attention', foreground='#ffcf70')
+        # The amber is on the thumbnail's corner (`item_icon`), not on the
+        # whole line: half a tab in amber made the colour mean nothing.
+        self.read_tree.tag_configure('attention', foreground='#f2e3c0')
         self.read_tree.bind('<<TreeviewSelect>>', self.select_tree)
         panel = ttk.Frame(right, style='Panel.TFrame', padding=14)
         panel.pack(fill='x')
@@ -403,7 +479,35 @@ class App(tk.Tk):
         self.canvas.bind('<ButtonPress-1>', self.mouse_down)
         self.canvas.bind('<B1-Motion>', self.mouse_drag)
         self.canvas.bind('<ButtonRelease-1>', self.mouse_up)
-        self.tr(ttk.Label(self, text='', foreground='#a9b8ca', padding=12), 'app.footer').pack(anchor='w')
+
+    def page_changed(self, _event=None):
+        """Light the header button of the page on show."""
+        shown = self.stash_pages.index('current')
+        for index, button in enumerate(self.page_buttons):
+            button.configure(style='NavOn.TButton' if index == shown else 'Nav.TButton')
+
+    def make_menu(self, parent):
+        return tk.Menu(parent, tearoff=0, background='#192332', foreground='#edf3fc',
+                       activebackground='#315879', activeforeground='#ffffff',
+                       selectcolor='#7ee2c0', borderwidth=0)
+
+    def fill_menus(self):
+        """The toolbar menus' entries, rebuilt in place on a language change."""
+        self.more_menu.delete(0, 'end')
+        for key, action in [('bar.export_csv', self.export_csv), ('bar.save_image', self.save_diagnostic),
+                            ('bar.report', self.report_problem)]:
+            self.more_menu.add_command(label=t(key), command=action)
+        menu = self.settings_menu
+        menu.delete(0, 'end')
+        languages = self.make_menu(menu)
+        for name in i18n.LANGUAGES.values():
+            languages.add_radiobutton(label=name, variable=self.language_choice, value=name)
+        menu.add_cascade(label=t('bar.language'), menu=languages)
+        if self.updates_enabled:
+            menu.add_separator()
+            menu.add_checkbutton(label=t('bar.update_auto'), variable=self.update_auto,
+                                 command=self.update_auto_changed)
+            menu.add_command(label=t('bar.update_check'), command=lambda: self.check_updates(manual=True))
 
     def layout_values(self):
         return [t('layout.auto')] + [layout_name(key) for key in LAYOUTS]
@@ -428,6 +532,7 @@ class App(tk.Tk):
                 self.set_heading(tree, name)
         # Comboboxes with translated entries keep the choice, not its old text.
         self.layout_box.configure(values=self.layout_values())
+        self.fill_menus()
         self.layout_choice.set(layout_name(self.layout_override) if self.layout_override else t('layout.auto'))
         self.valuation_view.retranslate()
         self.capture_toggle.configure(text=t('capture.hide' if self.capture_open else 'capture.show'))
@@ -453,7 +558,11 @@ class App(tk.Tk):
             tree.column('#0', width=item_column, minwidth=120, anchor='w')
             self.set_heading(tree, '#0')
         for name, width in zip(columns, widths):
-            tree.column(name, width=width, minwidth=40)
+            # Numbers line up on their last digit, heading included. The list
+            # of tabs is centred: left-aligned, it touched the share beside it.
+            anchor = 'center' if name == 'col.tabs' else 'e'
+            tree.column(name, width=width, minwidth=40, anchor=anchor)
+            tree.heading(name, anchor=anchor)
             self.set_heading(tree, name)
         tree.tag_configure('even', background='#192332')
         tree.tag_configure('odd', background='#1e2b3d')
@@ -527,23 +636,31 @@ class App(tk.Tk):
             marks = [tag for tag in tree.item(row, 'tags') if tag not in ('odd', 'even')]
             tree.item(row, tags=(*marks, 'odd' if index % 2 else 'even'))
 
-    def item_icon(self, item, alternatives=()):
+    def item_icon(self, item, alternatives=(), warn=False):
         """A small thumbnail of an item's artwork, or '' when none is known.
 
         An unresolved family whose candidates share one image (the Flux tiers)
         still shows that image: it helps locate the line without naming a tier.
+        `warn` adds an amber dot in the corner; a line needing attention with
+        no known artwork shows the dot alone.
         """
         candidates = [item] if item else list(alternatives)
         known = [c for c in candidates if c in self.icon_images]
-        if not known or any(self.icon_images[c] is not self.icon_images[known[0]] for c in known):
+        key = known[0] if known else None
+        if key and any(self.icon_images[c] is not self.icon_images[key] for c in known):
+            key = None
+        if key is None and not warn:
             return ''
-        key = known[0]
-        if key not in self._thumbs:
-            image = self.icon_images[key]
-            rgba = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA if image.shape[2] == 4 else cv2.COLOR_BGR2RGBA)
-            thumb = Image.fromarray(rgba).resize((28, 28), Image.LANCZOS)
-            self._thumbs[key] = ImageTk.PhotoImage(thumb, master=self)
-        return self._thumbs[key]
+        if (key, warn) not in self._thumbs:
+            thumb = Image.new('RGBA', (28, 28))
+            if key:
+                image = self.icon_images[key]
+                rgba = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA if image.shape[2] == 4 else cv2.COLOR_BGR2RGBA)
+                thumb = Image.fromarray(rgba).resize((28, 28), Image.LANCZOS)
+            if warn:
+                thumb = warn_mark(thumb)
+            self._thumbs[(key, warn)] = ImageTk.PhotoImage(thumb, master=self)
+        return self._thumbs[(key, warn)]
 
 
     def load_prices(self):
@@ -1017,13 +1134,14 @@ class App(tk.Tk):
         """
         symbol = 'div' if unit=='divine' else unit
         shown = self.shown_tab_id()
-        # One line: (identity, title, amount, facts, layout id, live, selected).
-        # The identity ('all', a tab id, 'preview') decides its click action.
+        # One line: (identity, title, amount, facts, missing, layout id, live,
+        # selected). The identity ('all', a tab id, 'preview') decides its
+        # click action; `missing` becomes the amber count and its hint.
         lines = []
         league = self.league.get().strip()
         tabs = [t for t in self.profiles.data['tabs'] if t['league']==league]
         amount, missing = total
-        lines.append(('all', t('side.all'), amount, [t('side.all_facts', tabs=len(tabs))] + missing,
+        lines.append(('all', t('side.all'), amount, [t('side.all_facts', tabs=len(tabs))], missing,
                       None, False, self.show_all))
         live = self.live_tab_id()
         for tab in tabs:
@@ -1034,7 +1152,7 @@ class App(tk.Tk):
                          else layout_for_tab(tab).id)
             facts = [layout_name(layout_id),
                      self.card_time(max(r[4] for r in entries)) if entries else t('dash.card_never')]
-            lines.append((tab['id'], tab['name'], amount, facts + missing, layout_id,
+            lines.append((tab['id'], tab['name'], amount, facts, missing, layout_id,
                           tab['id'] == live, tab['id'] == shown))
         # The preview holds readings no tab holds: an unidentified tab or an
         # imported screenshot. It is never added to the total, and there is
@@ -1044,20 +1162,20 @@ class App(tk.Tk):
             preview = estimate_readings(preview_readings,prices,unit)
             amount = f'≈ {preview.amount:,.2f} {symbol}' if preview.amount is not None else '—'
             title, subtitle = self.preview_names()
-            facts = [subtitle, t('dash.card_screenshot')]
+            missing = []
             if preview.unread:
-                facts.append(t('dash.card_to_check', count=preview.unread))
+                missing.append(t('dash.card_to_check', count=preview.unread))
             if preview.unpriced:
-                facts.append(t('dash.card_unpriced', count=preview.unpriced))
-            lines.append(('preview', title, amount, facts, self.active_layout_id,
-                          False, not self.show_all and shown is None))
-        lines = [(identity, title, amount, tuple(facts), layout_id, live, selected)
-                 for identity, title, amount, facts, layout_id, live, selected in lines]
+                missing.append(t('dash.card_unpriced', count=preview.unpriced))
+            lines.append(('preview', title, amount, [subtitle, t('dash.card_screenshot')], missing,
+                          self.active_layout_id, False, not self.show_all and shown is None))
+        lines = [(identity, title, amount, tuple(facts), tuple(missing), layout_id, live, selected)
+                 for identity, title, amount, facts, missing, layout_id, live, selected in lines]
         if lines == self._card_lines:
             return
         # The same lines with the same icons are updated in place; any other
         # change (a tab added or removed, an icon appearing) rebuilds the list.
-        shape = [(line[0], self.tab_icon(line[4]) is not None) for line in lines]
+        shape = [(line[0], self.tab_icon(line[5]) is not None) for line in lines]
         if shape != [(card.identity, card.icon is not None) for card in self._card_boxes]:
             for child in self.cards.winfo_children():
                 child.destroy()
@@ -1081,14 +1199,25 @@ class App(tk.Tk):
         if has_icon:
             card.icon = ttk.Label(box,style='Card.TLabel')
             card.icon.grid(row=0,column=0,rowspan=2,sticky='w',padx=(0,10))
-        card.title = ttk.Label(box,font=('Segoe UI',11,'bold'),foreground='#e7edf6',style='Card.TLabel')
-        card.title.grid(row=0,column=1,sticky='w')
-        card.amount = ttk.Label(box,font=('Segoe UI',11,'bold'),foreground='#83f0b6',style='Card.TLabel')
-        card.amount.grid(row=0,column=2,sticky='e',padx=(8,0))
-        card.facts = ttk.Label(box,font=('Segoe UI',9),wraplength=250,style='Card.TLabel')
-        card.facts.grid(row=1,column=1,columnspan=2,sticky='w')
+        # Each row in its own frame, so the value and the amber count do not
+        # share a column's width. One line each, cut to the list's width:
+        # wrapping made lines of two and three rows, and a fixed wrap
+        # clipped words ("15 to checl").
+        card.rows = [ttk.Frame(box,style='Card.TFrame') for _row in range(2)]
+        for row, frame in enumerate(card.rows):
+            frame.grid(row=row,column=1,sticky='ew')
+        card.title = ttk.Label(card.rows[0],font=(theme.HEADINGS,11),foreground='#e7edf6',style='Card.TLabel')
+        card.title.pack(side='left')
+        card.amount = ttk.Label(card.rows[0],font=(theme.NUMBERS,11,'bold'),foreground=theme.VALUE,style='Card.TLabel')
+        card.amount.pack(side='right',padx=(8,0))
+        card.facts = ttk.Label(card.rows[1],font=('Segoe UI',9),style='Card.TLabel')
+        card.facts.pack(side='left')
+        card.warn = ttk.Label(card.rows[1],style='CardWarn.TLabel')
+        card.warn.pack(side='right',padx=(8,0))
+        card.hint = ''
+        Tooltip(card.warn, lambda: card.hint)
         action = self.card_action(identity)
-        for widget in [box, card.title, card.amount, card.facts] + ([card.icon] if card.icon else []):
+        for widget in [box, *card.rows, card.title, card.amount, card.facts, card.warn] + ([card.icon] if card.icon else []):
             # Clicking may rebuild the list and destroy the clicked widget:
             # run it after the click's own bindings have finished.
             widget.bind('<Button-1>',lambda event: self.after_idle(action))
@@ -1096,19 +1225,38 @@ class App(tk.Tk):
                 widget.bind('<Button-3>',lambda event: self.tab_menu(event, identity))
         return card
 
-    def fill_card(self, card, title, amount, facts, layout_id, live, selected):
-        """Two lines: icon, name and value; then the type and what is missing."""
+    def fill_card(self, card, title, amount, facts, missing, layout_id, live, selected):
+        """Two lines: icon, name and value; then the type and time, with an
+        amber count of what the estimate misses (in words under the pointer)."""
         kind = ('LiveSelected' if selected else 'Live') if live else ('Selected' if selected else 'Card')
         if live:
             facts = (t('dash.card_live'),) + facts
-        card.box.configure(style=f'{kind}.TFrame')
+        for frame in (card.box, *card.rows):
+            frame.configure(style=f'{kind}.TFrame')
         for label in (card.title, card.amount, card.facts):
             label.configure(style=f'{kind}.TLabel')
-        card.title.configure(text=title)
+        # Every entry of `missing` but "abbreviated" starts with its count.
+        counts = [int(part.split()[0]) for part in missing if part.split()[0].isdigit()]
+        warn = f'⚠ {sum(counts)}' if counts else ('≈' if missing else '')
+        card.hint = '\n'.join(missing)
+        card.warn.configure(text=warn, style=f'{kind}Warn.TLabel')
+        # The list has a fixed width; room is what the icon, the paddings,
+        # a possible scrollbar and the other label of the row leave.
+        room = SIDE_WIDTH - 24 - 16 - (37 if card.icon is not None else 0)
+        heading, small, numbers = self.card_fonts()
+        card.title.configure(text=fit_text(heading, title, room - numbers.measure(amount) - 8))
         card.amount.configure(text=amount)
-        card.facts.configure(text=' · '.join(facts), foreground='#7ee2c0' if live else '#a9b8ca')
+        card.facts.configure(text=fit_text(small, ' · '.join(facts), room - small.measure(warn) - 12),
+                             foreground='#7ee2c0' if live else '#a9b8ca')
         if card.icon is not None:
             card.icon.configure(image=self.tab_icon(layout_id), style=f'{kind}.TLabel')
+
+    def card_fonts(self):
+        if not hasattr(self, '_card_fonts'):
+            self._card_fonts = (tkfont.Font(self, family=theme.HEADINGS, size=11),
+                                tkfont.Font(self, family='Segoe UI', size=9),
+                                tkfont.Font(self, family=theme.NUMBERS, size=11, weight='bold'))
+        return self._card_fonts
 
     def tab_menu(self, event, tab_id):
         tab = next((p for p in self.profiles.data['tabs'] if p['id'] == tab_id), None)
@@ -1252,7 +1400,7 @@ class App(tk.Tk):
         subtitle_colour = '#a9b8ca'
         if tab and not self.show_all:
             if not self.remove_button.winfo_manager():
-                self.remove_button.pack(anchor='w', pady=(6,0))
+                self.remove_button.pack(side='right')
         elif self.remove_button.winfo_manager():
             self.remove_button.pack_forget()
         if self.show_all:
@@ -1319,28 +1467,38 @@ class App(tk.Tk):
         self.stash_chart.empty_key = 'chart.empty'
         span = PERIODS[self.chart_period]
         now = datetime.now(timezone.utc)
-        times, values = [], []
-        for point in self._valuations:
-            moment = datetime.fromisoformat(point['time'])
-            if span and (now-moment).total_seconds() > span:
-                continue
-            amount = (point['amount'] if self.show_all
-                      else point.get('tabs', {}).get(shown, {}).get('amount'))
-            # Stored amounts are in divines, at the point's own rates.
-            divine, rate = point['prices'].get('divine'), point['prices'].get(unit)
-            times.append(moment)
-            values.append(amount*divine/rate if amount is not None and divine and rate else None)
+        points = [point for point in self._valuations
+                  if not span or (now-datetime.fromisoformat(point['time'])).total_seconds() <= span]
+        times = [datetime.fromisoformat(point['time']) for point in points]
+        values = [point_value(point, unit, None if self.show_all else [shown]) for point in points]
+        if not self.show_all:
+            # A tab absent from a point has no value there, not a zero.
+            values = [None if point.get('tabs', {}).get(shown, {}).get('amount') is None else value
+                      for point, value in zip(points, values)]
         valid = [v for v in values if v is not None]
         if len(valid) < 2:
             self.stash_chart.show([], [], symbol)
             return
         self.stash_chart.show(times, values, symbol)
-        change = valid[-1]-valid[0]
+        # The curve shows every point, tabs being registered included; the
+        # change compares like with like (`stock_change`).
+        since = ''
+        if self.show_all:
+            change = stock_change(points, unit)
+            if change is None:
+                return
+            start, before, after = change
+            if start is not points[values.index(valid[0])]:
+                since = ' ' + t('chart.since', time=self.chart_time(datetime.fromisoformat(start['time'])))
+        else:
+            before, after = valid[0], valid[-1]
+        change = after-before
         text = f"{'+' if change >= 0 else '−'}{abs(change):,.2f} {symbol}"
-        if valid[0] > 0:
-            text += f" ({'+' if change >= 0 else '−'}{100*abs(change)/valid[0]:.0f} %)"
+        if before > 0:
+            text += f" ({'+' if change >= 0 else '−'}{100*abs(change)/before:.0f} %)"
+        text += since
         self.chart_delta.set(text)
-        self.chart_delta_label.configure(foreground='#83f0b6' if change >= 0 else '#ff9c8a')
+        self.chart_delta_label.configure(foreground=theme.GAIN if change >= 0 else theme.LOSS)
 
     def refresh_items(self, rows, approximate, prices, unit):
         """One line per item across every tab: quantity, unit price, value, share.
@@ -1549,7 +1707,7 @@ class App(tk.Tk):
         for r, index, attention, waiting, quantity_text, value in lines:
             each = line_value(r.item, 1, prices, unit)
             # Stripes are left to apply_sort, which follows the displayed order.
-            shown.append((r.slot, dict(image=self.item_icon(r.item, r.alternatives),
+            shown.append((r.slot, dict(image=self.item_icon(r.item, r.alternatives, warn=attention),
                                        text=' '+self.reading_name(r)+('  ⚠' if attention else ''),
                                        tags=('attention',) if attention else ('pending',) if waiting else (),
                                        values=(quantity_text, '—' if each is None else f'{each:,.3f}',

@@ -4,6 +4,7 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, ttk
 
+from . import theme
 from .i18n import t
 from .model import Reading, estimate_readings, item_changes
 
@@ -64,8 +65,8 @@ class LineChart:
             x = 85+(width-115)*((stamps[index]-stamps[0])/duration if duration else index/max(len(self.values)-1, 1))
             y = height-28-(height-46)*(value-low)/span
             if previous:
-                canvas.create_line(*previous, x, y, fill='#83f0b6', width=2)
-            dot = canvas.create_oval(x-3, y-3, x+3, y+3, fill='#83f0b6', outline='')
+                canvas.create_line(*previous, x, y, fill=theme.VALUE, width=2)
+            dot = canvas.create_oval(x-3, y-3, x+3, y+3, fill=theme.VALUE, outline='')
             if self.on_click:
                 canvas.tag_bind(dot, '<Button-1>', lambda event, i=index: self.on_click(i))
             self.points.append((x, y, index))
@@ -83,7 +84,7 @@ class LineChart:
             return
         x, y, index = min(self.points, key=lambda point: abs(point[0]-event.x))
         canvas.create_line(x, 6, x, self.height-28, fill='#a9b8ca', dash=(3, 3), tags='hover')
-        canvas.create_oval(x-5, y-5, x+5, y+5, fill='#83f0b6', outline='#17202d', width=2, tags='hover')
+        canvas.create_oval(x-5, y-5, x+5, y+5, fill=theme.VALUE, outline='#17202d', width=2, tags='hover')
         text = f'≈ {self.values[index]:,.2f} {self.unit} · {self.stamp_text(self.times[index])}'
         right = x > max(canvas.winfo_width(), 300)-260
         label = canvas.create_text(x-10 if right else x+10, 14, anchor='ne' if right else 'nw',
@@ -130,8 +131,9 @@ class HistoryView(ttk.Frame):
         self.columns = [('date','history.col_date',170), ('reason','history.col_event',140),
                         ('value','history.col_value',130), ('quality','history.col_quality',460)]
         for key, title, width in self.columns:
-            self.tree.heading(key, text=t(title))
-            self.tree.column(key, width=width)
+            anchor = 'e' if key == 'value' else 'w'
+            self.tree.heading(key, text=t(title), anchor=anchor)
+            self.tree.column(key, width=width, anchor=anchor)
         self.tree.pack(fill='both', expand=True)
         self.tree.bind('<<TreeviewSelect>>', self.select)
         # What the session gained and lost, item by item (`item_changes`).
@@ -144,10 +146,10 @@ class HistoryView(ttk.Frame):
                               ('after', 'gains.col_after', 110), ('change', 'gains.col_change', 110),
                               ('value', 'gains.col_value', 140)]
         for key, title, width in self.gains_columns:
-            self.gains.heading(key, text=t(title))
+            self.gains.heading(key, text=t(title), anchor='w' if key == 'item' else 'e')
             self.gains.column(key, width=width, anchor='w' if key == 'item' else 'e')
-        self.gains.tag_configure('gain', foreground='#83f0b6')
-        self.gains.tag_configure('loss', foreground='#ff9b8a')
+        self.gains.tag_configure('gain', foreground=theme.GAIN)
+        self.gains.tag_configure('loss', foreground=theme.LOSS)
         self.gains.pack(fill='x')
         self.details_label = ttk.Label(self, textvariable=self.details, wraplength=1100, foreground='#a9b8ca')
         self.details_label.pack(anchor='w', pady=8)
