@@ -132,6 +132,8 @@ class App(tk.Tk):
         self.last_readings = []
         self.provisional_readings = []
         self.last_tab = None
+        # Why the last reading was attached to no tab (ScanResult.reason).
+        self.last_reason = ''
         # True when the last scan was a live one synchronised into `last_tab`.
         self.last_scan_synced = False
         self.active_layout_id = None
@@ -303,7 +305,22 @@ class App(tk.Tk):
                   foreground='#83f0b6').pack(anchor='e')
         ttk.Label(amounts, textvariable=self.view_detail, foreground='#a9b8ca',
                   wraplength=560, justify='right').pack(anchor='e')
-        ttk.Label(main, textvariable=self.view_note, foreground='#a9b8ca').pack(anchor='w')
+        self.view_note_label = ttk.Label(main, textvariable=self.view_note, foreground='#a9b8ca')
+        self.view_note_label.pack(anchor='w')
+        # Shown under the note while a reading is attached to no tab
+        # (`refresh_link`): why, and the player's way to say which tab it is.
+        self.link_bar = ttk.Frame(main)
+        self.link_reason = tk.StringVar()
+        ttk.Label(self.link_bar, textvariable=self.link_reason, foreground='#ffcf70',
+                  wraplength=900, justify='left').pack(anchor='w')
+        link_row = ttk.Frame(self.link_bar)
+        link_row.pack(anchor='w', pady=(4, 0))
+        self.tr(ttk.Label(link_row, text=''), 'link.choose').pack(side='left')
+        self.link_choice = tk.StringVar()
+        self.link_box = ttk.Combobox(link_row, textvariable=self.link_choice, state='readonly', width=30)
+        self.link_box.pack(side='left', padx=6)
+        self.tr(ttk.Button(link_row, text='', command=self.link_tab), 'link.button').pack(side='left')
+        self._link_options = {}
         # The value of the chosen entry over time, from the stored valuations.
         chart_bar = ttk.Frame(main)
         chart_bar.pack(fill='x', pady=(10,4))
@@ -602,6 +619,7 @@ class App(tk.Tk):
         self.frame = normalize(image)
         self.active_layout_id = None
         self.last_tab = None
+        self.last_reason = ''
         self.last_scan_synced = False
         # A new screenshot is shown at once: its reading, its corrections.
         self.selected_tab_id = None
@@ -1125,6 +1143,68 @@ class App(tk.Tk):
         self.refresh_inventory()
         self.status.set(t('tab.removed', name=tab['name']))
 
+    def link_reason_text(self):
+        """Why the reading on screen is attached to no tab, in the player's words."""
+        if self.active_layout_id is None:
+            return t('link.no_layout')
+        reason = self.last_reason or t('link.unknown')
+        if getattr(self.scanner, 'last_layout_basis', None) == 'icons' and not self.layout_override:
+            reason += ' ' + t('link.icons_only')
+        return t('link.why', reason=reason)
+
+    def refresh_link(self):
+        """Offer to link the preview to a tab while it holds a reading no tab holds."""
+        league = self.league.get().strip()
+        preview = (not self.show_all and self.shown_tab_id() is None and self.last_tab is None
+                   and self.frame is not None and self.reading_league == league and bool(self.last_readings))
+        if not preview:
+            if self.link_bar.winfo_manager():
+                self.link_bar.pack_forget()
+            return
+        self.link_reason.set(self.link_reason_text())
+        family = layout_family(self.active_layout_id) if self.active_layout_id else None
+        options = {tab['name']: tab['id'] for tab in self.profiles.data['tabs']
+                   if family and tab['league'] == league and layout_family(layout_for_tab(tab).id) == family}
+        if family:
+            options[t('link.new')] = None
+        if options != self._link_options:
+            self._link_options = options
+            self.link_box.configure(values=list(options))
+            if self.link_choice.get() not in options:
+                self.link_choice.set(next(iter(options), ''))
+        self.link_box.configure(state='readonly' if options else 'disabled')
+        if not self.link_bar.winfo_manager():
+            self.link_bar.pack(anchor='w', fill='x', pady=(6, 0), after=self.view_note_label)
+
+    def link_tab(self):
+        """Attach the reading on screen to the tab the player names, or to a new one."""
+        league, layout_id, frame = self.league.get().strip(), self.active_layout_id, self.frame
+        if layout_id is None or frame is None:
+            self.status.set(t('link.no_layout'))
+            return
+        choice = self.link_choice.get()
+        if choice not in self._link_options:
+            self.status.set(t('link.pick'))
+            return
+        tab_id = self._link_options[choice]
+        try:
+            if tab_id is None:
+                name = simpledialog.askstring(t('link.new_title'), t('link.new_prompt'), parent=self)
+                if not name or not name.strip():
+                    return
+                tab = self.profiles.register_selected(name, league, frame, layout_id)
+            else:
+                tab = self.profiles.relink(tab_id, frame, layout_id)
+        except ValueError as exc:
+            self.status.set(str(exc))
+            return
+        self._link_options = {}
+        self.status.set(t('link.done', name=tab['name']))
+        if not self.running and not self.busy:
+            # An imported screenshot is read again, now under its tab.
+            self.after_idle(self.analyze)
+        self.refresh_inventory()
+
     def preview_names(self):
         """The preview's title and subtitle.
 
@@ -1188,6 +1268,7 @@ class App(tk.Tk):
                 missing.append(t('dash.card_unpriced', count=preview.unpriced))
             self.view_detail.set(' · '.join(missing))
             self.view_note.set(t('view.preview_note') + ('' if self.last_tab else ' ' + t('dash.auto_add_hint')))
+        self.refresh_link()
         self.view_subtitle_label.configure(foreground=subtitle_colour)
         self.refresh_chart()
 
@@ -1652,6 +1733,7 @@ class App(tk.Tk):
                         # write rows back under an id no tab holds.
                         tab = None
                     self.frame, self.last_tab, self.last_readings = scan.frame, tab, readings
+                    self.last_reason = scan.reason
                     self.last_scan_synced = kind == 'live' and tab is not None
                     self.provisional_readings = list(scan.provisional) if kind == 'live' else []
                     self.reading_league = league

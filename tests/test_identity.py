@@ -46,5 +46,44 @@ class LabelAfterBackgroundChangeTests(unittest.TestCase):
             self.assertIsNone(profiles.match_label(delirium, 'B', 'delirium'), 'Another league')
 
 
+class ManualLinkTests(unittest.TestCase):
+    def test_relink_learns_the_tab_again_from_the_frame(self):
+        frame = stash_frame('delirium')
+        with tempfile.TemporaryDirectory() as directory:
+            profiles = Profiles(Path(directory))
+            tab = profiles.register('34', 'A', selected_tab_rect(frame), frame, 'delirium')
+            tab['auto_registered'] = True
+            # The tab looks different now (hover, colour): nothing finds it.
+            later = frame.copy()
+            later[97:124, 40:600] = 255 - later[97:124, 40:600]
+            self.assertIsNone(profiles.identify(later, 'A')[0])
+            self.assertIsNone(profiles.match_label(later, 'A', 'delirium'))
+            profiles.relink(tab['id'], later, 'delirium')
+            self.assertEqual(profiles.identify(later, 'A')[0]['id'], tab['id'])
+            self.assertEqual(Profiles(Path(directory)).identify(later, 'A')[0]['id'], tab['id'], 'Saved')
+
+    def test_relink_refuses_another_structure_and_a_hidden_tab_bar(self):
+        frame = stash_frame('delirium')
+        with tempfile.TemporaryDirectory() as directory:
+            profiles = Profiles(Path(directory))
+            tab = profiles.register('34', 'A', selected_tab_rect(frame), frame, 'delirium')
+            with self.assertRaises(ValueError):
+                profiles.relink(tab['id'], frame, 'abyss')
+            hidden = frame.copy()
+            hidden[90:130] = 0
+            with self.assertRaises(ValueError):
+                profiles.relink(tab['id'], hidden, 'delirium')
+
+    def test_a_new_tab_is_registered_under_the_typed_name(self):
+        frame = stash_frame('ritual')
+        with tempfile.TemporaryDirectory() as directory:
+            profiles = Profiles(Path(directory))
+            tab = profiles.register_selected(' 31 ', 'A', frame, 'ritual')
+            self.assertEqual((tab['name'], tab['visible_name'], tab['layout_id']), ('31', '31', 'ritual'))
+            self.assertEqual(profiles.identify(frame, 'A')[0]['id'], tab['id'])
+            with self.assertRaises(ValueError):
+                profiles.register_selected('31', 'A', frame, 'ritual')
+
+
 if __name__ == '__main__':
     unittest.main()

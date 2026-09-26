@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 def main():
     import numpy as np
+    from exile_worth import diagnostics
     from exile_worth.app import App
     from exile_worth.model import Reason, Store
     from exile_worth.vision import Profiles, Scanner
@@ -24,7 +25,8 @@ def main():
         with (patch('exile_worth.app.Store', lambda: Store(path/'inventory.sqlite')),
               patch('exile_worth.app.Profiles', lambda: Profiles(path)),
               patch('exile_worth.settings.DATA', path),
-              patch('exile_worth.updater.enabled', lambda: True)):
+              patch('exile_worth.updater.enabled', lambda: True),
+              patch('exile_worth.app.setup_log', lambda: diagnostics.setup(path))):
             app = App(auto_load=False)
             # Install the fake OCR before any frame can schedule an analysis.
             app.scanner = Scanner(app.profiles, Digits(), app.matcher)
@@ -316,6 +318,29 @@ def main():
                 assert any(tab['id'] == 'live1' for tab in summary['tabs'])
                 assert app.status.get().startswith('Report saved'), app.status.get()
                 explorer.assert_called_once_with(str(report))
+                print('UI smoke: linking a reading to a tab by hand', flush=True)
+                from tests.test_stash_real import stash_frame
+                app.layout_choice.set('Automatic')
+                app.set_frame(stash_frame('delirium'))
+                deadline = time.monotonic()+10
+                while time.monotonic()<deadline and not (app.last_readings and app.active_layout_id):
+                    app.update()
+                    time.sleep(.01)
+                assert app.active_layout_id == 'delirium', (app.active_layout_id, app.status.get())
+                assert app.link_bar.winfo_manager(), 'An unlinked reading offers a link'
+                assert app.link_reason.get().startswith('Not linked to a tab'), app.link_reason.get()
+                assert list(app.link_box.cget('values')) == ['A new tab…'], app.link_box.cget('values')
+                with patch('exile_worth.app.simpledialog.askstring', return_value='34'):
+                    app.link_tab()
+                linked = next(tab for tab in app.profiles.data['tabs'] if tab['name'] == '34')
+                assert linked['layout_id'] == 'delirium' and linked['auto_registered']
+                assert app.status.get().startswith('“34” linked'), app.status.get()
+                deadline = time.monotonic()+10
+                while time.monotonic()<deadline and not app.last_tab:
+                    app.update()
+                    time.sleep(.01)
+                assert app.last_tab and app.last_tab['id'] == linked['id'], 'Read again under its tab'
+                assert not app.link_bar.winfo_manager(), 'A linked reading offers no link'
                 print('UI smoke: removing a tab', flush=True)
                 app.open_stash('live1')
                 assert app.remove_button.winfo_manager(), 'A registered tab offers its removal'
@@ -340,6 +365,11 @@ def main():
             finally:
                 print('UI smoke: shutdown', flush=True)
                 app.close()
+                # Windows cannot delete the folder while the log is open.
+                for handler in list(diagnostics.log.handlers):
+                    handler.close()
+                    diagnostics.log.removeHandler(handler)
+                diagnostics._configured = False
 
 
 def check_update_banner(app, path):

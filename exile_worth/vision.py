@@ -349,6 +349,42 @@ class Profiles:
         self.save()
         return tab
 
+    def selected_label(self, frame):
+        rect = selected_tab_rect(frame)
+        if rect is None:
+            raise ValueError(t('link.no_tab_bar'))
+        return rect
+
+    def relink(self, tab_id, frame, layout_id):
+        """The player says the selected tab is this one: learn it again from `frame`.
+
+        The label and the strips are taken again, so the next frames find the
+        tab by themselves. Only a tab of the same structure can be linked.
+        """
+        tab = next(tab for tab in self.data['tabs'] if tab['id'] == tab_id)
+        if layout_family(layout_for_tab(tab).id) != layout_family(layout_id):
+            raise ValueError(t('link.other_type', name=tab['name']))
+        rect = self.selected_label(frame)
+        tab['rect'] = rect
+        tab['label'] = crop(frame, rect).tolist()
+        tab['anchor_rects'] = LAYOUTS[layout_id].slots
+        tab['layout'] = layout_anchors(frame, layout_id)
+        # Found by position from now on, like the tabs registered by themselves.
+        tab['auto_registered'] = True
+        self.save()
+        log.info('tab linked by hand: %s (%s) as %s at %s', tab['name'], tab_id, layout_id, rect)
+        return tab
+
+    def register_selected(self, name, league, frame, layout_id):
+        """Register the selected tab under the name the player typed."""
+        name = name.strip()
+        tab = self.register(name, league, self.selected_label(frame), frame, layout_family(layout_id))
+        tab['visible_name'] = name
+        tab['auto_registered'] = True
+        self.save()
+        log.info('tab registered by hand: %s (%s) as %s', name, tab['id'], layout_id)
+        return tab
+
     def observe(self, frame, league, layout_id, ocr):
         """Register a confidently selected tab once, preserving its UUID later."""
         known = self.match_label(frame, league, layout_id)
@@ -482,6 +518,8 @@ class Profiles:
         auto-registered or view-family tab is looked for where the selected
         tab is now. A manually drawn tab keeps its drawn rect.
         """
+        if 'label' not in tab or 'rect' not in tab:
+            return None
         follows = tab.get('auto_registered') or has_views(layout_for_tab(tab).id)
         if not follows:
             return label_score(frame, None, tab)

@@ -50,7 +50,7 @@ use `.venv311`.
 # Unit tests and OCR integration
 .\.venv311\Scripts\python.exe -m unittest discover -s tests -v
 
-# Interface test in a hidden window with temporary data and default settings
+# Interface test in a hidden window with temporary data, log and default settings
 .\.venv311\Scripts\python.exe -m tests.smoke_ui
 
 # Headroom of every recognition decision (see "Before touching a threshold")
@@ -259,6 +259,16 @@ beside it; a release lacking either asset is not offered.
   the borders or the selector confirmed, a registered tab **of the same
   family** whose label matches the selected one (0.96, lead 0.04) is that
   tab, with no strip and no OCR. The title is read only when no label matches.
+- **A reading attached to no tab says why and can be linked by hand**
+  (`refresh_link`, under the preview's header): the reason `identify` or
+  `observe` gave, plus a note when the type was guessed from the items only.
+  "This is the tab:" lists the registered tabs **of the detected family** and
+  "A new tab…". Linking (`Profiles.relink`) learns the tab's label and strips
+  again from the current frame, so the next frames find it by themselves; a
+  new tab (`register_selected`) takes the name the player types, which is
+  what a short title OCR cannot read (`34`) needs. Both need the selected tab
+  visible in the tab bar and a detected type; another family is refused. It
+  is a fallback, never a required step: a tab that is recognised shows no bar.
 - The selected tab is found at y=121, where lit tabs reach the bar's lower edge.
   Coloured tabs are all lit there, so `pick_selected_run` chooses the one whose
   colour matches the line under the bar (`TAB_COLOUR_MAX` 0.4: measured 0.13
@@ -503,7 +513,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  220 tests, OK
+python -m unittest discover -s tests   ->  223 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```

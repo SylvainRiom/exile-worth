@@ -1210,3 +1210,23 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **220 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
 
+## Saying why a tab is not linked, and linking it by hand — 26 September 2026
+
+- Every "the tab does not update" report so far needed the log to explain,
+  and a player could do nothing about it. The reason already existed in
+  `ScanResult.reason`; it is now shown under the preview's header, with a
+  note when the type came from the items only (which never registers).
+- "This is the tab:" offers the registered tabs of the detected family and
+  "A new tab…". Linking learns the label and the strips again from the frame
+  on screen, so the next frames attach by themselves; a new tab takes a typed
+  name, the case of short titles OCR does not read. The user's rule stands:
+  it is a fallback, shown only while a reading is attached to no tab.
+- The interface test wrote into the user's real `session.log` (the Standard
+  / currency sessions seen while diagnosing). Its log now goes to its
+  temporary folder and is closed before the folder is removed.
+- Computing a tab's label score before the strip filter met test profiles
+  without a label; `tab_label_score` returns None for them.
+- Released as 0.2.7.
+- Last validation: **223 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+
