@@ -465,6 +465,16 @@ beside it; a release lacking either asset is not offered.
   sent to the game: seen again, the tab registers under a new UUID and is read
   from scratch. A scan in flight for a removed id is shown as a preview, never
   synchronised, or it would write rows back under a dead id.
+- **A first-run guide** sits above the stash page's header (`refresh_guide`):
+  borderless window at 1920×1080, stash open with its tab bar, Start, and the
+  link-by-hand fallback. It shows until closed ("Got it", `guide_done` in
+  `settings.json`), a tab is registered or anything is read.
+- **Session gains** (history page, under the valuations): while a session is
+  open, its start against the latest point; after it ends, its start against
+  its end. `model.item_changes` sums each item over every tab, so a move
+  between two tabs seen again cancels out, and values the change at the later
+  point's prices; an unpriced item shows `—`. It is an observed stock: a tab
+  not seen since the start still counts its old stock.
 - Conversion: sum of `quantity × primaryValue`, divided by the rate of the selected
   currency. Never assume the primary currency is always divine.
 
@@ -500,7 +510,8 @@ Reference documentation: https://poe.ninja/docs/api
 
 User data lives in `%LOCALAPPDATA%\ExileWorth` in every mode, source or
 packaged, so a later install finds the same inventory: `profiles.json` (tabs,
-label and structure signatures, local corrections), `inventory.sqlite3`
+label and structure signatures, local corrections; written compact, since
+its pixel lists made an indented file 9 MB and 0.26 s per save), `inventory.sqlite3`
 (quantities, history, valuations), `settings.json` (language), `session.log`,
 `diagnostics/` (saved images) and the `prices/` and `icons/` network caches.
 `EXILE_DATA_DIR` points it elsewhere; off Windows it falls back to `data/`.
@@ -513,7 +524,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  223 tests, OK
+python -m unittest discover -s tests   ->  224 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```
@@ -633,8 +644,10 @@ in the baseline and compared separately, and why that test must not be removed.
 2. Ground truth for a Runes capture, to measure its ghosts against the ghost
    filter as the dedicated tabs were.
 3. A real Currency capture, to measure Essences against Currencies both ways.
-4. In time: other resolutions and scales, other stash types, persisting
-   `tab_frames`.
+4. Other resolutions and interface scales: every position is measured at
+   1920×1080. It needs real captures at 2560×1440 and 3840×2160 (a problem
+   report holds them); do not derive the coordinates from synthetic images.
+   In time: other stash types, persisting `tab_frames`.
 5. Code signing (for example Azure Trusted Signing), to remove the SmartScreen
    warning on first install.
 

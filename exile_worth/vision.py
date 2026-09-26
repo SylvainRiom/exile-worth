@@ -317,7 +317,10 @@ class Profiles:
 
     def save(self):
         temporary = self.file.with_suffix('.tmp')
-        temporary.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), 'utf-8')
+        # Compact: labels and strips are pixel lists, and an indented file put
+        # every number on its own line (9 MB, 0.26 s per save, sometimes on the
+        # Tk thread). Compact is 1.2 MB in 0.02 s, and every version reads it.
+        temporary.write_text(json.dumps(self.data, ensure_ascii=False, separators=(',', ':')), 'utf-8')
         temporary.replace(self.file)
 
     def register(self, name, league, rect, frame, layout_id='currency'):

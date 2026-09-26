@@ -320,6 +320,35 @@ def line_value(item, quantity, prices, unit='divine'):
     return quantity * price / rate
 
 
+def item_changes(start, end):
+    """What each item gained or lost between two valuation points.
+
+    Quantities are summed over every tab, so a move between two tabs that
+    were both seen again cancels out. Each change is valued at `end`'s own
+    prices, in divines; an unpriced item keeps None, never a zero. It is an
+    observed stock: a tab not seen since `start` still counts its old stock.
+    Returns (item, before, after, change, value), largest value first.
+    """
+    def totals(point):
+        found = {}
+        for row in point.get('rows', ()):
+            item, quantity = row[2], row[3]
+            if item is not None and quantity is not None:
+                found[item] = found.get(item, 0) + quantity
+        return found
+    before, after = totals(start), totals(end)
+    prices = end.get('prices') or {}
+    changes = []
+    for item in before.keys() | after.keys():
+        change = after.get(item, 0) - before.get(item, 0)
+        if change:
+            value = line_value(item, abs(change), prices)
+            changes.append((item, before.get(item, 0), after.get(item, 0), change,
+                            None if value is None else math.copysign(value, change)))
+    changes.sort(key=lambda entry: (entry[4] is None, -abs(entry[4] or 0), entry[0]))
+    return changes
+
+
 @dataclass(frozen=True)
 class Estimate:
     amount: float | None

@@ -180,6 +180,8 @@ class App(tk.Tk):
         # Updates: only a packaged build checks (see updater.enabled).
         self.updates_enabled = updater.enabled()
         self.update_auto = tk.BooleanVar(value=settings.read().get('update_auto', True) is not False)
+        # The first-run guide, until the player closes it or a tab registers.
+        self.guide_done = settings.read().get('guide_done') is True
         self.update_release = None
         self.update_busy = False
         self.update_message = tk.StringVar()
@@ -260,7 +262,7 @@ class App(tk.Tk):
         self.stash_pages.pack(fill='both', expand=True, padx=16, pady=(4,12))
         dashboard = self.dashboard = ttk.Frame(self.stash_pages, padding=(16,14))
         self.stash_pages.add(dashboard, text=t('page.stash'))
-        self.valuation_view = HistoryView(self.stash_pages, self.mark_session)
+        self.valuation_view = HistoryView(self.stash_pages, self.mark_session, self.item_name)
         self.stash_pages.add(self.valuation_view, text=t('page.history'))
         self.page_keys = [(self.stash_pages, dashboard, 'page.stash'),
                           (self.stash_pages, self.valuation_view, 'page.history')]
@@ -288,7 +290,15 @@ class App(tk.Tk):
         self.bind_all('<MouseWheel>', self.wheel_cards, add='+')
         main = ttk.Frame(dashboard, padding=(18,0,0,0))
         main.pack(side='left', fill='both', expand=True)
-        head = ttk.Frame(main)
+        # Packed above the header while it is wanted (`refresh_guide`).
+        self.guide = ttk.Frame(main, style='Panel.TFrame', padding=14)
+        self.tr(ttk.Label(self.guide, text='', style='Panel.TLabel', font=('Segoe UI', 11, 'bold')),
+                'guide.title').pack(anchor='w')
+        for key in ('guide.window', 'guide.stash', 'guide.start', 'guide.link'):
+            self.tr(ttk.Label(self.guide, text='', style='Panel.TLabel', wraplength=900, justify='left'),
+                    key).pack(anchor='w', pady=(4, 0))
+        self.tr(ttk.Button(self.guide, text='', command=self.dismiss_guide), 'guide.close').pack(anchor='e', pady=(8, 0))
+        head = self.view_head = ttk.Frame(main)
         head.pack(fill='x')
         names = ttk.Frame(head)
         names.pack(side='left', anchor='sw')
@@ -1143,6 +1153,19 @@ class App(tk.Tk):
         self.refresh_inventory()
         self.status.set(t('tab.removed', name=tab['name']))
 
+    def refresh_guide(self):
+        """Show the first-run steps until closed, a tab registers or something is read."""
+        wanted = not self.guide_done and not self.profiles.data['tabs'] and not self.last_readings
+        if wanted and not self.guide.winfo_manager():
+            self.guide.pack(fill='x', pady=(0, 12), before=self.view_head)
+        elif not wanted and self.guide.winfo_manager():
+            self.guide.pack_forget()
+
+    def dismiss_guide(self):
+        self.guide_done = True
+        settings.write(guide_done=True)
+        self.refresh_guide()
+
     def link_reason_text(self):
         """Why the reading on screen is attached to no tab, in the player's words."""
         if self.active_layout_id is None:
@@ -1620,6 +1643,7 @@ class App(tk.Tk):
         self.refresh_cards(rows, prices, unit,
                            (f'≈ {amount:,.2f} {symbol}' if amount is not None else '—', overview))
         self.refresh_view(rows, prices, unit)
+        self.refresh_guide()
         if self.market_league == league:
             stamp = datetime.fromtimestamp(self.market['fetched']).strftime('%d/%m %H:%M')
             age = t('status.prices_expired') if time.time()-self.market['fetched'] > 7200 or self.market['stale'] else ''

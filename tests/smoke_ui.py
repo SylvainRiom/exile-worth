@@ -37,6 +37,12 @@ def main():
                 assert len(app.cards.winfo_children()) == 1, 'No preview card before anything is read'
                 assert app.all_view.winfo_manager() and not app.tab_view.winfo_manager()
                 assert app.view_title.get() == 'Whole stash'
+                # First run: the steps show until closed, and stay closed.
+                assert app.guide.winfo_manager(), 'The first-run guide shows'
+                app.dismiss_guide()
+                assert not app.guide.winfo_manager()
+                import json as _json
+                assert _json.loads((path/'settings.json').read_text('utf-8'))['guide_done'] is True
                 from tkinter import ttk
                 style = ttk.Style(app)
                 assert style.lookup('TCombobox','fieldbackground',('readonly',)) == '#192332'
@@ -188,11 +194,18 @@ def main():
                 assert len(app.store.valuations('Forbidden Rites')) == 1
                 app.mark_session()
                 assert app.store.active_session('Forbidden Rites')
+                assert not app.valuation_view.gains_box.winfo_manager(), 'Nothing to compare yet'
                 app.store.sync('Forbidden Rites','tab2',[Reading('C03','divine',3)])
                 app.refresh_inventory()
+                assert app.valuation_view.gains_box.winfo_manager(), 'An open session shows its gains'
                 app.mark_session()
                 assert app.store.active_session('Forbidden Rites') is None
                 assert '+1.00 div' in app.valuation_view.summary.get()
+                table = app.valuation_view.gains
+                gains = [[table.set(row, column) for column in ('item', 'before', 'after', 'change', 'value')]
+                         for row in table.get_children()]
+                assert gains == [['Divine Orb', '12', '13', '+1', '+1.00 div']], gains
+                assert app.valuation_view.gains_title.get().startswith('Last session'), app.valuation_view.gains_title.get()
                 app.valuation_view.mode.set('Fixed prices of the first displayed point')
                 app.valuation_view.choose(app.store.valuations('Forbidden Rites')[-1]['id'])
                 app.valuation_view.select()

@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from .i18n import t
-from .model import Reading, estimate_readings
+from .model import Reading, estimate_readings, item_changes
 
 MODE_KEYS = ('history.mode_current', 'history.mode_fixed')
 
@@ -94,11 +94,15 @@ class LineChart:
 
 
 class HistoryView(ttk.Frame):
-    def __init__(self, parent, mark_session):
+    def __init__(self, parent, mark_session, item_name=lambda item: item):
         super().__init__(parent, padding=16)
         self.points = []
         self.names = {}
+        self.item_name = item_name
         self.session_note = None
+        # The two points a session's gains compare: its start, then its end or
+        # the latest point while it is open (`refresh`).
+        self.session_span = None
         # The selected mode is held as a key: comparing display text would break
         # as soon as the language changes.
         self.mode_key = MODE_KEYS[0]
@@ -130,7 +134,23 @@ class HistoryView(ttk.Frame):
             self.tree.column(key, width=width)
         self.tree.pack(fill='both', expand=True)
         self.tree.bind('<<TreeviewSelect>>', self.select)
-        ttk.Label(self, textvariable=self.details, wraplength=1100, foreground='#a9b8ca').pack(anchor='w', pady=8)
+        # What the session gained and lost, item by item (`item_changes`).
+        self.gains_box = ttk.Frame(self)
+        self.gains_title = tk.StringVar()
+        ttk.Label(self.gains_box, textvariable=self.gains_title, foreground='#a9b8ca').pack(anchor='w', pady=(8, 4))
+        self.gains = ttk.Treeview(self.gains_box, columns=('item', 'before', 'after', 'change', 'value'),
+                                  show='headings', height=6)
+        self.gains_columns = [('item', 'gains.col_item', 300), ('before', 'gains.col_before', 110),
+                              ('after', 'gains.col_after', 110), ('change', 'gains.col_change', 110),
+                              ('value', 'gains.col_value', 140)]
+        for key, title, width in self.gains_columns:
+            self.gains.heading(key, text=t(title))
+            self.gains.column(key, width=width, anchor='w' if key == 'item' else 'e')
+        self.gains.tag_configure('gain', foreground='#83f0b6')
+        self.gains.tag_configure('loss', foreground='#ff9b8a')
+        self.gains.pack(fill='x')
+        self.details_label = ttk.Label(self, textvariable=self.details, wraplength=1100, foreground='#a9b8ca')
+        self.details_label.pack(anchor='w', pady=8)
 
     def mode_changed(self, *_):
         shown = self.mode.get()
@@ -148,16 +168,23 @@ class HistoryView(ttk.Frame):
         self.note.configure(text=t('history.note'))
         for key, title, _ in self.columns:
             self.tree.heading(key, text=t(title))
+        for key, title, _ in self.gains_columns:
+            self.gains.heading(key, text=t(title))
         self.render()
 
     def refresh(self, points, names, session, completed=None):
         self.points, self.names = points, names
         self.session_button.configure(text=t('history.session_end') if session else t('history.session_start'))
         self.session_note = None
+        self.session_span = None
         if session:
             self.session_note = t('history.session_open', time=self.local_time(session['time']))
+            if points and points[-1]['id'] != session['id']:
+                self.session_span = (session, points[-1], 'gains.title_open')
         elif completed:
             start, end = completed
+            if start:
+                self.session_span = (start, end, 'gains.title_done')
             if start:
                 initial, final = start['amount'], end['amount']
                 fixed = fixed_value(end, start['prices'])
@@ -193,7 +220,28 @@ class HistoryView(ttk.Frame):
         if self.session_note:
             self.summary.set(self.session_note)
         self.details.set(t('history.select_hint'))
+        self.render_gains()
         self.draw()
+
+    def render_gains(self):
+        """The session's gains, shown only while there is a session to compare."""
+        self.gains.delete(*self.gains.get_children())
+        if self.session_span is None:
+            self.gains_box.pack_forget()
+            return
+        start, end, title = self.session_span
+        changes = item_changes(start, end)
+        known = [value for *_, value in changes if value is not None]
+        self.gains_title.set(t(title, start=self.local_time(start['time']), end=self.local_time(end['time']),
+                               total=sum(known), count=len(changes)))
+        for item, before, after, change, value in changes:
+            self.gains.insert('', 'end', values=(
+                self.item_name(item), f'{before:,}', f'{after:,}', f'{change:+,}',
+                '—' if value is None else f'{value:+,.2f} div'), tags=('gain' if change > 0 else 'loss',))
+        if not changes:
+            self.gains.insert('', 'end', values=(t('gains.none'), '', '', '', ''))
+        if not self.gains_box.winfo_manager():
+            self.gains_box.pack(fill='x', before=self.details_label)
 
     def draw(self):
         self.line.show([datetime.fromisoformat(p['time']) for p in self.points], self.values(), 'div')

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from exile_worth.history_ui import fixed_value
-from exile_worth.model import Event, Reading, Store
+from exile_worth.model import Event, Reading, Store, item_changes
 
 
 class HistoryTests(unittest.TestCase):
@@ -18,6 +18,21 @@ class HistoryTests(unittest.TestCase):
     def tearDown(self):
         self.store.close()
         self.temp.cleanup()
+
+    def test_item_changes_sum_tabs_value_at_end_prices_and_keep_unpriced(self):
+        start = dict(rows=[['one', 'C01', 'exalted', 10, '', 0, 0], ['one', 'C02', 'chaos', 5, '', 0, 0],
+                           ['two', 'C01', 'relic', 1, '', 0, 0]], prices={'divine': 100, 'exalted': 2})
+        # Five exalted moved from tab one to tab two, three more farmed;
+        # the chaos are spent; a relic nobody prices is new.
+        end = dict(rows=[['one', 'C01', 'exalted', 5, '', 0, 0], ['two', 'C05', 'exalted', 8, '', 0, 0],
+                         ['two', 'C01', 'relic', 2, '', 0, 0], ['two', 'C09', None, None, '', 1, 0]],
+                   prices={'divine': 100, 'exalted': 4, 'chaos': 1})
+        changes = {item: rest for item, *rest in item_changes(start, end)}
+        self.assertEqual(changes['exalted'], [10, 13, 3, 3 * 4 / 100])
+        self.assertEqual(changes['chaos'], [5, 0, -5, -5 / 100])
+        self.assertEqual(changes['relic'], [1, 2, 1, None], 'Unpriced stays None, never zero')
+        self.assertEqual([entry[0] for entry in item_changes(start, end)], ['exalted', 'chaos', 'relic'])
+        self.assertEqual(item_changes(end, end), [])
 
     def test_prices_alone_make_a_point_and_old_values_are_frozen(self):
         self.store.record_valuation('A', self.market)

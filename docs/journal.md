@@ -1230,3 +1230,22 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **223 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
 
+## A lighter profiles file, session gains, a first-run guide — 26 September 2026
+
+- `profiles.json` weighed 9.6 MB, although its label and strip images take
+  1.5 MB: `indent=2` put each pixel value on its own line. A save took
+  0.26 s, sometimes on the Tk thread (removing or linking a tab). Written
+  compact: 1.24 MB in 0.02 s, read by every version, no migration.
+- Session gains: the history page showed a session's change in value but not
+  what changed. Every valuation keeps its rows, so `item_changes` compares
+  the session's start with its end (or the latest point while open), per
+  item across tabs, valued at the later point's prices.
+- A first-run guide on the stash page states the three conditions tracking
+  needs, most "it does not work" reports having come from one of them.
+- Other resolutions and missing reference captures stay open: both need real
+  captures, which the problem report now collects. Code signing is the
+  user's decision, as it is paid.
+- Released as 0.2.8.
+- Last validation: **224 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+
