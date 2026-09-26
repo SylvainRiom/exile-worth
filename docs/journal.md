@@ -1187,3 +1187,26 @@ not rewrite an entry to match later behaviour, add a new one.
   tab still reads with its saved layout when borders are refused, so `D2`
   has to be removed once; it will not register again.
 - Released as 0.2.5.
+
+## Delirium never recognised again — 26 September 2026
+
+- The tester's Abyss and Delirium tabs did not update. With the user's own
+  profiles on the real Delirium capture, `identify` refused the tab: only
+  25 % of the strips above its cells matched those stored at registration,
+  against 80 % required. The failing strips were the whole middle block,
+  DE04 to DE26, at 0.36 to 0.67, empty cells included; shifting them by up
+  to 4 px changed nothing and the grid sat exactly in place. The background
+  under those rows changed between sessions. The tab then rested on the OCR
+  of its title, which a short name rarely passes.
+- `observe`, which runs only on a structure the borders or the selector
+  confirmed, now first looks among the registered tabs of that family for
+  the selected tab's label (0.96, lead 0.04, as `identify`). On the user's
+  profiles: Delirium found again, Abyss, Ritual and Essences unchanged, and
+  no tab matched under another family or on another label.
+- Regression: `tests/test_identity.py` brightens Delirium's middle rows on
+  the real capture; the tab is found without OCR, and the test fails on the
+  previous code.
+- Released as 0.2.6.
+- Last validation: **220 tests passed**, `python -m tests.smoke_ui`,
+  `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
+

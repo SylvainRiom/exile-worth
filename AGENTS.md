@@ -250,7 +250,15 @@ beside it; a release lacking either asset is not offered.
   width within 6 px), never at its registration position. Requiring that
   position left every tab but the pinned currency one synchronised once and
   then stuck in the preview, resting on OCR of its title alone. A manually
-  drawn tab keeps its drawn rect.
+  drawn tab keeps its drawn rect (`tab_label_score`).
+- `identify` also demands that thin strips above the cells (`layout`, taken
+  at registration) still match. They follow the tab's background, which
+  changes between sessions: on the user's Delirium, the middle rows' strips
+  fell to 0.36–0.67 on unchanged empty cells, and the tab was never
+  recognised again. So `observe` first tries `match_label`: on a structure
+  the borders or the selector confirmed, a registered tab **of the same
+  family** whose label matches the selected one (0.96, lead 0.04) is that
+  tab, with no strip and no OCR. The title is read only when no label matches.
 - The selected tab is found at y=121, where lit tabs reach the bar's lower edge.
   Coloured tabs are all lit there, so `pick_selected_run` chooses the one whose
   colour matches the line under the bar (`TAB_COLOUR_MAX` 0.4: measured 0.13
@@ -495,7 +503,7 @@ Run these first; anything that does not match means something changed before you
 arrived, not that the numbers below are stale.
 
 ```
-python -m unittest discover -s tests   ->  218 tests, OK
+python -m unittest discover -s tests   ->  220 tests, OK
 python -m tests.smoke_ui               ->  OK, under a second
 python -m tests.margins                ->  79 decisions, none FAILS, 14 TIGHT
 ```

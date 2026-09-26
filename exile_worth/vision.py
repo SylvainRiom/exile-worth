@@ -351,6 +351,9 @@ class Profiles:
 
     def observe(self, frame, league, layout_id, ocr):
         """Register a confidently selected tab once, preserving its UUID later."""
+        known = self.match_label(frame, league, layout_id)
+        if known is not None:
+            return known, ''
         selected = active_tab(frame, ocr)
         if not selected:
             self.record_observe('active tab or side menu unreadable, or they disagree')
@@ -436,16 +439,13 @@ class Profiles:
         selected = selected_tab_rect(frame)
         for tab in self.data['tabs']:
             if tab['league'] == league:
-                # The tab bar scrolls: a tab's position depends on where the
-                # player came from (Delirium registered at x=181 was selected
-                # at x=466). Its label is compared where the selected tab is now.
-                follows = tab.get('auto_registered') or has_views(layout_for_tab(tab).id)
-                if follows and (selected is None or abs(selected[2]-tab['rect'][2]) > 6):
+                score = self.tab_label_score(frame, selected, tab)
+                if score is None:
                     continue
                 # Views of one tab have different grids. Their stable outer tab
                 # label identifies the parent; the current view is detected separately.
                 if has_views(layout_for_tab(tab).id):
-                    candidates.append((label_score(frame, selected, tab), tab))
+                    candidates.append((score, tab))
                     continue
                 layout = tab.get('layout') or {slot: ref['border'] for slot,ref in self.data['slots'].items()}
                 anchors = []
@@ -458,7 +458,7 @@ class Profiles:
                     anchors.append(similarity(crop(frame, (x-3,y-3,w+6,3)), np.array(border, np.uint8)))
                 if len(anchors) < 5 or sum(s > .80 for s in anchors) / len(anchors) < .8:
                     continue
-                candidates.append((label_score(frame, selected if follows else None, tab), tab))
+                candidates.append((score, tab))
         candidates.sort(key=lambda pair: pair[0], reverse=True)
         ranked = [(score, tab['name']) for score, tab in candidates]
         if not candidates or candidates[0][0] < .96:
@@ -472,6 +472,44 @@ class Profiles:
             return None, t('profile.ambiguous_identity')
         self.record_identity(f'matched {ranked[0][1]} ({ranked[0][0]:.4f})', ranked)
         return candidates[0][1], ''
+
+    @staticmethod
+    def tab_label_score(frame, selected, tab):
+        """The tab's stored label against the frame, None when it cannot be the tab.
+
+        The tab bar scrolls: a tab's position depends on where the player came
+        from (Delirium registered at x=181 was selected at x=466), so an
+        auto-registered or view-family tab is looked for where the selected
+        tab is now. A manually drawn tab keeps its drawn rect.
+        """
+        follows = tab.get('auto_registered') or has_views(layout_for_tab(tab).id)
+        if not follows:
+            return label_score(frame, None, tab)
+        if selected is None or abs(selected[2]-tab['rect'][2]) > 6:
+            return None
+        return label_score(frame, selected, tab)
+
+    def match_label(self, frame, league, layout_id):
+        """A registered tab of this structure whose label is the selected one.
+
+        For a frame whose structure the borders or the selector confirmed.
+        `identify` also demands that thin strips above the cells match those
+        stored at registration; on Delirium the background under its middle
+        rows changes between sessions (0.36 to 0.67 on unchanged empty cells),
+        and the tab was never recognised again. The structure is confirmed
+        here, so the label alone decides, with the same bar and lead.
+        """
+        selected = selected_tab_rect(frame)
+        family = layout_family(layout_id)
+        scored = sorted(((score, tab) for tab in self.data['tabs']
+                         if tab['league'] == league and layout_family(layout_for_tab(tab).id) == family
+                         for score in [self.tab_label_score(frame, selected, tab)] if score is not None),
+                        key=lambda pair: pair[0], reverse=True)
+        if not scored or scored[0][0] < .96 or len(scored) > 1 and scored[0][0]-scored[1][0] < .04:
+            return None
+        self.record_observe(f'label matched {scored[0][1]["name"]} ({scored[0][0]:.4f}) on a {layout_id} '
+                            f'confirmed by its structure')
+        return scored[0][1]
 
     def record_observe(self, verdict):
         if self.gate.passes('observe', verdict):
