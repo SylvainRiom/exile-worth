@@ -303,6 +303,13 @@ beside it; a release lacking either asset is not offered.
   0.12 — a selector contradicting a clearly better grid is refused.
   `App.resolve_layout` uses the manual choice, then the recognised saved profile,
   then automatic detection.
+- On borders alone, the best grid must lead the next by
+  `border_margin_min`: 0.12 for a Runes view (they share most borders), **0.35**
+  for every other stash. Real captures lead by 0.51 (Essences over
+  Currencies) to 0.90; a plain tab the user named `D2` was taken for Abyss at
+  0.714 with a lead of only 0.13–0.16, registered, and stayed "21 to check".
+  A registered tab whose borders are refused still reads with its saved
+  layout; the stricter margin only stops new, wrong registrations.
 - The matcher uses the reference PNGs, their transparency, several sizes and
   offsets. The counter area is masked when identifying the icon.
 - A **dark cell with no readable counter is empty**, even when an icon matches:
@@ -590,7 +597,10 @@ in the baseline and compared separately, and why that test must not be removed.
   no ground truth, so whether they now read as empty is unmeasured.
 - **Essences against Currencies is unverified on a real Currency capture**: on
   the Essences capture the Currency grid scores 0.486 (0.51 behind), but no real
-  Currency capture exists to measure the reverse.
+  Currency capture exists to measure the reverse. Essences clears the 0.35
+  single-view margin by 0.16, the narrowest of the real captures.
+- **The plain tab that was taken for Abyss has no capture.** Its numbers come
+  from the user's log only; a capture of `D2` would pin it as a fixture.
 - **One resolution is validated**: 1920×1080. Other resolutions and interface
   scales are unverified, and a non-16:9 capture is refused outright.
 - **Renamed or moved tabs**: re-association is handled for a unique label with the

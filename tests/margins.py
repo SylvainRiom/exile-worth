@@ -22,7 +22,7 @@ import numpy as np
 from exile_worth.icons import IconMatcher
 from exile_worth.layouts import LAYOUTS, aligned_slots
 from exile_worth.model import Reason
-from exile_worth.vision import (SELECTOR_LEAD_MIN, SELECTOR_LIT_MIN, Profiles, Scanner, crop,
+from exile_worth.vision import (border_margin_min, SELECTOR_LEAD_MIN, SELECTOR_LIT_MIN, Profiles, Scanner, crop,
                                 known_symbol, lit_rune_view, selected_tab_rect,
                                 symbol_reference)
 
@@ -96,7 +96,7 @@ def layout_margins(frame, expected, label):
     (best, winner), (second, runner) = scores[0], scores[1]
     return [
         Margin.of(f'{label}.border_score', best, BORDER_SCORE_MIN, f'{winner}'),
-        Margin.of(f'{label}.border_margin', best - second, BORDER_MARGIN_MIN,
+        Margin.of(f'{label}.border_margin', best - second, border_margin_min(winner),
                   f'{winner} over {runner} ({second:.3f})'),
     ]
 

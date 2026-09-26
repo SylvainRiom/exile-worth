@@ -621,6 +621,19 @@ COUNTER_RETRY_HEIGHT = 20
 # 2.3..3.7 % (AB01, AB05, AB09, DE13, DE23, B02); filled cells: 84 and 4.7 %
 # at the least. The bounds sit in the middle of both gaps.
 GHOST_P95_MAX = 78
+
+# How far the best grid must lead the next one on borders alone. The Runes
+# views share most of their borders (Runes over Kalguuran by 0.15) and keep
+# 0.12, with the view selector deciding when it is lit. Every other stash
+# leads by 0.51 or more on a real capture (Essences over Currencies; Currency
+# 0.73 in the user's log), while a plain tab the user named D2 was taken for
+# Abyss at 0.714, leading Essences by only 0.13 to 0.16, and registered.
+BORDER_MARGIN_MIN = .12
+SINGLE_VIEW_MARGIN_MIN = .35
+
+
+def border_margin_min(layout_id):
+    return BORDER_MARGIN_MIN if layout_id in RUNE_PAGES else SINGLE_VIEW_MARGIN_MIN
 GHOST_BRIGHT_MAX = .042
 
 # The most colour a counter glyph may carry (mean max-min of its pixels).
@@ -777,14 +790,15 @@ class Scanner:
             self.record_layout(f'{lit}; rejected: grid {scores[view]:.3f}, best {best[1]} '
                                f'{best[0]:.3f}, other stashes {foreign:.3f}', structures)
             return None
-        if best[0] >= .55 and best[0]-runner[0] >= .12:
+        required = border_margin_min(best[1])
+        if best[0] >= .55 and best[0]-runner[0] >= required:
             self.last_layout_basis = 'borders'
             self.record_layout(f'borders accepted {best[1]} '
-                               f'(score {best[0]:.3f} >= .55, margin {best[0]-runner[0]:.3f} >= .12)',
+                               f'(score {best[0]:.3f} >= .55, margin {best[0]-runner[0]:.3f} >= {required})',
                                structures)
             return best[1]
         reason = (f'score {best[0]:.3f} < .55' if best[0] < .55
-                  else f'margin over {runner[1]} only {best[0]-runner[0]:.3f} < .12')
+                  else f'margin over {runner[1]} only {best[0]-runner[0]:.3f} < {required}')
         if borders_only:
             self.record_layout(f'borders rejected: {reason}', structures)
             return None

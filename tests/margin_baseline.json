@@ -11,11 +11,11 @@
   "abyss_real.border_margin": {
     "detail": "abyss over idols (0.097)",
     "direction": "min",
-    "headroom": 0.7832,
+    "headroom": 0.5532,
     "kind": "margin",
     "measured": 0.9032,
     "name": "abyss_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "abyss_real.border_score": {
     "detail": "abyss",
@@ -119,11 +119,11 @@
   "breach_real.border_margin": {
     "detail": "breach over soul_cores (0.298)",
     "direction": "min",
-    "headroom": 0.5821,
+    "headroom": 0.3521,
     "kind": "margin",
     "measured": 0.7021,
     "name": "breach_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "breach_real.border_score": {
     "detail": "breach",
@@ -200,11 +200,11 @@
   "delirium_real.border_margin": {
     "detail": "delirium over ancient_augments (0.176)",
     "direction": "min",
-    "headroom": 0.7035,
+    "headroom": 0.4735,
     "kind": "margin",
     "measured": 0.8235,
     "name": "delirium_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "delirium_real.border_score": {
     "detail": "delirium",
@@ -308,11 +308,11 @@
   "essences_real.border_margin": {
     "detail": "essences over currency (0.486)",
     "direction": "min",
-    "headroom": 0.3935,
+    "headroom": 0.1635,
     "kind": "margin",
     "measured": 0.5135,
     "name": "essences_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "essences_real.border_score": {
     "detail": "essences",
@@ -371,11 +371,11 @@
   "expedition_real.border_margin": {
     "detail": "expedition over kalguuran (0.267)",
     "direction": "min",
-    "headroom": 0.6133,
+    "headroom": 0.3833,
     "kind": "margin",
     "measured": 0.7333,
     "name": "expedition_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "expedition_real.border_score": {
     "detail": "expedition",
@@ -569,11 +569,11 @@
   "ritual_real.border_margin": {
     "detail": "ritual over kalguuran (0.217)",
     "direction": "min",
-    "headroom": 0.6633,
+    "headroom": 0.4333,
     "kind": "margin",
     "measured": 0.7833,
     "name": "ritual_real.border_margin",
-    "threshold": 0.12
+    "threshold": 0.35
   },
   "ritual_real.border_score": {
     "detail": "ritual",

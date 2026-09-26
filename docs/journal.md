@@ -1171,3 +1171,19 @@ not rewrite an entry to match later behaviour, add a new one.
 - Last validation: **218 tests passed**, `python -m tests.smoke_ui`,
   `python -m tests.margins`: 79 decisions, no FAILS, 14 TIGHT.
 
+## A plain tab taken for Abyss — 26 September 2026
+
+- The tester still had problems with Abyss and Delirium. The user's log held
+  readings of Abyss with 0 of 21 cells identified, every one of them on a
+  tab the user named `D2`: borders gave Abyss 0.714 with Essences at 0.55 to
+  0.59 behind, a lead of 0.128 to 0.163 over the 0.12 required. A grid that
+  half-fits every stash, registered as an Abyss tab and "21 to check".
+- The 0.12 lead is sized for the Runes views, which share most borders. On
+  the real captures every other stash leads by 0.51 (Essences over
+  Currencies) to 0.90, and Currency by 0.73 in the user's log; the real
+  Abyss, partly covered, still led by 0.65. Stashes outside the Runes views
+  now need 0.35. The baseline's border margins were updated for it.
+- No capture of `D2` exists: its numbers come from the log. A registered
+  tab still reads with its saved layout when borders are refused, so `D2`
+  has to be removed once; it will not register again.
+- Released as 0.2.5.
